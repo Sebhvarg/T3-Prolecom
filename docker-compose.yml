@@ -1,0 +1,51 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      
+      - ./frontend:/app
+      
+      - /app/node_modules
+    command: npm run dev -- --host
+    environment:
+      - CHOKIDAR_USEPOLLING=true 
+    depends_on:
+      - backend
+
+  # Contenedor para el Backend (PHP + Apache)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:80"
+    volumes:
+      # Sincroniza el código del backend
+      - ./backend:/var/www/html
+    environment:
+      # Variables de entorno leídas por config/database.php
+      - DB_HOST=-
+      - DB_BASE=-
+      - DB_USER=-
+      - DB_PASSWORD=-
+    depends_on:
+      - db
+
+  # Contenedor para la Base de Datos (MySQL)
+  db:
+    image: mysql:8.0
+    ports:
+      - "3307:3306" 
+    environment:
+      MYSQL_DATABASE: -
+      MYSQL_ROOT_PASSWORD: -
+    volumes:
+      # Persistencia de los datos de la base de datos
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:
