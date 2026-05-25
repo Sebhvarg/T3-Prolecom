@@ -1,5 +1,8 @@
 FROM node:20-alpine
 
+# Actualizar paquetes base del sistema para mitigar vulnerabilidades reportadas
+RUN apk upgrade --no-cache
+
 WORKDIR /app
 
 # Copiar el manifiesto de dependencias
