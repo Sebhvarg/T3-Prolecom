@@ -6,13 +6,13 @@ services:
     ports:
       - "5173:5173"
     volumes:
-      
+      # Sincroniza los archivos locales para ver cambios en tiempo real
       - ./frontend:/app
-      
+      # Evita sobreescribir la carpeta node_modules local con la del contenedor o viceversa
       - /app/node_modules
-    command: npm run dev -- --host
+    command: yarn dev --host
     environment:
-      - CHOKIDAR_USEPOLLING=true 
+      - CHOKIDAR_USEPOLLING=true # Muy útil para el hot-reload en Windows con Docker
     depends_on:
       - backend
 
@@ -46,6 +46,8 @@ services:
     volumes:
       # Persistencia de los datos de la base de datos
       - db_data:/var/lib/mysql
+      # Inicialización automática de la base de datos
+      - ./backend/scripts:/docker-entrypoint-initdb.d
 
 volumes:
   db_data:

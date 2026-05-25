@@ -2,5 +2,3 @@
 .env
 composer.json
 composer.lock
-/scripts
-/tests

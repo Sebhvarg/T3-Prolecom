@@ -3,10 +3,10 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copiar el manifiesto de dependencias
-COPY package*.json ./
+COPY package.json yarn.lock* ./
 
 # Instalar las dependencias
-RUN npm install
+RUN yarn install
 
 # Copiar el resto del código del frontend
 COPY . .
@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 5173
 
 # Iniciar Vite exponiendo a la red interna de Docker
-CMD ["npm", "run", "dev", "--", "--host"]
+CMD ["yarn", "dev", "--host"]
