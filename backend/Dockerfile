@@ -12,10 +12,12 @@ RUN docker-php-ext-install pdo pdo_mysql
 # Configurar para que la variable global $_ENV lea correctamente el entorno
 RUN echo "variables_order = \"EGPCS\"" > /usr/local/etc/php/conf.d/env.ini
 
-# Cambiar el DocumentRoot de Apache a la carpeta public/ y establecer ServerName para evitar warnings
+# Cambiar el DocumentRoot de Apache y habilitar .htaccess (AllowOverride All)
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
+
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
 # Instalar Composer
