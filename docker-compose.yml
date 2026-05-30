@@ -1,39 +1,49 @@
 services:
+  # Contenedor para el Frontend (React + Vite)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      target: development
     ports:
       - "5173:5173"
     volumes:
-      # Sincroniza los archivos locales para ver cambios en tiempo real
       - ./frontend:/app
-      # Evita sobreescribir la carpeta node_modules local con la del contenedor o viceversa
       - /app/node_modules
-    command: yarn dev --host
     environment:
-      - CHOKIDAR_USEPOLLING=true # Muy útil para el hot-reload en Windows con Docker
+      - CHOKIDAR_USEPOLLING=--
+      - VITE_API_URL=--
+      - VITE_STORAGE_KEY=---
+    restart: always
+    networks:
+      - prolecom_network
     depends_on:
-      - backend
+      backend:
+        condition: service_started
 
   # Contenedor para el Backend (PHP + Apache)
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: development
     ports:
       - "8000:80"
     volumes:
-      # Sincroniza el código del backend
       - ./backend:/var/www/html
     environment:
-      # Variables de entorno leídas por config/database.php
-      - DB_HOST=-
-      - DB_BASE=-
-      - DB_USER=-
-      - DB_PASSWORD=-
+      - DB_HOST=--
+      - DB_BASE=--
+      - DB_USER=--
+      - DB_PASSWORD=--
+      - JWT_SECRET=--
+      - JWT_EXPIRATION=--
+    restart: always
+    networks:
+      - prolecom_network
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   # Contenedor para la Base de Datos (MySQL)
   db:
@@ -41,13 +51,32 @@ services:
     ports:
       - "3307:3306" 
     environment:
-      MYSQL_DATABASE: -
-      MYSQL_ROOT_PASSWORD: -
+      MYSQL_DATABASE: ---
+      MYSQL_ROOT_PASSWORD: ---
     volumes:
-      # Persistencia de los datos de la base de datos
       - db_data:/var/lib/mysql
-      # Inicialización automática de la base de datos
       - ./backend/scripts:/docker-entrypoint-initdb.d
+    restart: always
+    networks:
+      - prolecom_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Herramienta de gestión de base de datos
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    networks:
+      - prolecom_network
+
+networks:
+  prolecom_network:
+    driver: bridge
 
 volumes:
   db_data:

@@ -14,7 +14,7 @@ function verificarToken() {
     }
 
     $token = str_replace('Bearer ', '', $authHeader);
-    $secretKey = $_ENV['JWT_SECRET'] ?? 'default_secret';
+    $secretKey = $_ENV['JWT_SECRET'] ?? getenv('JWT_SECRET');
 
     try {
         $decoded = JWT::decode($token, new Key($secretKey, 'HS256'));

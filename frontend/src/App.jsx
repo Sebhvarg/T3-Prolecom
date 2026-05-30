@@ -3,12 +3,12 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './routes/PrivateRoute';
 import LoginPage from './pages/LoginPage';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import StudentDashboard from './pages/estudiante/StudentDashboard';
 
-const AdminDashboard = () => <h1>Panel de Administrador</h1>;
 const ModeradorDashboard = () => <h1>Panel de Moderador</h1>;
 const ProfesorDashboard = () => <h1>Panel de Profesor</h1>;
 const AyudanteDashboard = () => <h1>Panel de Ayudante</h1>;
-const EstudianteDashboard = () => <h1>Panel de Estudiante</h1>;
 
 function App() {
   return (
@@ -19,7 +19,7 @@ function App() {
           
           {/* Rutas protegidas */}
           <Route element={<PrivateRoute allowedRoles={[1]} />}>
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin" element={<AdminDashboard />} />
           </Route>
           
           <Route element={<PrivateRoute allowedRoles={[2]} />}>
@@ -31,11 +31,15 @@ function App() {
           </Route>
 
           <Route element={<PrivateRoute allowedRoles={[4]} />}>
-            <Route path="/ayudante/dashboard" element={<AyudanteDashboard />} />
+            <Route path="/soporte/dashboard" element={<h1>Panel de Soporte</h1>} />
           </Route>
 
           <Route element={<PrivateRoute allowedRoles={[5]} />}>
-            <Route path="/estudiante/dashboard" element={<EstudianteDashboard />} />
+            <Route path="/ayudante/dashboard" element={<AyudanteDashboard />} />
+          </Route>
+
+          <Route element={<PrivateRoute allowedRoles={[6]} />}>
+            <Route path="/dashboard/estudiante" element={<StudentDashboard />} />
           </Route>
 
           {/* Redirección por defecto */}

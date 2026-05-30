@@ -9,7 +9,7 @@ class AuthController {
 
     public function __construct($pdo) {
         $this->usuarioModel = new Usuario($pdo);
-        $this->secretKey = $_ENV['JWT_SECRET'] ?? 'default_secret'; // En producción usar .env
+        $this->secretKey = $_ENV['JWT_SECRET'] ?? getenv('JWT_SECRET'); // En producción usar .env
     }
 
     public function login() {
@@ -51,16 +51,17 @@ class AuthController {
             'Administrador' => 1,
             'Moderador'     => 2,
             'Profesor'      => 3,
-            'Ayudante'      => 4,
-            'Estudiante'    => 5
+            'Soporte'       => 4,
+            'Ayudante'      => 5,
+            'Estudiante'    => 6
         ];
-        $id_rol = $roleMapping[$row['rol']] ?? 5;
+        $id_rol = $roleMapping[$row['rol']] ?? 6;
 
         $payload = [
             'iat' => $issuedAt,
             'exp' => $expirationTime,
             'data' => [
-                'id' => $row['id'],
+                'id' => $row['idUsuario'],
                 'usuario' => $row['usuario'],
                 'rol' => $row['rol'],
                 'id_rol' => $id_rol
@@ -69,17 +70,33 @@ class AuthController {
 
         $jwt = JWT::encode($payload, $this->secretKey, 'HS256');
 
-        echo json_encode([
+        $responseData = [
             "message" => "Login exitoso",
             "token" => $jwt,
             "user" => [
-                "id" => $row['id'],
+                "id" => $row['idUsuario'],
                 "usuario" => $row['usuario'],
                 "email" => $row['email'],
                 "rol" => $row['rol'],
                 "id_rol" => $id_rol,
-                "estado" => $row['Estado']
+                "estado" => $row['estado'],
+                "rutas" => isset($row['rutas']) ? explode(';', $row['rutas']) : []
             ]
+        ];
+
+        // Si se solicita cifrado o por seguridad extra
+        $jsonResponse = json_encode($responseData);
+        
+        // Usamos una clave compartida para cifrar la respuesta (puedes usar la misma que el storage o una dedicada)
+        $encryptionKey = $_ENV['API_ENCRYPTION_KEY'];
+        $encryptionKey = str_pad($encryptionKey, 32, "\0"); // Asegurar que sea de 32 bytes para AES-256
+        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
+        $encrypted = openssl_encrypt($jsonResponse, 'aes-256-cbc', $encryptionKey, OPENSSL_RAW_DATA, $iv);
+        
+        // Devolvemos el IV + el dato cifrado en base64
+        echo json_encode([
+            "protected" => true,
+            "payload" => base64_encode($iv . $encrypted)
         ]);
     }
 }
