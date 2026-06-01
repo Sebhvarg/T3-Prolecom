@@ -11,8 +11,8 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - CHOKIDAR_USEPOLLING=--
-      - VITE_API_URL=--
+      - CHOKIDAR_USEPOLLING=true 
+      - VITE_API_URL=http://localhost:8000/api
       - VITE_STORAGE_KEY=---
     restart: always
     networks:
@@ -32,12 +32,15 @@ services:
     volumes:
       - ./backend:/var/www/html
     environment:
+      - DB_CONNECTION=--
       - DB_HOST=--
-      - DB_BASE=--
-      - DB_USER=--
+      - DB_PORT=--
+      - DB_DATABASE=--
+      - DB_USERNAME=--
       - DB_PASSWORD=--
-      - JWT_SECRET=--
-      - JWT_EXPIRATION=--
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - APP_URL=---
     restart: always
     networks:
       - prolecom_network
@@ -51,8 +54,8 @@ services:
     ports:
       - "3307:3306" 
     environment:
-      MYSQL_DATABASE: ---
-      MYSQL_ROOT_PASSWORD: ---
+      MYSQL_DATABASE: prolecom
+      MYSQL_ROOT_PASSWORD: root
     volumes:
       - db_data:/var/lib/mysql
       - ./backend/scripts:/docker-entrypoint-initdb.d
@@ -80,3 +83,5 @@ networks:
 
 volumes:
   db_data:
+
+ 

@@ -3,3 +3,10 @@ dist
 .env
 .git
 .gitignore
+.editorconfig
+.vscode
+README.md
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+.eslintcache

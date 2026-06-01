@@ -1,4 +1,10 @@
 vendor
-.env
 .git
-.gitignore
+.env
+storage/framework/cache/data/**
+storage/framework/sessions/**
+storage/framework/views/**
+storage/logs/**
+node_modules
+npm-debug.log
+yarn-error.log

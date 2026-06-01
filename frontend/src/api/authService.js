@@ -10,7 +10,7 @@ export const authService = {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ user, password }),
+        body: JSON.stringify({ login: user, password }),
       });
 
       let data = await response.json();
