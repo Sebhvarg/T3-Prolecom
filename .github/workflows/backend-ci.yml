@@ -27,6 +27,9 @@ jobs:
         extensions: mbstring, pdo, pdo_mysql, openssl
         coverage: xdebug
 
+    - name: Copy .env
+      run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+
     - name: Install dependencies
       run: composer install
 
