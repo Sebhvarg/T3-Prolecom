@@ -45,7 +45,7 @@ export const storage = {
   // Descifrar respuestas protegidas del servidor (AES-256-CBC de PHP)
   decryptPayload: (base64Data) => {
     try {
-      const keyStr = import.meta.env.VITE_STORAGE_KEY ;
+      const keyStr = import.meta.env.VITE_STORAGE_KEY;
       
       // La clave en PHP se rellenó con \0 hasta 32 bytes (AES-256)
       // En JS lo hacemos con Utf8

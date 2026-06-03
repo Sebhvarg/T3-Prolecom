@@ -14,7 +14,18 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Extensiones de PHP requeridas por Laravel
-RUN install-php-extensions pdo pdo_mysql mbstring zip exif pcntl bcmath gd
+RUN install-php-extensions pdo pdo_mysql mbstring zip exif pcntl bcmath gd opcache
+
+# Configurar OPcache para desarrollo (rápido y con validación de cambios al instante)
+RUN { \
+    echo 'opcache.enable=1'; \
+    echo 'opcache.enable_cli=1'; \
+    echo 'opcache.memory_consumption=256'; \
+    echo 'opcache.interned_strings_buffer=16'; \
+    echo 'opcache.max_accelerated_files=20000'; \
+    echo 'opcache.revalidate_freq=0'; \
+    echo 'opcache.validate_timestamps=1'; \
+} > /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini
 
 # Configuración de Apache para apuntar a la carpeta /public de Laravel
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
