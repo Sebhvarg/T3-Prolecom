@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import { createContext, useState, useContext, useEffect } from 'react';
 import { authService } from '../api/authService';
 import { storage } from '../utils/crypto';
 import AlertModal from '../components/ui/AlertModal';
@@ -9,6 +9,13 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showTamperModal, setShowTamperModal] = useState(false);
+
+  const handleTamper = () => {
+    authService.logout();
+    setUser(null);
+    setShowTamperModal(true);
+    setLoading(false);
+  };
 
   useEffect(() => {
     const checkIntegrity = () => {
@@ -40,26 +47,15 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener('storage', () => {});
   }, []);
 
-  const handleTamper = () => {
-    authService.logout();
-    setUser(null);
-    setShowTamperModal(true);
-    setLoading(false);
-  };
-
   const login = async (username, password) => {
-    try {
-      const data = await authService.login(username, password);
-      storage.set('token', data.token);
-      storage.set('user', data.user);
-      if (data.user.rutas) {
-        storage.set('rutas', data.user.rutas);
-      }
-      setUser(data.user);
-      return data.user;
-    } catch (error) {
-      throw error;
+    const data = await authService.login(username, password);
+    storage.set('token', data.token);
+    storage.set('user', data.user);
+    if (data.user.rutas) {
+      storage.set('rutas', data.user.rutas);
     }
+    setUser(data.user);
+    return data.user;
   };
 
   const logout = () => {
@@ -79,4 +75,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);

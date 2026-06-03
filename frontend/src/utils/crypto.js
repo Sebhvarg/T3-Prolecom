@@ -32,7 +32,7 @@ export const storage = {
       } catch {
         return decrypted;
       }
-    } catch (error) {
+    } catch {
       console.error('Data tampered or invalid:', key);
       return 'TAMPERED';
     }

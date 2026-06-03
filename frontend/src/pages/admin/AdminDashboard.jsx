@@ -1,4 +1,3 @@
-import React from 'react';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { Clock, Users, Database, Shield, ArrowUpRight, AlertTriangle } from 'lucide-react';

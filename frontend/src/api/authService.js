@@ -4,30 +4,26 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
 export const authService = {
   login: async (user, password) => {
-    try {
-      const response = await fetch(`${API_URL}/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ login: user, password }),
-      });
+    const response = await fetch(`${API_URL}/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ login: user, password }),
+    });
 
-      let data = await response.json();
+    let data = await response.json();
 
-      // Si la respuesta está protegida, la desciframos
-      if (data && data.protected) {
-        data = storage.decryptPayload(data.payload);
-      }
-
-      if (!response.ok || !data) {
-        throw new Error(data?.error || 'ERROR_LOGIN');
-      }
-
-      return data;
-    } catch (error) {
-      throw error;
+    // Si la respuesta está protegida, la desciframos
+    if (data && data.protected) {
+      data = storage.decryptPayload(data.payload);
     }
+
+    if (!response.ok || !data) {
+      throw new Error(data?.error || 'ERROR_LOGIN');
+    }
+
+    return data;
   },
 
   logout: () => {

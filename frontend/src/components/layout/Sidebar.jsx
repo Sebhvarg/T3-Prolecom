@@ -1,16 +1,12 @@
-import React from 'react';
 import { Home, Settings, LogOut, BookOpen, MessageSquare } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { authService } from '../../api/authService';
 import logo from '../../assets/Logo/logoHorizontal.webp';
 
 const Sidebar = () => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
-  const routes = authService.getRutas();
 
   const menuItems = [
     { name: 'Principal', path: user?.rol === 'Estudiante' ? '/dashboard/estudiante' : '/admin', icon: <Home size={20} />, show: true },
