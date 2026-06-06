@@ -1,4 +1,3 @@
-import React from 'react';
 import AdminDashboard from './admin/AdminDashboard';
 import StudentDashboard from './estudiante/StudentDashboard';
 import { useAuth } from '../context/AuthContext';
