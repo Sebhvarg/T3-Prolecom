@@ -2,13 +2,13 @@
 
 namespace Database\Factories;
 
-use App\Models\Usuario;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * @extends Factory<Usuario>
+ * @extends Factory<User>
  */
 class UserFactory extends Factory
 {
@@ -17,7 +17,7 @@ class UserFactory extends Factory
      *
      * @var string
      */
-    protected $model = Usuario::class;
+    protected $model = User::class;
 
     /**
      * The current password being used by the factory.
@@ -38,6 +38,8 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'fechaDeNacimiento' => fake()->date(),
             'idEstado' => 1, // Activo
+            'avatar_path' => null,
+            'xp' => 0,
         ];
     }
 }

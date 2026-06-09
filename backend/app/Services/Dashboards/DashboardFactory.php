@@ -2,7 +2,7 @@
 
 namespace App\Services\Dashboards;
 
-use App\Models\Usuario;
+use App\Models\User;
 
 class DashboardFactory
 {
@@ -10,7 +10,7 @@ class DashboardFactory
      * Factory Method: Retorna la instancia de Dashboard correcta
      * basándose en los roles del Usuario.
      */
-    public static function create(Usuario $usuario): DashboardInterface
+    public static function create(User $usuario): DashboardInterface
     {
        
         $rolPrincipal = $usuario->roles->first();
