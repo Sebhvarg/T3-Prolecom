@@ -19,7 +19,8 @@ class DashboardFactory
        
         return match ($nombreRol) {
             'admin', 'administrador' => new AdminDashboard(),
-            'cliente', 'usuario', 'user' => new ClienteDashboard(),
+            'profesor' => new ProfesorDashboard($usuario),
+            'cliente', 'usuario', 'user', 'estudiante' => new ClienteDashboard(),
             default => new ClienteDashboard(), // Fallback por defecto
         };
     }
