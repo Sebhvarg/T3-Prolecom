@@ -42,6 +42,12 @@ class User extends Authenticatable
         return $this->belongsTo(EstadoCuenta::class, 'idEstado', 'idEstado');
     }
 
+    public function cursosInscritos()
+    {
+        return $this->belongsToMany(Curso::class, 'inscripciones_cursos', 'idUsuarioEstudiante', 'idCurso')
+                    ->withPivot('fechaInscripcion');
+    }
+
     protected function casts(): array
     {
         return [
