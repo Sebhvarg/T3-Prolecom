@@ -19,6 +19,8 @@ return new class extends Migration
             $table->string('password');
             $table->date('fechaDeNacimiento')->nullable();
             $table->unsignedBigInteger('idEstado')->default(1);
+            $table->string('avatar_path')->nullable();
+            $table->integer('xp')->default(0);
             $table->foreign('idEstado')->references('idEstado')->on('estadosCuenta')->onDelete('restrict');
             $table->timestamps(); // Esto añadirá created_at (fechaDeRegistro) y updated_at
         });

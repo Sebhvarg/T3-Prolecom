@@ -14,6 +14,6 @@ class EstadoCuenta extends Model
 
     public function usuarios()
     {
-        return $this->hasMany(Usuario::class, 'idEstado', 'idEstado');
+        return $this->hasMany(User::class, 'idEstado', 'idEstado');
     }
 }
