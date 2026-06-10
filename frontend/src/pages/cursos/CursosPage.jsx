@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { cursosService } from '../../api/cursosService';
-import { BookOpen, Plus, Edit2, Trash2, X, AlertCircle, CheckCircle } from 'lucide-react';
+import { BookOpen, Plus, Edit2, Trash2, X, AlertCircle, CheckCircle, Users, UserPlus, Filter } from 'lucide-react';
 
 const CursosPage = () => {
   const { user } = useAuth();
@@ -11,7 +11,7 @@ const CursosPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
-  // Modal states
+  // Modal states for Create/Edit Curso
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCurso, setEditingCurso] = useState(null);
   const [formData, setFormData] = useState({
@@ -21,11 +21,33 @@ const CursosPage = () => {
     tipo: 'público'
   });
 
+  // Matriculación y Filtros states
+  const [activeTab, setActiveTab] = useState('todos'); // 'todos', 'mis_cursos', 'disponibles'
+  const [filterLp, setFilterLp] = useState('');
+  const [filterTipo, setFilterTipo] = useState('');
+  const [lps, setLps] = useState([]);
+  
+  // Alumnos Modal states
+  const [isAlumnosModalOpen, setIsAlumnosModalOpen] = useState(false);
+  const [selectedCursoForAlumnos, setSelectedCursoForAlumnos] = useState(null);
+  const [alumnosMatriculados, setAlumnosMatriculados] = useState([]);
+  const [estudiantesSistema, setEstudiantesSistema] = useState([]);
+  const [selectedEstudianteId, setSelectedEstudianteId] = useState('');
+  const [alumnosLoading, setAlumnosLoading] = useState(false);
+
   const canManage = user?.rol === 'Administrador' || user?.rol === 'Profesor';
 
   const fetchCursos = useCallback(async () => {
+    setLoading(true);
     try {
-      const data = await cursosService.getCursos();
+      const params = {};
+      if (filterLp) params.lp = filterLp;
+      if (filterTipo) params.tipo = filterTipo;
+      if (!canManage) {
+        if (activeTab === 'mis_cursos') params.filtro = 'mis_cursos';
+        else if (activeTab === 'disponibles') params.filtro = 'disponibles';
+      }
+      const data = await cursosService.getCursos(params);
       setCursos(data);
     } catch (err) {
       console.error(err);
@@ -33,6 +55,20 @@ const CursosPage = () => {
     } finally {
       setLoading(false);
     }
+  }, [filterLp, filterTipo, activeTab, canManage]);
+
+  // Cargar todos los lenguajes una vez al inicio
+  useEffect(() => {
+    const loadAllLps = async () => {
+      try {
+        const all = await cursosService.getCursos();
+        const uniqueLps = [...new Set(all.map(c => c.lp).filter(Boolean))];
+        setLps(uniqueLps);
+      } catch (err) {
+        console.error('Error al cargar lenguajes:', err);
+      }
+    };
+    loadAllLps();
   }, []);
 
   useEffect(() => {
@@ -93,6 +129,101 @@ const CursosPage = () => {
     }
   };
 
+  // Student self-enrollment/unenrollment
+  const handleInscribir = async (idCurso) => {
+    setError('');
+    setSuccess('');
+    try {
+      await cursosService.inscribirCurso(idCurso);
+      setSuccess('Te has matriculado en el curso con éxito.');
+      fetchCursos();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Error al intentar matricularse.');
+    }
+  };
+
+  const handleDesmatricular = async (idCurso) => {
+    if (!window.confirm('¿Estás seguro de que deseas darte de baja de este curso?')) return;
+    setError('');
+    setSuccess('');
+    try {
+      await cursosService.desmatricularCurso(idCurso);
+      setSuccess('Te has dado de baja del curso con éxito.');
+      fetchCursos();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Error al intentar darse de baja.');
+    }
+  };
+
+  // Manual enrollment and view students (Professor/Admin)
+  const refreshAlumnosList = useCallback(async (cursoId) => {
+    setAlumnosLoading(true);
+    try {
+      const enrolled = await cursosService.getEstudiantesMatriculados(cursoId);
+      setAlumnosMatriculados(enrolled);
+    } catch (err) {
+      console.error(err);
+      setError('Error al actualizar la lista de alumnos.');
+    } finally {
+      setAlumnosLoading(false);
+    }
+  }, []);
+
+  const handleOpenAlumnosModal = async (curso) => {
+    setSelectedCursoForAlumnos(curso);
+    setIsAlumnosModalOpen(true);
+    setError('');
+    setSuccess('');
+    setSelectedEstudianteId('');
+    
+    refreshAlumnosList(curso.idCurso);
+    
+    try {
+      const allStudents = await cursosService.getEstudiantesSistema();
+      setEstudiantesSistema(allStudents);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMatricularManual = async (e) => {
+    e.preventDefault();
+    if (!selectedEstudianteId) return;
+    setError('');
+    setSuccess('');
+    
+    const student = estudiantesSistema.find(s => s.idUsuario.toString() === selectedEstudianteId.toString());
+    if (!student) return;
+    
+    try {
+      await cursosService.matricularManual(selectedCursoForAlumnos.idCurso, student.email);
+      setSuccess(`Estudiante ${student.nombreCompleto} matriculado con éxito.`);
+      setSelectedEstudianteId('');
+      refreshAlumnosList(selectedCursoForAlumnos.idCurso);
+      fetchCursos();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Error al matricular al estudiante.');
+    }
+  };
+
+  const handleDesmatricularEstudianteManual = async (idEstudiante) => {
+    if (!window.confirm('¿Estás seguro de que deseas desmatricular a este estudiante de este curso?')) return;
+    setError('');
+    setSuccess('');
+    try {
+      await cursosService.desmatricularCurso(selectedCursoForAlumnos.idCurso, idEstudiante);
+      setSuccess('Estudiante desmatriculado con éxito.');
+      refreshAlumnosList(selectedCursoForAlumnos.idCurso);
+      fetchCursos();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Error al desmatricular al estudiante.');
+    }
+  };
+
   return (
     <DashboardContainer title="Cursos" user={user}>
       <div className="flex justify-between items-center mb-8">
@@ -126,6 +257,69 @@ const CursosPage = () => {
         </div>
       )}
 
+      {/* Barra de Filtros y Navegación de Pestañas */}
+      <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Tabs for Students */}
+        {!canManage ? (
+          <div className="flex gap-2">
+            {[
+              { id: 'todos', label: 'Todos los cursos' },
+              { id: 'mis_cursos', label: 'Mis Cursos' },
+              { id: 'disponibles', label: 'Cursos Disponibles' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                  activeTab === tab.id
+                    ? 'bg-[#2c5364] text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-gray-500 font-medium">
+            <Filter size={18} />
+            <span>Filtros de administrador:</span>
+          </div>
+        )}
+
+        {/* Dropdowns for LP and Tipo */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl min-w-[140px]">
+            <span className="text-xs text-gray-400 font-bold uppercase">Lenguaje:</span>
+            <select
+              value={filterLp}
+              onChange={(e) => setFilterLp(e.target.value)}
+              className="bg-transparent text-sm font-semibold text-gray-700 outline-none w-full cursor-pointer"
+            >
+              <option value="">Todos</option>
+              {lps.map((lp) => (
+                <option key={lp} value={lp}>
+                  {lp}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl min-w-[140px]">
+            <span className="text-xs text-gray-400 font-bold uppercase">Tipo:</span>
+            <select
+              value={filterTipo}
+              onChange={(e) => setFilterTipo(e.target.value)}
+              className="bg-transparent text-sm font-semibold text-gray-700 outline-none w-full cursor-pointer"
+            >
+              <option value="">Todos</option>
+              <option value="público">Público</option>
+              <option value="privado">Privado</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2c5364]"></div>
@@ -134,7 +328,7 @@ const CursosPage = () => {
         <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
           <BookOpen className="mx-auto h-12 w-12 text-gray-300 mb-4" />
           <h3 className="text-lg font-bold text-gray-900">No hay cursos disponibles</h3>
-          <p className="text-gray-500 mt-1 max-w-sm mx-auto">Actualmente no se han creado cursos en la plataforma. ¡Comienza creando el primero!</p>
+          <p className="text-gray-500 mt-1 max-w-sm mx-auto">Actualmente no se han encontrado cursos en la plataforma con estos filtros.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -162,13 +356,22 @@ const CursosPage = () => {
                   </p>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-gray-50 flex justify-between items-center text-xs text-gray-400">
-                  <span className="font-medium text-gray-600">
-                    Profesor: <span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span>
-                  </span>
-                  
-                  {canManage && (
+                {/* Footer section based on permissions/roles */}
+                {canManage ? (
+                  <div className="mt-6 pt-4 border-t border-gray-50 flex justify-between items-center text-xs text-gray-400">
+                    <span className="font-medium text-gray-600">
+                      Profesor: <span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span>
+                    </span>
+                    
                     <div className="flex gap-2">
+                      <button
+                        onClick={() => handleOpenAlumnosModal(curso)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold rounded-lg transition-colors"
+                        title="Ver y Gestionar Alumnos"
+                      >
+                        <Users size={14} />
+                        <span>Alumnos</span>
+                      </button>
                       <button
                         onClick={() => handleOpenEditModal(curso)}
                         className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
@@ -184,8 +387,43 @@ const CursosPage = () => {
                         <Trash2 size={16} />
                       </button>
                     </div>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="mt-6 pt-4 border-t border-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
+                    <span className="font-medium text-gray-600">
+                      Profesor: <span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span>
+                    </span>
+                    
+                    {curso.esta_matriculado ? (
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 font-bold rounded-lg flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                          Inscrito
+                        </span>
+                        <button
+                          onClick={() => handleDesmatricular(curso.idCurso)}
+                          className="px-3 py-1.5 border border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-all"
+                          title="Darse de baja de este curso"
+                        >
+                          Darse de baja
+                        </button>
+                      </div>
+                    ) : (
+                      curso.tipo === 'público' ? (
+                        <button
+                          onClick={() => handleInscribir(curso.idCurso)}
+                          className="w-full sm:w-auto bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2 rounded-lg font-semibold shadow-sm transition-all hover:shadow-md"
+                        >
+                          Matricularme
+                        </button>
+                      ) : (
+                        <span className="px-3 py-1.5 bg-gray-50 text-gray-400 font-bold rounded-lg">
+                          Solo invitación
+                        </span>
+                      )
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -274,6 +512,126 @@ const CursosPage = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for Ver Alumnos */}
+      {isAlumnosModalOpen && selectedCursoForAlumnos && (
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm transition-opacity">
+          <div className="relative bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6 animate-zoom-in flex flex-col max-h-[90vh]">
+            <button
+              onClick={() => setIsAlumnosModalOpen(false)}
+              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="mb-4">
+              <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full uppercase tracking-wider">
+                {selectedCursoForAlumnos.lp}
+              </span>
+              <h3 className="text-2xl font-bold text-gray-900 mt-1">
+                Alumnos Matriculados
+              </h3>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Curso: <span className="font-semibold text-gray-800">{selectedCursoForAlumnos.titulo}</span>
+              </p>
+            </div>
+
+            {/* Form to Enroll Student Manually */}
+            <form onSubmit={handleMatricularManual} className="mb-6 p-4 bg-gray-50 border border-gray-100 rounded-2xl flex flex-col sm:flex-row gap-3 items-end">
+              <div className="flex-1 flex flex-col gap-1.5 w-full">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Matricular alumno manualmente</label>
+                <select
+                  required
+                  value={selectedEstudianteId}
+                  onChange={(e) => setSelectedEstudianteId(e.target.value)}
+                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364] text-gray-800 bg-white text-sm"
+                >
+                  <option value="">Selecciona un estudiante...</option>
+                  {estudiantesSistema
+                    .filter(est => !alumnosMatriculados.some(e => e.idUsuario === est.idUsuario))
+                    .map(est => (
+                      <option key={est.idUsuario} value={est.idUsuario}>
+                        {est.nombreCompleto} ({est.email})
+                      </option>
+                    ))
+                  }
+                </select>
+              </div>
+              <button
+                type="submit"
+                disabled={!selectedEstudianteId}
+                className="w-full sm:w-auto bg-[#2c5364] hover:bg-[#203a43] disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-3 rounded-xl font-semibold shadow-sm transition-all hover:shadow-md flex items-center justify-center gap-2 whitespace-nowrap text-sm h-[46px]"
+              >
+                <UserPlus size={18} />
+                <span>Matricular</span>
+              </button>
+            </form>
+
+            {/* List of Enrolled Students */}
+            <div className="flex-1 overflow-y-auto min-h-[200px] border border-gray-100 rounded-2xl">
+              {alumnosLoading ? (
+                <div className="flex justify-center items-center h-48">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2c5364]"></div>
+                </div>
+              ) : alumnosMatriculados.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <p className="font-semibold text-gray-500">No hay alumnos matriculados</p>
+                  <p className="text-xs mt-1">Utiliza el selector superior para inscribir al primero.</p>
+                </div>
+              ) : (
+                <table className="w-full border-collapse text-left text-sm text-gray-500">
+                  <thead className="bg-gray-50 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                    <tr>
+                      <th scope="col" className="px-6 py-3">Nombre</th>
+                      <th scope="col" className="px-6 py-3">Email</th>
+                      <th scope="col" className="px-6 py-3">F. Inscripción</th>
+                      <th scope="col" className="px-6 py-3 text-right">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {alumnosMatriculados.map((alumno) => (
+                      <tr key={alumno.idUsuario} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-6 py-4 font-semibold text-gray-900">{alumno.nombreCompleto}</td>
+                        <td className="px-6 py-4">{alumno.email}</td>
+                        <td className="px-6 py-4 text-xs font-medium text-gray-400">
+                          {alumno.pivot?.fechaInscripcion 
+                            ? new Date(alumno.pivot.fechaInscripcion).toLocaleDateString('es-ES', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })
+                            : 'Fecha no registrada'}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button
+                            onClick={() => handleDesmatricularEstudianteManual(alumno.idUsuario)}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Desmatricular Alumno"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsAlumnosModalOpen(false)}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-5 py-2.5 rounded-xl font-semibold transition-colors text-sm"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}

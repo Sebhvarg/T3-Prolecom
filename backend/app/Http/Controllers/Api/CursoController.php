@@ -200,7 +200,7 @@ class CursoController extends Controller
         ], 201);
     }
 
-    public function getEstudiantes(Request $request, $id)
+    public function getEstudiantes($id)
     {
         $curso = Curso::findOrFail($id);
         $estudiantes = $curso->estudiantes()

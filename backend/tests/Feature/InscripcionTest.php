@@ -13,6 +13,9 @@ class InscripcionTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const TIPO_PUBLICO = 'público';
+    private const ID_CURSO_PATH = '0.idCurso';
+
     protected $adminRol;
     protected $profesorRol;
     protected $estudianteRol;
@@ -50,7 +53,7 @@ class InscripcionTest extends TestCase
             'titulo' => 'Curso de Python',
             'descripcion' => 'Aprende Python',
             'lp' => 'Python',
-            'tipo' => 'público',
+            'tipo' => self::TIPO_PUBLICO,
             'idProfeCreador' => $professor->idUsuario
         ]);
 
@@ -104,7 +107,7 @@ class InscripcionTest extends TestCase
             'titulo' => 'Curso de JS',
             'descripcion' => 'Aprende JS',
             'lp' => 'JavaScript',
-            'tipo' => 'público',
+            'tipo' => self::TIPO_PUBLICO,
             'idProfeCreador' => $professor->idUsuario
         ]);
 
@@ -131,7 +134,7 @@ class InscripcionTest extends TestCase
             'titulo' => 'Curso de C#',
             'descripcion' => 'Aprende C#',
             'lp' => 'C#',
-            'tipo' => 'público',
+            'tipo' => self::TIPO_PUBLICO,
             'idProfeCreador' => $professor->idUsuario
         ]);
 
@@ -192,7 +195,7 @@ class InscripcionTest extends TestCase
             'titulo' => 'Curso de Python',
             'descripcion' => 'Aprende Python',
             'lp' => 'Python',
-            'tipo' => 'público',
+            'tipo' => self::TIPO_PUBLICO,
             'idProfeCreador' => $professor->idUsuario
         ]);
 
@@ -248,7 +251,7 @@ class InscripcionTest extends TestCase
             'titulo' => 'Curso A Python',
             'descripcion' => 'Python',
             'lp' => 'Python',
-            'tipo' => 'público',
+            'tipo' => self::TIPO_PUBLICO,
             'idProfeCreador' => $professor->idUsuario
         ]);
 
@@ -269,24 +272,24 @@ class InscripcionTest extends TestCase
         $response = $this->getJson('/api/cursos?filtro=mis_cursos');
         $response->assertStatus(200);
         $response->assertJsonCount(1);
-        $response->assertJsonPath('0.idCurso', $courseA->idCurso);
+        $response->assertJsonPath(self::ID_CURSO_PATH, $courseA->idCurso);
 
         // 2. Filter: disponibles
         $response = $this->getJson('/api/cursos?filtro=disponibles');
         $response->assertStatus(200);
         $response->assertJsonCount(1);
-        $response->assertJsonPath('0.idCurso', $courseB->idCurso);
+        $response->assertJsonPath(self::ID_CURSO_PATH, $courseB->idCurso);
 
         // 3. Filter: lp
         $response = $this->getJson('/api/cursos?lp=Python');
         $response->assertStatus(200);
         $response->assertJsonCount(1);
-        $response->assertJsonPath('0.idCurso', $courseA->idCurso);
+        $response->assertJsonPath(self::ID_CURSO_PATH, $courseA->idCurso);
 
         // 4. Filter: tipo
         $response = $this->getJson('/api/cursos?tipo=privado');
         $response->assertStatus(200);
         $response->assertJsonCount(1);
-        $response->assertJsonPath('0.idCurso', $courseB->idCurso);
+        $response->assertJsonPath(self::ID_CURSO_PATH, $courseB->idCurso);
     }
 }

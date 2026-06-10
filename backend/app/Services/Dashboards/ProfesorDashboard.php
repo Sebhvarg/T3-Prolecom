@@ -105,14 +105,12 @@ class ProfesorDashboard extends BaseDashboard
         });
 
         // Combinar y ordenar por más reciente
-        $actividades = collect()
+        return collect()
             ->merge($preguntas)
             ->merge($soluciones)
             ->sortByDesc('timestamp')
             ->take(4) // El mock muestra 4 actividades
             ->values()
             ->toArray();
-
-        return $actividades;
     }
 }
