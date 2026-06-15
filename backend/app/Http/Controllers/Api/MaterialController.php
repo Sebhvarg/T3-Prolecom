@@ -35,11 +35,14 @@ class MaterialController extends Controller
             return response()->json(['message' => 'No tienes permisos para agregar materiales a este curso'], 403);
         }
 
+        $allowedMimes = config('media.allowed_mimes', 'pdf,mp4,mov,avi,mkv,webm');
+        $maxSize = config('media.max_size', 30720);
+
         $validator = Validator::make($request->all(), [
             'titulo' => 'required|string|max:150',
             'descripcion' => 'nullable|string',
             'tipo' => 'required|in:PDF,video',
-            'archivo' => 'required|file|max:30720', // máximo 30MB
+            'archivo' => "required|file|mimes:{$allowedMimes}|max:{$maxSize}",
         ]);
 
         if ($validator->fails()) {
