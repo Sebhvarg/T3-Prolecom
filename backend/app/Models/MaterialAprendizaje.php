@@ -17,13 +17,12 @@ class MaterialAprendizaje extends Model
         'descripcion',
         'tipo',
         'enlaceArchivo',
-        'idTema',
         'idUsuarioCreador',
     ];
 
-    public function tema()
+    public function itemTema()
     {
-        return $this->belongsTo(Tema::class, 'idTema', 'idTema');
+        return $this->morphOne(ItemTema::class, 'itemable');
     }
 
     public function creador()

@@ -83,6 +83,19 @@ class TemaController extends Controller
             return response()->json(['message' => 'No tienes permisos para eliminar temas en este curso'], 403);
         }
 
+        // Limpiar archivos y registros polimórficos asociados
+        foreach ($tema->items as $item) {
+            if ($item->itemable) {
+                if ($item->itemable_type === \App\Models\MaterialAprendizaje::class) {
+                    if (\Illuminate\Support\Facades\Storage::disk('local')->exists($item->itemable->enlaceArchivo)) {
+                        \Illuminate\Support\Facades\Storage::disk('local')->delete($item->itemable->enlaceArchivo);
+                    }
+                }
+                $item->itemable->delete();
+            }
+            $item->delete();
+        }
+
         $tema->delete();
 
         return response()->json(['message' => 'Tema eliminado con éxito']);

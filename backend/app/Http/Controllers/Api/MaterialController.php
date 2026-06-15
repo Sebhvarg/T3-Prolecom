@@ -58,8 +58,16 @@ class MaterialController extends Controller
             'descripcion' => $request->descripcion,
             'tipo' => $request->tipo,
             'enlaceArchivo' => $path,
-            'idTema' => $tema->idTema,
             'idUsuarioCreador' => $user->idUsuario,
+        ]);
+
+        // Crear el item_tema para asociarlo polimórficamente al tema
+        $maxOrden = \App\Models\ItemTema::where('idTema', $tema->idTema)->max('orden') ?? 0;
+        \App\Models\ItemTema::create([
+            'idTema' => $tema->idTema,
+            'itemable_type' => MaterialAprendizaje::class,
+            'itemable_id' => $material->idMaterial,
+            'orden' => $maxOrden + 1,
         ]);
 
         return response()->json([
@@ -71,7 +79,11 @@ class MaterialController extends Controller
     public function destroy(Request $request, $id)
     {
         $material = MaterialAprendizaje::findOrFail($id);
-        $curso = $material->tema->curso;
+        $itemTema = $material->itemTema;
+        if (!$itemTema) {
+            return response()->json(['message' => 'El material no está asociado a ningún tema'], 404);
+        }
+        $curso = $itemTema->tema->curso;
         $user = $request->user();
 
         if (!$this->checkPermission($curso, $user)) {
@@ -83,6 +95,9 @@ class MaterialController extends Controller
             Storage::disk('local')->delete($material->enlaceArchivo);
         }
 
+        // Eliminar el item_tema asociado
+        $itemTema->delete();
+
         $material->delete();
 
         return response()->json(['message' => 'Material eliminado con éxito']);
@@ -92,7 +107,11 @@ class MaterialController extends Controller
     public function stream(Request $request, $id)
     {
         $material = MaterialAprendizaje::findOrFail($id);
-        $curso = $material->tema->curso;
+        $itemTema = $material->itemTema;
+        if (!$itemTema) {
+            return response()->json(['message' => 'El material no está asociado a ningún tema'], 404);
+        }
+        $curso = $itemTema->tema->curso;
         $user = $request->user();
 
         if (!$this->isAuthorizedToView($curso, $user)) {
@@ -113,7 +132,11 @@ class MaterialController extends Controller
     public function download(Request $request, $id)
     {
         $material = MaterialAprendizaje::findOrFail($id);
-        $curso = $material->tema->curso;
+        $itemTema = $material->itemTema;
+        if (!$itemTema) {
+            return response()->json(['message' => 'El material no está asociado a ningún tema'], 404);
+        }
+        $curso = $itemTema->tema->curso;
         $user = $request->user();
 
         if (!$this->isAuthorizedToView($curso, $user)) {

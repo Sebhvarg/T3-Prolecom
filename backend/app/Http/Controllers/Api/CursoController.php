@@ -40,12 +40,15 @@ class CursoController extends Controller
 
         $cursos = $query->get();
 
-        // Inyectar el flag esta_matriculado dinámicamente
+        // Inyectar el flag esta_matriculado y progreso dinámicamente
         if ($user) {
             $cursos->each(function ($curso) use ($user) {
-                $curso->esta_matriculado = $curso->estudiantes()
+                $matricula = $curso->estudiantes()
                     ->where('usuarios.idUsuario', $user->idUsuario)
-                    ->exists();
+                    ->first();
+                
+                $curso->esta_matriculado = !is_null($matricula);
+                $curso->progreso = $matricula ? floatval($matricula->pivot->progreso) : 0;
             });
         }
 
@@ -56,8 +59,17 @@ class CursoController extends Controller
     {
         $curso = Curso::with([
             'creador:idUsuario,nombreCompleto',
-            'temas.materiales.creador:idUsuario,nombreCompleto'
+            'temas.items.itemable'
         ])->findOrFail($id);
+
+        $curso->temas->each(function ($tema) {
+            $tema->items->each(function ($item) {
+                if ($item->itemable && method_exists($item->itemable, 'creador')) {
+                    $item->itemable->load('creador:idUsuario,nombreCompleto');
+                }
+            });
+        });
+
         return response()->json($curso);
     }
 
