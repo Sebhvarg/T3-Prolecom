@@ -23,8 +23,8 @@ class Tema extends Model
         return $this->belongsTo(Curso::class, 'idCurso', 'idCurso');
     }
 
-    public function materiales()
+    public function items()
     {
-        return $this->hasMany(MaterialAprendizaje::class, 'idTema', 'idTema');
+        return $this->hasMany(ItemTema::class, 'idTema', 'idTema')->orderBy('orden');
     }
 }
