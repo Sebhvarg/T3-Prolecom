@@ -6,7 +6,7 @@ import { cursosService } from '../../api/cursosService';
 import { storage } from '../../utils/crypto';
 import { 
   ArrowLeft, Plus, Trash2, FileText, Video, Play, Download, Eye, 
-  X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp 
+  X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code 
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -389,61 +389,109 @@ const CursoDetallePage = () => {
                 </div>
               </div>
 
-              {/* Lista de Materiales del Tema */}
               {expandedTemas[tema.idTema] && (
                 <div className="border-t border-gray-50 bg-gray-50/10 p-5 space-y-3">
-                  {tema.materiales?.length === 0 ? (
-                    <p className="text-gray-400 text-sm italic py-2">No hay materiales cargados en este tema.</p>
+                  {tema.items?.length === 0 ? (
+                    <p className="text-gray-400 text-sm italic py-2">No hay contenidos cargados en este tema.</p>
                   ) : (
-                    tema.materiales?.map((material) => (
-                      <div key={material.idMaterial} className="flex justify-between items-center bg-white border border-gray-100 p-4 rounded-xl shadow-xs hover:shadow-md transition-shadow">
-                        <div className="flex items-center gap-4.5">
-                          <div className={`p-2.5 rounded-xl ${
-                            material.tipo === 'PDF' ? 'bg-red-50 text-red-700' : 'bg-purple-50 text-purple-700'
-                          }`}>
-                            {material.tipo === 'PDF' ? <FileText size={20} /> : <Video size={20} />}
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-gray-900 text-sm md:text-base leading-snug">{material.titulo}</h4>
-                            {material.descripcion && <p className="text-gray-500 text-xs mt-0.5">{material.descripcion}</p>}
-                            <div className="flex items-center gap-3 mt-1.5 text-xxs text-gray-400 font-semibold uppercase tracking-wider">
-                              <span>Subido por {material.creador?.nombreCompleto || 'Profesor'}</span>
+                    tema.items?.map((item) => {
+                      const resource = item.itemable;
+                      if (!resource) return null;
+
+                      const isMaterial = item.itemable_type.includes('MaterialAprendizaje');
+                      const isDesafio = item.itemable_type.includes('Desafio');
+
+                      if (isMaterial) {
+                        return (
+                          <div key={item.idItemTema} className="flex justify-between items-center bg-white border border-gray-100 p-4 rounded-xl shadow-xs hover:shadow-md transition-shadow w-full">
+                            <div className="flex items-center gap-4.5">
+                              <div className={`p-2.5 rounded-xl ${
+                                resource.tipo === 'PDF' ? 'bg-red-50 text-red-700' : 'bg-purple-50 text-purple-700'
+                              }`}>
+                                {resource.tipo === 'PDF' ? <FileText size={20} /> : <Video size={20} />}
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-gray-900 text-sm md:text-base leading-snug">{resource.titulo}</h4>
+                                {resource.descripcion && <p className="text-gray-500 text-xs mt-0.5">{resource.descripcion}</p>}
+                                <div className="flex items-center gap-3 mt-1.5 text-xxs text-gray-400 font-semibold uppercase tracking-wider">
+                                  <span>Subido por {resource.creador?.nombreCompleto || 'Profesor'}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {/* Botón Ver Seguro */}
+                              <button
+                                onClick={() => handleViewSecure(resource)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors"
+                              >
+                                {resource.tipo === 'video' ? <Play size={14} /> : <Eye size={14} />}
+                                <span>{resource.tipo === 'video' ? 'Reproducir' : 'Ver'}</span>
+                              </button>
+                              
+                              {/* Botón Descargar Seguro */}
+                              <button
+                                onClick={() => handleDownloadSecure(resource)}
+                                className="p-1.5 border border-gray-100 hover:border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                                title="Descargar"
+                              >
+                                <Download size={14} />
+                              </button>
+
+                              {/* Botón Eliminar Material */}
+                              {canManage && (
+                                <button
+                                  onClick={() => handleDeleteMaterial(resource.idMaterial)}
+                                  className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Eliminar Material"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
                             </div>
                           </div>
-                        </div>
+                        );
+                      }
 
-                        <div className="flex items-center gap-2">
-                          {/* Botón Ver Seguro */}
-                          <button
-                            onClick={() => handleViewSecure(material)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors"
-                          >
-                            {material.tipo === 'video' ? <Play size={14} /> : <Eye size={14} />}
-                            <span>{material.tipo === 'video' ? 'Reproducir' : 'Ver'}</span>
-                          </button>
-                          
-                          {/* Botón Descargar Seguro */}
-                          <button
-                            onClick={() => handleDownloadSecure(material)}
-                            className="p-1.5 border border-gray-100 hover:border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                            title="Descargar"
-                          >
-                            <Download size={14} />
-                          </button>
+                      if (isDesafio) {
+                        return (
+                          <div key={item.idItemTema} className="flex justify-between items-center bg-white border border-gray-100 p-4 rounded-xl shadow-xs hover:shadow-md transition-shadow w-full">
+                            <div className="flex items-center gap-4.5">
+                              <div className="p-2.5 bg-amber-50 text-amber-700 rounded-xl">
+                                <Code size={20} />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-bold text-gray-900 text-sm md:text-base leading-snug">{resource.titulo}</h4>
+                                  <span className={`px-2 py-0.5 text-xxs font-bold rounded-md uppercase tracking-wider ${
+                                    resource.dificultad === 'Easy' ? 'bg-green-50 text-green-700' :
+                                    resource.dificultad === 'Medium' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'
+                                  }`}>
+                                    {resource.dificultad}
+                                  </span>
+                                </div>
+                                <p className="text-gray-500 text-xs mt-0.5 line-clamp-1">{resource.descripcionProblema}</p>
+                                <div className="flex items-center gap-3 mt-1.5 text-xxs text-gray-400 font-semibold uppercase tracking-wider">
+                                  <span>Desafío de programación • Creado por {resource.creador?.nombreCompleto || 'Profesor'}</span>
+                                </div>
+                              </div>
+                            </div>
 
-                          {/* Botón Eliminar Material */}
-                          {canManage && (
-                            <button
-                              onClick={() => handleDeleteMaterial(material.idMaterial)}
-                              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Eliminar Material"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => navigate(`/cursos/${id}/desafios/${resource.idDesafio}`)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-lg transition-colors"
+                              >
+                                <Play size={14} />
+                                <span>Resolver</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return null;
+                    })
                   )}
                 </div>
               )}
