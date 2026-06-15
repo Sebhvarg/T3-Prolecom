@@ -74,9 +74,30 @@ export const authService = {
       throw new Error('SESSION_EXPIRED');
     }
 
-    let data = await response.json();
-    if (data && data.protected) {
-      data = storage.decryptPayload(data.payload);
+    let data;
+    try {
+      data = await response.json();
+      if (data && data.protected) {
+        data = storage.decryptPayload(data.payload);
+      }
+    } catch (e) {
+      if (!response.ok) {
+        throw new Error(`Error del servidor (${response.status})`);
+      }
+    }
+
+    if (!response.ok) {
+      let errorMsg = 'Ocurrió un error inesperado';
+      if (data) {
+        if (data.errors) {
+          const firstKey = Object.keys(data.errors)[0];
+          const messages = data.errors[firstKey];
+          errorMsg = Array.isArray(messages) ? messages[0] : messages;
+        } else {
+          errorMsg = data.message || data.error || errorMsg;
+        }
+      }
+      throw new Error(errorMsg);
     }
     
     return data;

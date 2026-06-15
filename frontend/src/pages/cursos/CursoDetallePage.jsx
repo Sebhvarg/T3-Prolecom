@@ -127,6 +127,12 @@ const CursoDetallePage = () => {
       setError('Debes seleccionar un archivo para subir.');
       return;
     }
+    const maxSizeBytes = 100 * 1024 * 1024; // 100MB
+    if (selectedFile.size > maxSizeBytes) {
+      setError('El archivo excede el tamaño máximo permitido por el servidor (100MB).');
+      return;
+    }
+
     setError('');
     setActionLoading(true);
 
