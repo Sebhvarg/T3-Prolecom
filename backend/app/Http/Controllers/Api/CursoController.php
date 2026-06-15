@@ -54,7 +54,10 @@ class CursoController extends Controller
 
     public function show($id)
     {
-        $curso = Curso::with('creador:idUsuario,nombreCompleto')->findOrFail($id);
+        $curso = Curso::with([
+            'creador:idUsuario,nombreCompleto',
+            'temas.materiales.creador:idUsuario,nombreCompleto'
+        ])->findOrFail($id);
         return response()->json($curso);
     }
 
