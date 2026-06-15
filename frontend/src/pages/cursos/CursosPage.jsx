@@ -115,7 +115,7 @@ const CursosPage = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar este curso?')) return;
+    if (!globalThis.confirm('¿Estás seguro de que deseas eliminar este curso?')) return;
     setError('');
     setSuccess('');
 
@@ -144,7 +144,7 @@ const CursosPage = () => {
   };
 
   const handleDesmatricular = async (idCurso) => {
-    if (!window.confirm('¿Estás seguro de que deseas darte de baja de este curso?')) return;
+    if (!globalThis.confirm('¿Estás seguro de que deseas darte de baja de este curso?')) return;
     setError('');
     setSuccess('');
     try {
@@ -210,7 +210,7 @@ const CursosPage = () => {
   };
 
   const handleDesmatricularEstudianteManual = async (idEstudiante) => {
-    if (!window.confirm('¿Estás seguro de que deseas desmatricular a este estudiante de este curso?')) return;
+    if (!globalThis.confirm('¿Estás seguro de que deseas desmatricular a este estudiante de este curso?')) return;
     setError('');
     setSuccess('');
     try {
@@ -260,7 +260,12 @@ const CursosPage = () => {
       {/* Barra de Filtros y Navegación de Pestañas */}
       <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Tabs for Students */}
-        {!canManage ? (
+        {canManage ? (
+          <div className="flex items-center gap-2 text-gray-500 font-medium">
+            <Filter size={18} />
+            <span>Filtros de administrador:</span>
+          </div>
+        ) : (
           <div className="flex gap-2">
             {[
               { id: 'todos', label: 'Todos los cursos' },
@@ -279,11 +284,6 @@ const CursosPage = () => {
                 {tab.label}
               </button>
             ))}
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-gray-500 font-medium">
-            <Filter size={18} />
-            <span>Filtros de administrador:</span>
           </div>
         )}
 
@@ -391,37 +391,43 @@ const CursosPage = () => {
                 ) : (
                   <div className="mt-6 pt-4 border-t border-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
                     <span className="font-medium text-gray-600">
-                      Profesor: <span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span>
+                      Profesor:{' '}<span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span>
                     </span>
                     
-                    {curso.esta_matriculado ? (
-                      <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 font-bold rounded-lg flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                          Inscrito
-                        </span>
-                        <button
-                          onClick={() => handleDesmatricular(curso.idCurso)}
-                          className="px-3 py-1.5 border border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-all"
-                          title="Darse de baja de este curso"
-                        >
-                          Darse de baja
-                        </button>
-                      </div>
-                    ) : (
-                      curso.tipo === 'público' ? (
-                        <button
-                          onClick={() => handleInscribir(curso.idCurso)}
-                          className="w-full sm:w-auto bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2 rounded-lg font-semibold shadow-sm transition-all hover:shadow-md"
-                        >
-                          Matricularme
-                        </button>
-                      ) : (
+                    {(() => {
+                      if (curso.esta_matriculado) {
+                        return (
+                          <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 font-bold rounded-lg flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                              Inscrito
+                            </span>
+                            <button
+                              onClick={() => handleDesmatricular(curso.idCurso)}
+                              className="px-3 py-1.5 border border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-all"
+                              title="Darse de baja de este curso"
+                            >
+                              Darse de baja
+                            </button>
+                          </div>
+                        );
+                      }
+                      if (curso.tipo === 'público') {
+                        return (
+                          <button
+                            onClick={() => handleInscribir(curso.idCurso)}
+                            className="w-full sm:w-auto bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2 rounded-lg font-semibold shadow-sm transition-all hover:shadow-md"
+                          >
+                            Matricularme
+                          </button>
+                        );
+                      }
+                      return (
                         <span className="px-3 py-1.5 bg-gray-50 text-gray-400 font-bold rounded-lg">
                           Solo invitación
                         </span>
-                      )
-                    )}
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -542,8 +548,9 @@ const CursosPage = () => {
             {/* Form to Enroll Student Manually */}
             <form onSubmit={handleMatricularManual} className="mb-6 p-4 bg-gray-50 border border-gray-100 rounded-2xl flex flex-col sm:flex-row gap-3 items-end">
               <div className="flex-1 flex flex-col gap-1.5 w-full">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Matricular alumno manualmente</label>
+                <label htmlFor="select-estudiante" className="text-xs font-bold text-gray-500 uppercase tracking-wider">Matricular alumno manualmente</label>
                 <select
+                  id="select-estudiante"
                   required
                   value={selectedEstudianteId}
                   onChange={(e) => setSelectedEstudianteId(e.target.value)}
@@ -572,16 +579,23 @@ const CursosPage = () => {
 
             {/* List of Enrolled Students */}
             <div className="flex-1 overflow-y-auto min-h-[200px] border border-gray-100 rounded-2xl">
-              {alumnosLoading ? (
-                <div className="flex justify-center items-center h-48">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2c5364]"></div>
-                </div>
-              ) : alumnosMatriculados.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
-                  <p className="font-semibold text-gray-500">No hay alumnos matriculados</p>
-                  <p className="text-xs mt-1">Utiliza el selector superior para inscribir al primero.</p>
-                </div>
-              ) : (
+              {(() => {
+                if (alumnosLoading) {
+                  return (
+                    <div className="flex justify-center items-center h-48">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2c5364]"></div>
+                    </div>
+                  );
+                }
+                if (alumnosMatriculados.length === 0) {
+                  return (
+                    <div className="text-center py-12 text-gray-400">
+                      <p className="font-semibold text-gray-500">No hay alumnos matriculados</p>
+                      <p className="text-xs mt-1">Utiliza el selector superior para inscribir al primero.</p>
+                    </div>
+                  );
+                }
+                return (
                 <table className="w-full border-collapse text-left text-sm text-gray-500">
                   <thead className="bg-gray-50 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
                     <tr>
@@ -620,7 +634,8 @@ const CursosPage = () => {
                     ))}
                   </tbody>
                 </table>
-              )}
+                );
+              })()}
             </div>
 
             <div className="mt-6 flex justify-end">
