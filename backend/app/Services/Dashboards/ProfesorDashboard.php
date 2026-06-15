@@ -21,7 +21,7 @@ class ProfesorDashboard extends BaseDashboard
         return [
             ['name' => 'Principal', 'route' => '/profesor/dashboard'],
             ['name' => 'Cursos', 'route' => '/cursos'],
-            ['name' => 'Chat', 'route' => '/chat'],
+        
         ];
     }
 
