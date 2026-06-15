@@ -224,6 +224,128 @@ const CursosPage = () => {
     }
   };
 
+  const renderCursosList = () => {
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2c5364]"></div>
+        </div>
+      );
+    }
+    if (cursos.length === 0) {
+      return (
+        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <BookOpen className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+          <h3 className="text-lg font-bold text-gray-900">No hay cursos disponibles</h3>
+          <p className="text-gray-500 mt-1 max-w-sm mx-auto">Actualmente no se han encontrado cursos en la plataforma con estos filtros.</p>
+        </div>
+      );
+    }
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {cursos.map((curso) => (
+          <div key={curso.idCurso} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group h-full">
+            <div className="p-6 flex-1 flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-start mb-4">
+                  <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full uppercase tracking-wider">
+                    {curso.lp}
+                  </span>
+                  <span className={`px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wider ${
+                    curso.tipo === 'público' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+                  }`}>
+                    {curso.tipo}
+                  </span>
+                </div>
+
+                <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#2c5364] transition-colors line-clamp-2">
+                  {curso.titulo}
+                </h3>
+                
+                <p className="text-gray-500 mt-3 text-sm line-clamp-3 leading-relaxed">
+                  {curso.descripcion}
+                </p>
+              </div>
+
+              {/* Footer section based on permissions/roles */}
+              {canManage ? (
+                <div className="mt-6 pt-4 border-t border-gray-50 flex justify-between items-center text-xs text-gray-400">
+                  <span className="font-medium text-gray-600">
+                    Profesor: <span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span>
+                  </span>
+                  
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleOpenAlumnosModal(curso)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold rounded-lg transition-colors"
+                      title="Ver y Gestionar Alumnos"
+                    >
+                      <Users size={14} />
+                      <span>Alumnos</span>
+                    </button>
+                    <button
+                      onClick={() => handleOpenEditModal(curso)}
+                      className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                      title="Editar Curso"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(curso.idCurso)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Eliminar Curso"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-6 pt-4 border-t border-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
+                  <span className="font-medium text-gray-600">Profesor: <span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span></span>
+                  
+                  {(() => {
+                    if (curso.esta_matriculado) {
+                      return (
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                          <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 font-bold rounded-lg flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                            Inscrito
+                          </span>
+                          <button
+                            onClick={() => handleDesmatricular(curso.idCurso)}
+                            className="px-3 py-1.5 border border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-all"
+                            title="Darse de baja de este curso"
+                          >
+                            Darse de baja
+                          </button>
+                        </div>
+                      );
+                    }
+                    if (curso.tipo === 'público') {
+                      return (
+                        <button
+                          onClick={() => handleInscribir(curso.idCurso)}
+                          className="w-full sm:w-auto bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2 rounded-lg font-semibold shadow-sm transition-all hover:shadow-md"
+                        >
+                          Matricularme
+                        </button>
+                      );
+                    }
+                    return (
+                      <span className="px-3 py-1.5 bg-gray-50 text-gray-400 font-bold rounded-lg">
+                        Solo invitación
+                      </span>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <DashboardContainer title="Cursos" user={user}>
       <div className="flex justify-between items-center mb-8">
@@ -320,121 +442,7 @@ const CursosPage = () => {
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2c5364]"></div>
-        </div>
-      ) : cursos.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
-          <BookOpen className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-bold text-gray-900">No hay cursos disponibles</h3>
-          <p className="text-gray-500 mt-1 max-w-sm mx-auto">Actualmente no se han encontrado cursos en la plataforma con estos filtros.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {cursos.map((curso) => (
-            <div key={curso.idCurso} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group h-full">
-              <div className="p-6 flex-1 flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-start mb-4">
-                    <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full uppercase tracking-wider">
-                      {curso.lp}
-                    </span>
-                    <span className={`px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wider ${
-                      curso.tipo === 'público' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-                    }`}>
-                      {curso.tipo}
-                    </span>
-                  </div>
-
-                  <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#2c5364] transition-colors line-clamp-2">
-                    {curso.titulo}
-                  </h3>
-                  
-                  <p className="text-gray-500 mt-3 text-sm line-clamp-3 leading-relaxed">
-                    {curso.descripcion}
-                  </p>
-                </div>
-
-                {/* Footer section based on permissions/roles */}
-                {canManage ? (
-                  <div className="mt-6 pt-4 border-t border-gray-50 flex justify-between items-center text-xs text-gray-400">
-                    <span className="font-medium text-gray-600">
-                      Profesor: <span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span>
-                    </span>
-                    
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleOpenAlumnosModal(curso)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold rounded-lg transition-colors"
-                        title="Ver y Gestionar Alumnos"
-                      >
-                        <Users size={14} />
-                        <span>Alumnos</span>
-                      </button>
-                      <button
-                        onClick={() => handleOpenEditModal(curso)}
-                        className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Editar Curso"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(curso.idCurso)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Eliminar Curso"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mt-6 pt-4 border-t border-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
-                    <span className="font-medium text-gray-600">
-                      Profesor:{' '}<span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span>
-                    </span>
-                    
-                    {(() => {
-                      if (curso.esta_matriculado) {
-                        return (
-                          <div className="flex items-center gap-2 w-full sm:w-auto">
-                            <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 font-bold rounded-lg flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                              Inscrito
-                            </span>
-                            <button
-                              onClick={() => handleDesmatricular(curso.idCurso)}
-                              className="px-3 py-1.5 border border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-all"
-                              title="Darse de baja de este curso"
-                            >
-                              Darse de baja
-                            </button>
-                          </div>
-                        );
-                      }
-                      if (curso.tipo === 'público') {
-                        return (
-                          <button
-                            onClick={() => handleInscribir(curso.idCurso)}
-                            className="w-full sm:w-auto bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2 rounded-lg font-semibold shadow-sm transition-all hover:shadow-md"
-                          >
-                            Matricularme
-                          </button>
-                        );
-                      }
-                      return (
-                        <span className="px-3 py-1.5 bg-gray-50 text-gray-400 font-bold rounded-lg">
-                          Solo invitación
-                        </span>
-                      );
-                    })()}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {renderCursosList()}
 
       {/* Modal for Create/Edit */}
       {isModalOpen && (
