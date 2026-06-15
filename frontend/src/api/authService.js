@@ -8,6 +8,7 @@ export const authService = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
       body: JSON.stringify({ login: user, password }),
     });
@@ -51,6 +52,7 @@ export const authService = {
 
     const headers = {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
       ...options.headers,
     };
 

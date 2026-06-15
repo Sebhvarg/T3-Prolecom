@@ -1,8 +1,9 @@
 import { authService } from './authService';
 
 export const cursosService = {
-  getCursos: async () => {
-    return await authService.apiFetch('/cursos');
+  getCursos: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return await authService.apiFetch(`/cursos${query ? '?' + query : ''}`);
   },
 
   getCurso: async (id) => {
@@ -27,5 +28,34 @@ export const cursosService = {
     return await authService.apiFetch(`/cursos/${id}`, {
       method: 'DELETE',
     });
+  },
+
+  inscribirCurso: async (id) => {
+    return await authService.apiFetch(`/cursos/${id}/inscribir`, {
+      method: 'POST',
+    });
+  },
+
+  desmatricularCurso: async (id, idUsuarioEstudiante = null) => {
+    const options = { method: 'DELETE' };
+    if (idUsuarioEstudiante) {
+      options.body = JSON.stringify({ idUsuarioEstudiante });
+    }
+    return await authService.apiFetch(`/cursos/${id}/desmatricular`, options);
+  },
+
+  getEstudiantesMatriculados: async (id) => {
+    return await authService.apiFetch(`/cursos/${id}/estudiantes`);
+  },
+
+  matricularManual: async (id, email) => {
+    return await authService.apiFetch(`/cursos/${id}/matricular-manual`, {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  getEstudiantesSistema: async () => {
+    return await authService.apiFetch('/estudiantes');
   }
 };

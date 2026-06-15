@@ -8,8 +8,11 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const nonStudentPath = user?.rol === 'Profesor' ? '/profesor/dashboard' : '/admin';
+  const homePath = user?.rol === 'Estudiante' ? '/dashboard/estudiante' : nonStudentPath;
+
   const menuItems = [
-    { name: 'Principal', path: user?.rol === 'Estudiante' ? '/dashboard/estudiante' : '/admin', icon: <Home size={20} />, show: true },
+    { name: 'Principal', path: homePath, icon: <Home size={20} />, show: true },
     { name: 'Cursos', path: '/cursos', icon: <BookOpen size={20} />, show: true },
     { name: 'Chat', path: '/chat', icon: <MessageSquare size={20} />, show: true },
   ];

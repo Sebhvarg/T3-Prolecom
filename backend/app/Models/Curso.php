@@ -27,6 +27,7 @@ class Curso extends Model
 
     public function estudiantes()
     {
-        return $this->belongsToMany(User::class, 'inscripciones_cursos', 'idCurso', 'idUsuarioEstudiante');
+        return $this->belongsToMany(User::class, 'inscripciones_cursos', 'idCurso', 'idUsuarioEstudiante')
+                    ->withPivot('fechaInscripcion');
     }
 }

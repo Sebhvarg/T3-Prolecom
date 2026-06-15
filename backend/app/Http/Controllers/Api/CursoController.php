@@ -4,14 +4,51 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Curso;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class CursoController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $cursos = Curso::with('creador:idUsuario,nombreCompleto')->get();
+        $user = $request->user();
+        $query = Curso::query()->with('creador:idUsuario,nombreCompleto');
+
+        // Filtro por Lenguaje (LP)
+        if ($request->has('lp') && !empty($request->lp)) {
+            $query->where('lp', $request->lp);
+        }
+
+        // Filtro por Tipo (Público/Privado)
+        if ($request->has('tipo') && !empty($request->tipo)) {
+            $query->where('tipo', $request->tipo);
+        }
+
+        // Filtros especiales de matrícula
+        if ($request->has('filtro')) {
+            if ($request->filtro === 'mis_cursos') {
+                $query->whereHas('estudiantes', function ($q) use ($user) {
+                    $q->where('usuarios.idUsuario', $user->idUsuario);
+                });
+            } elseif ($request->filtro === 'disponibles') {
+                $query->whereDoesntHave('estudiantes', function ($q) use ($user) {
+                    $q->where('usuarios.idUsuario', $user->idUsuario);
+                });
+            }
+        }
+
+        $cursos = $query->get();
+
+        // Inyectar el flag esta_matriculado dinámicamente
+        if ($user) {
+            $cursos->each(function ($curso) use ($user) {
+                $curso->esta_matriculado = $curso->estudiantes()
+                    ->where('usuarios.idUsuario', $user->idUsuario)
+                    ->exists();
+            });
+        }
+
         return response()->json($cursos);
     }
 
@@ -52,7 +89,6 @@ class CursoController extends Controller
     {
         $curso = Curso::findOrFail($id);
 
-        // Validar que el usuario sea Administrador o el creador del curso
         $user = $request->user();
         $isAdmin = $user->roles->pluck('rol')->contains('Administrador');
         if (!$isAdmin && $curso->idProfeCreador !== $user->idUsuario) {
@@ -82,7 +118,6 @@ class CursoController extends Controller
     {
         $curso = Curso::findOrFail($id);
 
-        // Validar que el usuario sea Administrador o el creador del curso
         $user = $request->user();
         $isAdmin = $user->roles->pluck('rol')->contains('Administrador');
         if (!$isAdmin && $curso->idProfeCreador !== $user->idUsuario) {
@@ -92,5 +127,86 @@ class CursoController extends Controller
         $curso->delete();
 
         return response()->json(['message' => 'Curso eliminado con éxito']);
+    }
+
+    // LÓGICA DE MATRICULACIÓN (PB6)
+
+    public function inscribir(Request $request, $id)
+    {
+        $curso = Curso::findOrFail($id);
+        $user = $request->user();
+
+        if ($curso->tipo !== 'público') {
+            return response()->json(['message' => 'No puedes inscribirte a un curso privado'], 403);
+        }
+
+        if ($curso->estudiantes()->where('usuarios.idUsuario', $user->idUsuario)->exists()) {
+            return response()->json(['message' => 'Ya estás inscrito en este curso'], 400);
+        }
+
+        $curso->estudiantes()->attach($user->idUsuario, ['fechaInscripcion' => now()]);
+
+        return response()->json(['message' => 'Inscripción exitosa'], 201);
+    }
+
+    public function desmatricular(Request $request, $id)
+    {
+        $curso = Curso::findOrFail($id);
+        $user = $request->user();
+
+        $isAdminOrProfe = $user->roles->pluck('rol')->intersect(['Administrador', 'Profesor'])->isNotEmpty();
+
+        $targetUserId = $user->idUsuario;
+        if ($isAdminOrProfe && $request->has('idUsuarioEstudiante')) {
+            $targetUserId = $request->input('idUsuarioEstudiante');
+        }
+
+        if (!$curso->estudiantes()->where('usuarios.idUsuario', $targetUserId)->exists()) {
+            return response()->json(['message' => 'El estudiante no está inscrito en este curso'], 400);
+        }
+
+        $curso->estudiantes()->detach($targetUserId);
+
+        return response()->json(['message' => 'Desmatriculación exitosa']);
+    }
+
+    public function matricularManual(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email|exists:usuarios,email',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 400);
+        }
+
+        $curso = Curso::findOrFail($id);
+        $student = User::where('email', $request->email)->firstOrFail();
+
+        // Validar si ya está inscrito
+        if ($curso->estudiantes()->where('usuarios.idUsuario', $student->idUsuario)->exists()) {
+            return response()->json(['message' => 'El estudiante ya está inscrito en este curso'], 400);
+        }
+
+        $curso->estudiantes()->attach($student->idUsuario, ['fechaInscripcion' => now()]);
+
+        return response()->json([
+            'message' => 'Estudiante matriculado exitosamente',
+            'estudiante' => [
+                'idUsuario' => $student->idUsuario,
+                'nombreCompleto' => $student->nombreCompleto,
+                'email' => $student->email,
+            ]
+        ], 201);
+    }
+
+    public function getEstudiantes($id)
+    {
+        $curso = Curso::findOrFail($id);
+        $estudiantes = $curso->estudiantes()
+            ->select('usuarios.idUsuario', 'usuarios.nombreCompleto', 'usuarios.email')
+            ->get();
+
+        return response()->json($estudiantes);
     }
 }
