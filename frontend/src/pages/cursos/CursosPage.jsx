@@ -225,44 +225,6 @@ const CursosPage = () => {
     }
   };
 
-  const renderEnrollAction = (curso) => {
-    if (curso.esta_matriculado) {
-      return (
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <button
-            onClick={() => navigate(`/cursos/${curso.idCurso}`)}
-            className="px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-xs"
-          >
-            <BookOpen size={14} />
-            Ver contenido
-          </button>
-          <button
-            onClick={() => handleDesmatricular(curso.idCurso)}
-            className="px-3 py-1.5 border border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-all"
-            title="Darse de baja de este curso"
-          >
-            Darse de baja
-          </button>
-        </div>
-      );
-    }
-    if (curso.tipo === 'público') {
-      return (
-        <button
-          onClick={() => handleInscribir(curso.idCurso)}
-          className="w-full sm:w-auto bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2 rounded-lg font-semibold shadow-sm transition-all hover:shadow-md"
-        >
-          Matricularme
-        </button>
-      );
-    }
-    return (
-      <span className="px-3 py-1.5 bg-gray-50 text-gray-400 font-bold rounded-lg">
-        Solo invitación
-      </span>
-    );
-  };
-
   const renderCursosList = () => {
     if (loading) {
       return (
@@ -292,6 +254,7 @@ const CursosPage = () => {
             handleDelete={handleDelete}
             handleDesmatricular={handleDesmatricular}
             handleInscribir={handleInscribir}
+            navigate={navigate}
           />
         ))}
       </div>
@@ -630,7 +593,8 @@ const CursoCard = ({
   handleOpenEditModal,
   handleDelete,
   handleDesmatricular,
-  handleInscribir
+  handleInscribir,
+  navigate
 }) => {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group h-full">
@@ -690,15 +654,19 @@ const CursoCard = ({
           </div>
         ) : (
           <div className="mt-6 pt-4 border-t border-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
-            <span className="font-medium text-gray-600">Profesor: <span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span></span>
+            <span className="font-medium text-gray-600">Profesor:{' '}<span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span></span>
             
             {(() => {
               if (curso.esta_matriculado) {
                 return (
                   <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 font-bold rounded-lg flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Inscrito
-                    </span>
+                    <button
+                      onClick={() => navigate(`/cursos/${curso.idCurso}`)}
+                      className="px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-xs"
+                    >
+                      <BookOpen size={14} />
+                      Ver contenido
+                    </button>
                     <button
                       onClick={() => handleDesmatricular(curso.idCurso)}
                       className="px-3 py-1.5 border border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-all"
