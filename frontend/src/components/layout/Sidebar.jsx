@@ -1,4 +1,4 @@
-import { Home, Settings, LogOut, BookOpen, MessageSquare } from 'lucide-react';
+import { Home, Settings, LogOut, BookOpen } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logo from '../../assets/Logo/logoHorizontal.webp';
