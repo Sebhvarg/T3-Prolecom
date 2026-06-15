@@ -57,5 +57,10 @@ export const cursosService = {
 
   getEstudiantesSistema: async () => {
     return await authService.apiFetch('/estudiantes');
+  },
+
+  getLenguajes: async () => {
+    return await authService.apiFetch('/lenguajes');
   }
 };
+

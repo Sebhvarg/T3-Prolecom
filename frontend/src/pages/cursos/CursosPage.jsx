@@ -61,9 +61,8 @@ const CursosPage = () => {
   useEffect(() => {
     const loadAllLps = async () => {
       try {
-        const all = await cursosService.getCursos();
-        const uniqueLps = [...new Set(all.map(c => c.lp).filter(Boolean))];
-        setLps(uniqueLps);
+        const data = await cursosService.getLenguajes();
+        setLps(data || []);
       } catch (err) {
         console.error('Error al cargar lenguajes:', err);
       }
@@ -244,103 +243,16 @@ const CursosPage = () => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {cursos.map((curso) => (
-          <div key={curso.idCurso} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group h-full">
-            <div className="p-6 flex-1 flex flex-col justify-between">
-              <div>
-                <div className="flex justify-between items-start mb-4">
-                  <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full uppercase tracking-wider">
-                    {curso.lp}
-                  </span>
-                  <span className={`px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wider ${
-                    curso.tipo === 'público' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-                  }`}>
-                    {curso.tipo}
-                  </span>
-                </div>
-
-                <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#2c5364] transition-colors line-clamp-2">
-                  {curso.titulo}
-                </h3>
-                
-                <p className="text-gray-500 mt-3 text-sm line-clamp-3 leading-relaxed">
-                  {curso.descripcion}
-                </p>
-              </div>
-
-              {/* Footer section based on permissions/roles */}
-              {canManage ? (
-                <div className="mt-6 pt-4 border-t border-gray-50 flex justify-between items-center text-xs text-gray-400">
-                  <span className="font-medium text-gray-600">
-                    Profesor: <span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span>
-                  </span>
-                  
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleOpenAlumnosModal(curso)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold rounded-lg transition-colors"
-                      title="Ver y Gestionar Alumnos"
-                    >
-                      <Users size={14} />
-                      <span>Alumnos</span>
-                    </button>
-                    <button
-                      onClick={() => handleOpenEditModal(curso)}
-                      className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-                      title="Editar Curso"
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(curso.idCurso)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Eliminar Curso"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-6 pt-4 border-t border-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
-                  <span className="font-medium text-gray-600">Profesor: <span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span></span>
-                  
-                  {(() => {
-                    if (curso.esta_matriculado) {
-                      return (
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                          <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 font-bold rounded-lg flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                            Inscrito
-                          </span>
-                          <button
-                            onClick={() => handleDesmatricular(curso.idCurso)}
-                            className="px-3 py-1.5 border border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-all"
-                            title="Darse de baja de este curso"
-                          >
-                            Darse de baja
-                          </button>
-                        </div>
-                      );
-                    }
-                    if (curso.tipo === 'público') {
-                      return (
-                        <button
-                          onClick={() => handleInscribir(curso.idCurso)}
-                          className="w-full sm:w-auto bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2 rounded-lg font-semibold shadow-sm transition-all hover:shadow-md"
-                        >
-                          Matricularme
-                        </button>
-                      );
-                    }
-                    return (
-                      <span className="px-3 py-1.5 bg-gray-50 text-gray-400 font-bold rounded-lg">
-                        Solo invitación
-                      </span>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-          </div>
+          <CursoCard
+            key={curso.idCurso}
+            curso={curso}
+            canManage={canManage}
+            handleOpenAlumnosModal={handleOpenAlumnosModal}
+            handleOpenEditModal={handleOpenEditModal}
+            handleDelete={handleDelete}
+            handleDesmatricular={handleDesmatricular}
+            handleInscribir={handleInscribir}
+          />
         ))}
       </div>
     );
@@ -420,8 +332,8 @@ const CursosPage = () => {
             >
               <option value="">Todos</option>
               {lps.map((lp) => (
-                <option key={lp} value={lp}>
-                  {lp}
+                <option key={lp.idLenguaje} value={lp.nombre}>
+                  {lp.nombre}
                 </option>
               ))}
             </select>
@@ -461,8 +373,9 @@ const CursosPage = () => {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-gray-700">Título del Curso</label>
+                <label htmlFor="titulo" className="text-sm font-semibold text-gray-700">Título del Curso</label>
                 <input
+                  id="titulo"
                   type="text"
                   required
                   placeholder="Ej. Introducción a Python"
@@ -473,8 +386,9 @@ const CursosPage = () => {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-gray-700">Descripción</label>
+                <label htmlFor="descripcion" className="text-sm font-semibold text-gray-700">Descripción</label>
                 <textarea
+                  id="descripcion"
                   required
                   rows={4}
                   placeholder="Detalles sobre lo que aprenderán los estudiantes..."
@@ -486,20 +400,27 @@ const CursosPage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold text-gray-700">Lenguaje / LP</label>
-                  <input
-                    type="text"
+                  <label htmlFor="lp" className="text-sm font-semibold text-gray-700">Lenguaje / LP</label>
+                  <select
+                    id="lp"
                     required
-                    placeholder="Ej. Python, JS"
-                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364] text-gray-800"
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364] text-gray-800 bg-white"
                     value={formData.lp}
                     onChange={(e) => setFormData({ ...formData, lp: e.target.value })}
-                  />
+                  >
+                    <option value="">Selecciona un lenguaje</option>
+                    {lps.map((lp) => (
+                      <option key={lp.idLenguaje} value={lp.nombre}>
+                        {lp.nombre}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold text-gray-700">Tipo de Curso</label>
+                  <label htmlFor="tipo" className="text-sm font-semibold text-gray-700">Tipo de Curso</label>
                   <select
+                    id="tipo"
                     className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364] text-gray-800 bg-white"
                     value={formData.tipo}
                     onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
@@ -659,6 +580,115 @@ const CursosPage = () => {
         </div>
       )}
     </DashboardContainer>
+  );
+};
+
+const CursoCard = ({
+  curso,
+  canManage,
+  handleOpenAlumnosModal,
+  handleOpenEditModal,
+  handleDelete,
+  handleDesmatricular,
+  handleInscribir
+}) => {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group h-full">
+      <div className="p-6 flex-1 flex flex-col justify-between">
+        <div>
+          <div className="flex justify-between items-start mb-4">
+            <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full uppercase tracking-wider">
+              {curso.lp}
+            </span>
+            <span className={`px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wider ${
+              curso.tipo === 'público' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+            }`}>
+              {curso.tipo}
+            </span>
+          </div>
+
+          <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#2c5364] transition-colors line-clamp-2">
+            {curso.titulo}
+          </h3>
+          
+          <p className="text-gray-500 mt-3 text-sm line-clamp-3 leading-relaxed">
+            {curso.descripcion}
+          </p>
+        </div>
+
+        {/* Footer section based on permissions/roles */}
+        {canManage ? (
+          <div className="mt-6 pt-4 border-t border-gray-50 flex justify-between items-center text-xs text-gray-400">
+            <span className="font-medium text-gray-600">
+              Profesor: <span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span>
+            </span>
+            
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleOpenAlumnosModal(curso)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold rounded-lg transition-colors"
+                title="Ver y Gestionar Alumnos"
+              >
+                <Users size={14} />
+                <span>Alumnos</span>
+              </button>
+              <button
+                onClick={() => handleOpenEditModal(curso)}
+                className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Editar Curso"
+              >
+                <Edit2 size={16} />
+              </button>
+              <button
+                onClick={() => handleDelete(curso.idCurso)}
+                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                title="Eliminar Curso"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-6 pt-4 border-t border-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
+            <span className="font-medium text-gray-600">Profesor: <span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span></span>
+            
+            {(() => {
+              if (curso.esta_matriculado) {
+                return (
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 font-bold rounded-lg flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Inscrito
+                    </span>
+                    <button
+                      onClick={() => handleDesmatricular(curso.idCurso)}
+                      className="px-3 py-1.5 border border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-all"
+                      title="Darse de baja de este curso"
+                    >
+                      Darse de baja
+                    </button>
+                  </div>
+                );
+              }
+              if (curso.tipo === 'público') {
+                return (
+                  <button
+                    onClick={() => handleInscribir(curso.idCurso)}
+                    className="w-full sm:w-auto bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2 rounded-lg font-semibold shadow-sm transition-all hover:shadow-md"
+                  >
+                    Matricularme
+                  </button>
+                );
+              }
+              return (
+                <span className="px-3 py-1.5 bg-gray-50 text-gray-400 font-bold rounded-lg">
+                  Solo invitación
+                </span>
+              );
+            })()}
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
