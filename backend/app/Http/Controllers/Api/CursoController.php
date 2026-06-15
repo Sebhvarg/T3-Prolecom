@@ -40,15 +40,12 @@ class CursoController extends Controller
 
         $cursos = $query->get();
 
-        // Inyectar el flag esta_matriculado y progreso dinámicamente
+        // Inyectar el flag esta_matriculado dinámicamente
         if ($user) {
             $cursos->each(function ($curso) use ($user) {
-                $matricula = $curso->estudiantes()
+                $curso->esta_matriculado = $curso->estudiantes()
                     ->where('usuarios.idUsuario', $user->idUsuario)
-                    ->first();
-                
-                $curso->esta_matriculado = !is_null($matricula);
-                $curso->progreso = $matricula ? floatval($matricula->pivot->progreso) : 0;
+                    ->exists();
             });
         }
 

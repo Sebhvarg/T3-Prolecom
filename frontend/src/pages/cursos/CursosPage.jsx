@@ -272,21 +272,6 @@ const CursosPage = () => {
                 <p className="text-gray-500 mt-3 text-sm line-clamp-3 leading-relaxed">
                   {curso.descripcion}
                 </p>
-
-                {(!canManage && curso.esta_matriculado) && (
-                  <div className="mt-4 animate-fade-in">
-                    <div className="flex justify-between items-center text-xs text-gray-500 mb-1">
-                      <span className="font-semibold text-gray-600">Progreso</span>
-                      <span className="font-bold text-[#2c5364]">{curso.progreso || 0}%</span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                      <div 
-                        className="bg-gradient-to-r from-[#203a43] to-[#2c5364] h-full rounded-full transition-all duration-500" 
-                        style={{ width: `${curso.progreso || 0}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Footer section based on permissions/roles */}

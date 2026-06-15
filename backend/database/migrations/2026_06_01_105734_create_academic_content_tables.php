@@ -25,7 +25,6 @@ return new class extends Migration
         Schema::create('inscripciones_cursos', function (Blueprint $table) {
             $table->unsignedBigInteger('idUsuarioEstudiante');
             $table->unsignedBigInteger('idCurso');
-            $table->decimal('progreso', 5, 2)->default(0.00);
             $table->primary(['idUsuarioEstudiante', 'idCurso']);
             $table->foreign('idUsuarioEstudiante')->references('idUsuario')->on('usuarios')->onDelete('cascade');
             $table->foreign('idCurso')->references('idCurso')->on('cursos')->onDelete('cascade');
