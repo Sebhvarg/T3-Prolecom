@@ -8,9 +8,8 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const homePath = user?.rol === 'Estudiante'
-    ? '/dashboard/estudiante'
-    : (user?.rol === 'Profesor' ? '/profesor/dashboard' : '/admin');
+  const nonStudentPath = user?.rol === 'Profesor' ? '/profesor/dashboard' : '/admin';
+  const homePath = user?.rol === 'Estudiante' ? '/dashboard/estudiante' : nonStudentPath;
 
   const menuItems = [
     { name: 'Principal', path: homePath, icon: <Home size={20} />, show: true },
