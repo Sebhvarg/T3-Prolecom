@@ -46,16 +46,25 @@ return new class extends Migration
             $table->text('descripcion')->nullable();
             $table->enum('tipo', ['PDF', 'video']);
             $table->string('enlaceArchivo', 255);
-            $table->unsignedBigInteger('idTema');
             $table->unsignedBigInteger('idUsuarioCreador');
-            $table->foreign('idTema')->references('idTema')->on('temas')->onDelete('cascade');
             $table->foreign('idUsuarioCreador')->references('idUsuario')->on('usuarios')->onUpdate('cascade');
+            $table->timestamps();
+        });
+
+        Schema::create('items_tema', function (Blueprint $table) {
+            $table->id('idItemTema');
+            $table->unsignedBigInteger('idTema');
+            $table->string('itemable_type');
+            $table->unsignedBigInteger('itemable_id');
+            $table->integer('orden')->default(0);
+            $table->foreign('idTema')->references('idTema')->on('temas')->onDelete('cascade');
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('items_tema');
         Schema::dropIfExists('materiales_aprendizaje');
         Schema::dropIfExists('temas');
         Schema::dropIfExists('inscripciones_cursos');

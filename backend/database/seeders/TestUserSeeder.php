@@ -36,6 +36,14 @@ class TestUserSeeder extends Seeder
     }
 
     private function seedCoreUsers(): array
+        [$adminId, $profesorId, $estudianteId] = $this->createGlobalAccounts();
+        
+        [$course1Id, $course2Id] = $this->createProfessorDashboardData($profesorId);
+
+        $this->createAdditionalStudents($course1Id, $course2Id);
+    }
+
+    private function createGlobalAccounts(): array
     {
         // 1. Administrador Global
         $adminId = DB::table('usuarios')->insertGetId([

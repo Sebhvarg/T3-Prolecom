@@ -25,12 +25,24 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // Rutas de Cursos e Inscripciones
+    $cursoRoute = '/cursos/{id}';
     Route::get('/cursos', [\App\Http\Controllers\Api\CursoController::class, 'index']);
     Route::get(ROUTE_CURSO_ID, [\App\Http\Controllers\Api\CursoController::class, 'show']);
     Route::post(ROUTE_CURSO_ID . '/inscribir', [\App\Http\Controllers\Api\CursoController::class, 'inscribir']);
     Route::delete(ROUTE_CURSO_ID . '/desmatricular', [\App\Http\Controllers\Api\CursoController::class, 'desmatricular']);
 
-    Route::middleware('role:Administrador,Profesor')->group(function () {
+    // Rutas de Temas (Módulos)
+    Route::post('/cursos/{id}/temas', [\App\Http\Controllers\Api\TemaController::class, 'store']);
+    Route::put('/temas/{id}', [\App\Http\Controllers\Api\TemaController::class, 'update']);
+    Route::delete('/temas/{id}', [\App\Http\Controllers\Api\TemaController::class, 'destroy']);
+
+    // Rutas de Materiales de Aprendizaje
+    Route::post('/temas/{id}/materiales', [\App\Http\Controllers\Api\MaterialController::class, 'store']);
+    Route::delete('/materiales/{id}', [\App\Http\Controllers\Api\MaterialController::class, 'destroy']);
+    Route::get('/materiales/{id}/stream', [\App\Http\Controllers\Api\MaterialController::class, 'stream']);
+    Route::get('/materiales/{id}/download', [\App\Http\Controllers\Api\MaterialController::class, 'download']);
+
+    Route::middleware('role:Administrador,Profesor')->group(function () use ($cursoRoute) {
         Route::post('/cursos', [\App\Http\Controllers\Api\CursoController::class, 'store']);
         Route::put(ROUTE_CURSO_ID, [\App\Http\Controllers\Api\CursoController::class, 'update']);
         Route::delete(ROUTE_CURSO_ID, [\App\Http\Controllers\Api\CursoController::class, 'destroy']);
