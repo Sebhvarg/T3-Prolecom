@@ -27,6 +27,13 @@ RUN { \
     echo 'opcache.validate_timestamps=1'; \
 } > /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini
 
+# Configurar límites de subida de PHP para permitir videos
+RUN { \
+    echo 'upload_max_filesize=100M'; \
+    echo 'post_max_size=100M'; \
+    echo 'memory_limit=256M'; \
+} > /usr/local/etc/php/conf.d/docker-php-upload-limits.ini
+
 # Configuración de Apache para apuntar a la carpeta /public de Laravel
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
