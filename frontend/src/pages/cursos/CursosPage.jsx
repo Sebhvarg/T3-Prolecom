@@ -321,7 +321,7 @@ const CursosPage = () => {
               {canManage ? (
                 <div className="mt-6 pt-4 border-t border-gray-50 flex justify-between items-center text-xs text-gray-400">
                   <span className="font-medium text-gray-600">
-                    Profesor: <span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span>
+                    Profesor:{' '}<span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span>
                   </span>
                   
                   <div className="flex gap-2">
@@ -359,7 +359,7 @@ const CursosPage = () => {
                 </div>
               ) : (
                 <div className="mt-6 pt-4 border-t border-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
-                  <span className="font-medium text-gray-600">Profesor: <span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span></span>
+                  <span className="font-medium text-gray-600">Profesor:{' '}<span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span></span>
                   
                   {renderEnrollAction(curso)}
                 </div>
@@ -486,8 +486,9 @@ const CursosPage = () => {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-gray-700">Título del Curso</label>
+                <label htmlFor="curso-titulo" className="text-sm font-semibold text-gray-700">Título del Curso</label>
                 <input
+                  id="curso-titulo"
                   type="text"
                   required
                   placeholder="Ej. Introducción a Python"
@@ -498,8 +499,9 @@ const CursosPage = () => {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-gray-700">Descripción</label>
+                <label htmlFor="curso-descripcion" className="text-sm font-semibold text-gray-700">Descripción</label>
                 <textarea
+                  id="curso-descripcion"
                   required
                   rows={4}
                   placeholder="Detalles sobre lo que aprenderán los estudiantes..."
@@ -511,8 +513,9 @@ const CursosPage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold text-gray-700">Lenguaje / LP</label>
+                  <label htmlFor="curso-lp" className="text-sm font-semibold text-gray-700">Lenguaje / LP</label>
                   <input
+                    id="curso-lp"
                     type="text"
                     required
                     placeholder="Ej. Python, JS"
@@ -523,8 +526,9 @@ const CursosPage = () => {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold text-gray-700">Tipo de Curso</label>
+                  <label htmlFor="curso-tipo" className="text-sm font-semibold text-gray-700">Tipo de Curso</label>
                   <select
+                    id="curso-tipo"
                     className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364] text-gray-800 bg-white"
                     value={formData.tipo}
                     onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
