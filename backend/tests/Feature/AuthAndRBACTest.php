@@ -14,6 +14,9 @@ class AuthAndRBACTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const COURSE_TYPE_PUBLIC = 'público';
+    private const API_CURSOS_ROUTE = '/api/cursos';
+
     protected $adminRol;
     protected $profesorRol;
     protected $estudianteRol;
@@ -53,11 +56,11 @@ class AuthAndRBACTest extends TestCase
 
         Sanctum::actingAs($student);
 
-        $response = $this->postJson('/api/cursos', [
+        $response = $this->postJson(self::API_CURSOS_ROUTE, [
             'titulo' => 'Curso de Prueba',
             'descripcion' => 'Descripción',
             'lp' => 'Python',
-            'tipo' => 'público'
+            'tipo' => self::COURSE_TYPE_PUBLIC
         ]);
 
         $response->assertStatus(403);
@@ -70,11 +73,11 @@ class AuthAndRBACTest extends TestCase
 
         Sanctum::actingAs($professor);
 
-        $response = $this->postJson('/api/cursos', [
+        $response = $this->postJson(self::API_CURSOS_ROUTE, [
             'titulo' => 'Curso de Python',
             'descripcion' => 'Aprende Python desde cero',
             'lp' => 'Python',
-            'tipo' => 'público'
+            'tipo' => self::COURSE_TYPE_PUBLIC
         ]);
 
         $response->assertStatus(201);
@@ -91,11 +94,11 @@ class AuthAndRBACTest extends TestCase
 
         Sanctum::actingAs($admin);
 
-        $response = $this->postJson('/api/cursos', [
+        $response = $this->postJson(self::API_CURSOS_ROUTE, [
             'titulo' => 'Curso de Admin',
             'descripcion' => 'Aprende administración de sistemas',
             'lp' => 'Linux',
-            'tipo' => 'público'
+            'tipo' => self::COURSE_TYPE_PUBLIC
         ]);
 
         $response->assertStatus(201);
@@ -113,7 +116,7 @@ class AuthAndRBACTest extends TestCase
             'titulo' => 'Curso de A',
             'descripcion' => 'Original',
             'lp' => 'A',
-            'tipo' => 'público',
+            'tipo' => self::COURSE_TYPE_PUBLIC,
             'idProfeCreador' => $professorA->idUsuario
         ]);
 
@@ -138,7 +141,7 @@ class AuthAndRBACTest extends TestCase
             'titulo' => 'Curso de Profesor',
             'descripcion' => 'Original',
             'lp' => 'A',
-            'tipo' => 'público',
+            'tipo' => self::COURSE_TYPE_PUBLIC,
             'idProfeCreador' => $professor->idUsuario
         ]);
 

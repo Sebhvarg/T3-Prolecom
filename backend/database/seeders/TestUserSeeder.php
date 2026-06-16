@@ -13,6 +13,15 @@ class TestUserSeeder extends Seeder
      */
     public function run(): void
     {
+        [$adminId, $profesorId, $estudianteId] = $this->createGlobalAccounts();
+        
+        [$course1Id, $course2Id] = $this->createProfessorDashboardData($profesorId);
+
+        $this->createAdditionalStudents($course1Id, $course2Id);
+    }
+
+    private function createGlobalAccounts(): array
+    {
         // 1. Administrador Global
         $adminId = DB::table('usuarios')->insertGetId([
             'nombreCompleto' => 'Administrador Global',
@@ -67,8 +76,11 @@ class TestUserSeeder extends Seeder
             'idRol' => 6, // Estudiante
         ]);
 
-        // --- SEEDING PARA EL DASHBOARD DEL PROFESOR ---
+        return [$adminId, $profesorId, $estudianteId];
+    }
 
+    private function createProfessorDashboardData(int $profesorId): array
+    {
         // Cursos del Profesor
         $course1Id = DB::table('cursos')->insertGetId([
             'titulo' => 'Fundamentos de Python',
@@ -214,6 +226,11 @@ class TestUserSeeder extends Seeder
             'updated_at' => now()->subDay()->setTime(19, 30, 0),
         ]);
 
+        return [$course1Id, $course2Id];
+    }
+
+    private function createAdditionalStudents(int $course1Id, int $course2Id): void
+    {
         // Completar a 40 estudiantes por paralelo para que coincida con el mock visual
         for ($i = 5; $i <= 40; $i++) {
             $studentId = DB::table('usuarios')->insertGetId([
