@@ -103,7 +103,7 @@ class TemaAndMaterialTest extends TestCase
             'idUsuarioCreador' => $professor->idUsuario
         ]);
 
-        $itemTema = ItemTema::create([
+        ItemTema::create([
             'idTema' => $tema->idTema,
             'itemable_type' => MaterialAprendizaje::class,
             'itemable_id' => $material->idMaterial,

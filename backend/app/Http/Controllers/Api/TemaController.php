@@ -86,10 +86,8 @@ class TemaController extends Controller
         // Limpiar archivos y registros polimórficos asociados
         foreach ($tema->items as $item) {
             if ($item->itemable) {
-                if ($item->itemable_type === \App\Models\MaterialAprendizaje::class) {
-                    if (\Illuminate\Support\Facades\Storage::disk('local')->exists($item->itemable->enlaceArchivo)) {
-                        \Illuminate\Support\Facades\Storage::disk('local')->delete($item->itemable->enlaceArchivo);
-                    }
+                if ($item->itemable_type === \App\Models\MaterialAprendizaje::class && \Illuminate\Support\Facades\Storage::disk('local')->exists($item->itemable->enlaceArchivo)) {
+                    \Illuminate\Support\Facades\Storage::disk('local')->delete($item->itemable->enlaceArchivo);
                 }
                 $item->itemable->delete();
             }

@@ -19,6 +19,12 @@ class TemaAndMaterialApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const COURSE_TITLE = 'Curso de PHP';
+    private const COURSE_DESC  = 'PHP testing';
+    private const COURSE_TYPE  = 'público';
+    private const TEMA_NAME    = 'Tema 1';
+    private const MIME_PDF     = 'application/pdf';
+
     protected $adminRol;
     protected $profesorRol;
     protected $estudianteRol;
@@ -54,7 +60,7 @@ class TemaAndMaterialApiTest extends TestCase
             'titulo' => 'Curso de Testing',
             'descripcion' => 'Pruebas con Laravel',
             'lp' => 'PHP',
-            'tipo' => 'público',
+            'tipo' => self::COURSE_TYPE,
             'idProfeCreador' => $professor->idUsuario
         ]);
 
@@ -84,7 +90,7 @@ class TemaAndMaterialApiTest extends TestCase
             'titulo' => 'Curso de Testing',
             'descripcion' => 'Pruebas con Laravel',
             'lp' => 'PHP',
-            'tipo' => 'público',
+            'tipo' => self::COURSE_TYPE,
             'idProfeCreador' => $professor->idUsuario
         ]);
 
@@ -103,21 +109,21 @@ class TemaAndMaterialApiTest extends TestCase
         $professor->roles()->attach($this->profesorRol->idRol);
 
         $course = Curso::create([
-            'titulo' => 'Curso de PHP',
-            'descripcion' => 'PHP testing',
+            'titulo' => self::COURSE_TITLE,
+            'descripcion' => self::COURSE_DESC,
             'lp' => 'PHP',
-            'tipo' => 'público',
+            'tipo' => self::COURSE_TYPE,
             'idProfeCreador' => $professor->idUsuario
         ]);
 
         $tema = Tema::create([
-            'nombre' => 'Tema 1',
+            'nombre' => self::TEMA_NAME,
             'idCurso' => $course->idCurso
         ]);
 
         Sanctum::actingAs($professor);
 
-        $file = UploadedFile::fake()->create('guia.pdf', 1000, 'application/pdf');
+        $file = UploadedFile::fake()->create('guia.pdf', 1000, self::MIME_PDF);
 
         $response = $this->postJson("/api/temas/{$tema->idTema}/materiales", [
             'titulo' => 'Documento Guía',
@@ -148,15 +154,15 @@ class TemaAndMaterialApiTest extends TestCase
         $professor->roles()->attach($this->profesorRol->idRol);
 
         $course = Curso::create([
-            'titulo' => 'Curso de PHP',
-            'descripcion' => 'PHP testing',
+            'titulo' => self::COURSE_TITLE,
+            'descripcion' => self::COURSE_DESC,
             'lp' => 'PHP',
-            'tipo' => 'público',
+            'tipo' => self::COURSE_TYPE,
             'idProfeCreador' => $professor->idUsuario
         ]);
 
         $tema = Tema::create([
-            'nombre' => 'Tema 1',
+            'nombre' => self::TEMA_NAME,
             'idCurso' => $course->idCurso
         ]);
 
@@ -190,10 +196,10 @@ class TemaAndMaterialApiTest extends TestCase
         $student->roles()->attach($this->estudianteRol->idRol);
 
         $course = Curso::create([
-            'titulo' => 'Curso de PHP',
-            'descripcion' => 'PHP testing',
+            'titulo' => self::COURSE_TITLE,
+            'descripcion' => self::COURSE_DESC,
             'lp' => 'PHP',
-            'tipo' => 'público',
+            'tipo' => self::COURSE_TYPE,
             'idProfeCreador' => $professor->idUsuario
         ]);
 
@@ -201,12 +207,12 @@ class TemaAndMaterialApiTest extends TestCase
         $course->estudiantes()->attach($student->idUsuario, ['fechaInscripcion' => now()]);
 
         $tema = Tema::create([
-            'nombre' => 'Tema 1',
+            'nombre' => self::TEMA_NAME,
             'idCurso' => $course->idCurso
         ]);
 
         // Save a mock file in local disk
-        $path = Storage::disk('local')->putFile('materials', UploadedFile::fake()->create('guia.pdf', 500, 'application/pdf'));
+        $path = Storage::disk('local')->putFile('materials', UploadedFile::fake()->create('guia.pdf', 500, self::MIME_PDF));
 
         $material = MaterialAprendizaje::create([
             'titulo' => 'Guía Académica',
@@ -242,15 +248,15 @@ class TemaAndMaterialApiTest extends TestCase
         $student->roles()->attach($this->estudianteRol->idRol);
 
         $course = Curso::create([
-            'titulo' => 'Curso de PHP',
-            'descripcion' => 'PHP testing',
+            'titulo' => self::COURSE_TITLE,
+            'descripcion' => self::COURSE_DESC,
             'lp' => 'PHP',
-            'tipo' => 'público',
+            'tipo' => self::COURSE_TYPE,
             'idProfeCreador' => $professor->idUsuario
         ]);
 
         $tema = Tema::create([
-            'nombre' => 'Tema 1',
+            'nombre' => self::TEMA_NAME,
             'idCurso' => $course->idCurso
         ]);
 
@@ -280,19 +286,19 @@ class TemaAndMaterialApiTest extends TestCase
         $professor->roles()->attach($this->profesorRol->idRol);
 
         $course = Curso::create([
-            'titulo' => 'Curso de PHP',
-            'descripcion' => 'PHP testing',
+            'titulo' => self::COURSE_TITLE,
+            'descripcion' => self::COURSE_DESC,
             'lp' => 'PHP',
-            'tipo' => 'público',
+            'tipo' => self::COURSE_TYPE,
             'idProfeCreador' => $professor->idUsuario
         ]);
 
         $tema = Tema::create([
-            'nombre' => 'Tema 1',
+            'nombre' => self::TEMA_NAME,
             'idCurso' => $course->idCurso
         ]);
 
-        $path = Storage::disk('local')->putFile('materials', UploadedFile::fake()->create('archivo.pdf', 500, 'application/pdf'));
+        $path = Storage::disk('local')->putFile('materials', UploadedFile::fake()->create('archivo.pdf', 500, self::MIME_PDF));
 
         $material = MaterialAprendizaje::create([
             'titulo' => 'Archivo a eliminar',
