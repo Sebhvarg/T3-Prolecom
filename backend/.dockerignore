@@ -1,10 +1,7 @@
 vendor
 .git
 .env
-storage/framework/cache/data/**
-storage/framework/sessions/**
-storage/framework/views/**
-storage/logs/**
+storage/**
 node_modules
 npm-debug.log
 yarn-error.log

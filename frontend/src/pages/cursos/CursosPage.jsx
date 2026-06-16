@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { cursosService } from '../../api/cursosService';
 import { BookOpen, Plus, Edit2, Trash2, X, AlertCircle, CheckCircle, Users, UserPlus, Filter } from 'lucide-react';
 
 const CursosPage = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [cursos, setCursos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -221,6 +223,44 @@ const CursosPage = () => {
       console.error(err);
       setError(err.message || 'Error al desmatricular al estudiante.');
     }
+  };
+
+  const renderEnrollAction = (curso) => {
+    if (curso.esta_matriculado) {
+      return (
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            onClick={() => navigate(`/cursos/${curso.idCurso}`)}
+            className="px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-xs"
+          >
+            <BookOpen size={14} />
+            Ver contenido
+          </button>
+          <button
+            onClick={() => handleDesmatricular(curso.idCurso)}
+            className="px-3 py-1.5 border border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-all"
+            title="Darse de baja de este curso"
+          >
+            Darse de baja
+          </button>
+        </div>
+      );
+    }
+    if (curso.tipo === 'público') {
+      return (
+        <button
+          onClick={() => handleInscribir(curso.idCurso)}
+          className="w-full sm:w-auto bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2 rounded-lg font-semibold shadow-sm transition-all hover:shadow-md"
+        >
+          Matricularme
+        </button>
+      );
+    }
+    return (
+      <span className="px-3 py-1.5 bg-gray-50 text-gray-400 font-bold rounded-lg">
+        Solo invitación
+      </span>
+    );
   };
 
   const renderCursosList = () => {

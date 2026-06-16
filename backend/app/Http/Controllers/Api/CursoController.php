@@ -54,7 +54,19 @@ class CursoController extends Controller
 
     public function show($id)
     {
-        $curso = Curso::with('creador:idUsuario,nombreCompleto')->findOrFail($id);
+        $curso = Curso::with([
+            'creador:idUsuario,nombreCompleto',
+            'temas.items.itemable'
+        ])->findOrFail($id);
+
+        $curso->temas->each(function ($tema) {
+            $tema->items->each(function ($item) {
+                if ($item->itemable && method_exists($item->itemable, 'creador')) {
+                    $item->itemable->load('creador:idUsuario,nombreCompleto');
+                }
+            });
+        });
+
         return response()->json($curso);
     }
 
