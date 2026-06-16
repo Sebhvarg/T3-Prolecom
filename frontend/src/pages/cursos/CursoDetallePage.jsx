@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
@@ -41,7 +41,7 @@ const CursoDetallePage = () => {
 
   const canManage = user?.rol === 'Administrador' || user?.rol === 'Profesor';
 
-  const fetchCurso = useCallback(async () => {
+  const fetchCurso = async () => {
     setLoading(true);
     try {
       const data = await cursosService.getCurso(id);
@@ -59,11 +59,37 @@ const CursoDetallePage = () => {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  };
 
   useEffect(() => {
-    fetchCurso();
-  }, [fetchCurso]);
+    let active = true;
+    const load = async () => {
+      try {
+        const data = await cursosService.getCurso(id);
+        if (!active) return;
+        setCurso(data);
+        
+        // Auto-expandir todos los temas al iniciar
+        const expandMap = {};
+        data.temas?.forEach(t => {
+          expandMap[t.idTema] = true;
+        });
+        setExpandedTemas(expandMap);
+      } catch (err) {
+        if (!active) return;
+        console.error(err);
+        setError('No se pudo cargar la información del curso.');
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+    load();
+    return () => {
+      active = false;
+    };
+  }, [id]);
 
   const toggleTema = (temaId) => {
     setExpandedTemas(prev => ({

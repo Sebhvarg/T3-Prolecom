@@ -82,7 +82,7 @@ export const authService = {
       }
     } catch (e) {
       if (!response.ok) {
-        throw new Error(`Error del servidor (${response.status})`);
+        throw new Error(`Error del servidor (${response.status})`, { cause: e });
       }
     }
 
