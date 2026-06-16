@@ -13,6 +13,30 @@ class TestUserSeeder extends Seeder
      */
     public function run(): void
     {
+        // 1. Core Users (Admin, Profesor, Estudiante autodidacta)
+        [$adminId, $profesorId, $estudianteId] = $this->seedCoreUsers();
+
+        // 2. Courses
+        [$course1Id, $course2Id] = $this->seedCourses($profesorId);
+
+        // 3. Specific students with enrollments
+        $studentIds = $this->seedSpecificStudents($course1Id);
+
+        // 4. Challenges (Desafíos)
+        $desafioIds = $this->seedChallenges($profesorId, $course1Id);
+
+        // 5. Forum questions (Preguntas)
+        $this->seedForumQuestions($course1Id, $studentIds);
+
+        // 6. Solutions
+        $this->seedSolutions($desafioIds, $studentIds);
+
+        // 7. Extra students to complete 40
+        $this->seedExtraStudents($course1Id, $course2Id);
+    }
+
+    private function seedCoreUsers(): array
+    {
         // 1. Administrador Global
         $adminId = DB::table('usuarios')->insertGetId([
             'nombreCompleto' => 'Administrador Global',
@@ -67,9 +91,11 @@ class TestUserSeeder extends Seeder
             'idRol' => 6, // Estudiante
         ]);
 
-        // --- SEEDING PARA EL DASHBOARD DEL PROFESOR ---
+        return [$adminId, $profesorId, $estudianteId];
+    }
 
-        // Cursos del Profesor
+    private function seedCourses(int $profesorId): array
+    {
         $course1Id = DB::table('cursos')->insertGetId([
             'titulo' => 'Fundamentos de Python',
             'descripcion' => 'Aprende Python desde las bases',
@@ -90,7 +116,11 @@ class TestUserSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        // Estudiantes específicos para la actividad reciente
+        return [$course1Id, $course2Id];
+    }
+
+    private function seedSpecificStudents(int $course1Id): array
+    {
         $juanId = DB::table('usuarios')->insertGetId([
             'nombreCompleto' => 'Juan Pérez',
             'usuario' => 'juan',
@@ -147,7 +177,16 @@ class TestUserSeeder extends Seeder
         DB::table('rolUsuario')->insert(['idUsuario' => $teresaId, 'idRol' => 6]);
         DB::table('inscripciones_cursos')->insert(['idUsuarioEstudiante' => $teresaId, 'idCurso' => $course1Id, 'fechaInscripcion' => now()]);
 
-        // Desafíos
+        return [
+            'juan' => $juanId,
+            'karla' => $karlaId,
+            'alex' => $alexId,
+            'teresa' => $teresaId
+        ];
+    }
+
+    private function seedChallenges(int $profesorId, int $course1Id): array
+    {
         $desafio1Id = DB::table('desafios')->insertGetId([
             'titulo' => 'Estructura de Control',
             'descripcionProblema' => 'Resuelve el problema usando estructuras de control.',
@@ -174,11 +213,15 @@ class TestUserSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        // Preguntas en el foro
+        return [$desafio1Id, $desafio2Id];
+    }
+
+    private function seedForumQuestions(int $course1Id, array $studentIds): void
+    {
         DB::table('preguntas')->insert([
             'titulo' => 'Duda en bucles for',
             'descripcion' => '¿Cómo funciona la indexación inversa?',
-            'idUsuarioCreador' => $juanId,
+            'idUsuarioCreador' => $studentIds['juan'],
             'idCurso' => $course1Id,
             'estado' => 'abierta',
             'created_at' => now()->subHours(2),
@@ -188,19 +231,21 @@ class TestUserSeeder extends Seeder
         DB::table('preguntas')->insert([
             'titulo' => 'Problema con arrays',
             'descripcion' => 'No logro entender cómo definir matrices en python.',
-            'idUsuarioCreador' => $alexId,
+            'idUsuarioCreador' => $studentIds['alex'],
             'idCurso' => $course1Id,
             'estado' => 'abierta',
             'created_at' => '2025-11-04 14:00:00',
             'updated_at' => '2025-11-04 14:00:00',
         ]);
+    }
 
-        // Soluciones a desafíos
+    private function seedSolutions(array $desafioIds, array $studentIds): void
+    {
         DB::table('soluciones')->insert([
             'codigoFuente' => 'print("Hola")',
             'estado' => 'aprobado',
-            'idEstudiante' => $karlaId,
-            'idDesafio' => $desafio1Id,
+            'idEstudiante' => $studentIds['karla'],
+            'idDesafio' => $desafioIds[0],
             'created_at' => now()->subDay()->setTime(23, 50, 0),
             'updated_at' => now()->subDay()->setTime(23, 50, 0),
         ]);
@@ -208,13 +253,15 @@ class TestUserSeeder extends Seeder
         DB::table('soluciones')->insert([
             'codigoFuente' => 'print("Invertir")',
             'estado' => 'aprobado',
-            'idEstudiante' => $teresaId,
-            'idDesafio' => $desafio2Id,
+            'idEstudiante' => $studentIds['teresa'],
+            'idDesafio' => $desafioIds[1],
             'created_at' => now()->subDay()->setTime(19, 30, 0),
             'updated_at' => now()->subDay()->setTime(19, 30, 0),
         ]);
+    }
 
-        // Completar a 40 estudiantes por paralelo para que coincida con el mock visual
+    private function seedExtraStudents(int $course1Id, int $course2Id): void
+    {
         for ($i = 5; $i <= 40; $i++) {
             $studentId = DB::table('usuarios')->insertGetId([
                 'nombreCompleto' => "Estudiante {$i}",
