@@ -59,38 +59,8 @@ export const cursosService = {
     return await authService.apiFetch('/estudiantes');
   },
 
-  // Gestión de Temas (Módulos)
-  createTema: async (cursoId, temaData) => {
-    return await authService.apiFetch(`/cursos/${cursoId}/temas`, {
-      method: 'POST',
-      body: JSON.stringify(temaData),
-    });
-  },
-
-  updateTema: async (id, temaData) => {
-    return await authService.apiFetch(`/temas/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(temaData),
-    });
-  },
-
-  deleteTema: async (id) => {
-    return await authService.apiFetch(`/temas/${id}`, {
-      method: 'DELETE',
-    });
-  },
-
-  // Gestión de Materiales (PDF / Video)
-  createMaterial: async (temaId, formData) => {
-    return await authService.apiFetch(`/temas/${temaId}/materiales`, {
-      method: 'POST',
-      body: formData,
-    });
-  },
-
-  deleteMaterial: async (id) => {
-    return await authService.apiFetch(`/materiales/${id}`, {
-      method: 'DELETE',
-    });
+  getLenguajes: async () => {
+    return await authService.apiFetch('/lenguajes');
   }
 };
+

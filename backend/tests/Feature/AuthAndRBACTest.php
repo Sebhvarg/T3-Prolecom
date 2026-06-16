@@ -14,7 +14,7 @@ class AuthAndRBACTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const COURSE_TYPE_PUBLIC = 'público';
+    private const TIPO_PUBLICO = 'público';
     private const API_CURSOS_ROUTE = '/api/cursos';
 
     protected $adminRol;
@@ -60,7 +60,7 @@ class AuthAndRBACTest extends TestCase
             'titulo' => 'Curso de Prueba',
             'descripcion' => 'Descripción',
             'lp' => 'Python',
-            'tipo' => self::COURSE_TYPE_PUBLIC
+            'tipo' => self::TIPO_PUBLICO
         ]);
 
         $response->assertStatus(403);
@@ -77,7 +77,7 @@ class AuthAndRBACTest extends TestCase
             'titulo' => 'Curso de Python',
             'descripcion' => 'Aprende Python desde cero',
             'lp' => 'Python',
-            'tipo' => self::COURSE_TYPE_PUBLIC
+            'tipo' => self::TIPO_PUBLICO
         ]);
 
         $response->assertStatus(201);
@@ -98,7 +98,7 @@ class AuthAndRBACTest extends TestCase
             'titulo' => 'Curso de Admin',
             'descripcion' => 'Aprende administración de sistemas',
             'lp' => 'Linux',
-            'tipo' => self::COURSE_TYPE_PUBLIC
+            'tipo' => self::TIPO_PUBLICO
         ]);
 
         $response->assertStatus(201);
@@ -116,7 +116,7 @@ class AuthAndRBACTest extends TestCase
             'titulo' => 'Curso de A',
             'descripcion' => 'Original',
             'lp' => 'A',
-            'tipo' => self::COURSE_TYPE_PUBLIC,
+            'tipo' => self::TIPO_PUBLICO,
             'idProfeCreador' => $professorA->idUsuario
         ]);
 
@@ -141,7 +141,7 @@ class AuthAndRBACTest extends TestCase
             'titulo' => 'Curso de Profesor',
             'descripcion' => 'Original',
             'lp' => 'A',
-            'tipo' => self::COURSE_TYPE_PUBLIC,
+            'tipo' => self::TIPO_PUBLICO,
             'idProfeCreador' => $professor->idUsuario
         ]);
 
