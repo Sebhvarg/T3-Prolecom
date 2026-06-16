@@ -2,6 +2,16 @@ import { storage } from '../utils/crypto';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
+function parseErrorMessage(data) {
+  if (!data) return 'Ocurrió un error inesperado';
+  if (data.errors) {
+    const firstKey = Object.keys(data.errors)[0];
+    const messages = data.errors[firstKey];
+    return Array.isArray(messages) ? messages[0] : messages;
+  }
+  return data.message || data.error || 'Ocurrió un error inesperado';
+}
+
 export const authService = {
   login: async (user, password) => {
     const response = await fetch(`${API_URL}/login`, {
@@ -87,17 +97,7 @@ export const authService = {
     }
 
     if (!response.ok) {
-      let errorMsg = 'Ocurrió un error inesperado';
-      if (data) {
-        if (data.errors) {
-          const firstKey = Object.keys(data.errors)[0];
-          const messages = data.errors[firstKey];
-          errorMsg = Array.isArray(messages) ? messages[0] : messages;
-        } else {
-          errorMsg = data.message || data.error || errorMsg;
-        }
-      }
-      throw new Error(errorMsg);
+      throw new Error(parseErrorMessage(data));
     }
     
     return data;

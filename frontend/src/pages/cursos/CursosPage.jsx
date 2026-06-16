@@ -226,6 +226,44 @@ const CursosPage = () => {
     }
   };
 
+  const renderEnrollAction = (curso) => {
+    if (curso.esta_matriculado) {
+      return (
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            onClick={() => navigate(`/cursos/${curso.idCurso}`)}
+            className="px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-xs"
+          >
+            <BookOpen size={14} />
+            Ver contenido
+          </button>
+          <button
+            onClick={() => handleDesmatricular(curso.idCurso)}
+            className="px-3 py-1.5 border border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-all"
+            title="Darse de baja de este curso"
+          >
+            Darse de baja
+          </button>
+        </div>
+      );
+    }
+    if (curso.tipo === 'público') {
+      return (
+        <button
+          onClick={() => handleInscribir(curso.idCurso)}
+          className="w-full sm:w-auto bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2 rounded-lg font-semibold shadow-sm transition-all hover:shadow-md"
+        >
+          Matricularme
+        </button>
+      );
+    }
+    return (
+      <span className="px-3 py-1.5 bg-gray-50 text-gray-400 font-bold rounded-lg">
+        Solo invitación
+      </span>
+    );
+  };
+
   const renderCursosList = () => {
     if (loading) {
       return (
@@ -260,14 +298,19 @@ const CursosPage = () => {
                   </span>
                 </div>
 
-                <h3 
-                  onClick={() => (curso.esta_matriculado || canManage) && navigate(`/cursos/${curso.idCurso}`)}
-                  className={`text-xl font-bold text-gray-900 transition-colors line-clamp-2 ${
-                    (curso.esta_matriculado || canManage) ? 'cursor-pointer hover:text-[#2c5364] hover:underline' : ''
-                  }`}
-                >
-                  {curso.titulo}
-                </h3>
+                {(curso.esta_matriculado || canManage) ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/cursos/${curso.idCurso}`)}
+                    className="text-xl font-bold text-gray-900 transition-colors line-clamp-2 cursor-pointer hover:text-[#2c5364] hover:underline text-left w-full"
+                  >
+                    {curso.titulo}
+                  </button>
+                ) : (
+                  <h3 className="text-xl font-bold text-gray-900 transition-colors line-clamp-2">
+                    {curso.titulo}
+                  </h3>
+                )}
                 
                 <p className="text-gray-500 mt-3 text-sm line-clamp-3 leading-relaxed">
                   {curso.descripcion}
@@ -318,43 +361,7 @@ const CursosPage = () => {
                 <div className="mt-6 pt-4 border-t border-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
                   <span className="font-medium text-gray-600">Profesor: <span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span></span>
                   
-                  {(() => {
-                    if (curso.esta_matriculado) {
-                      return (
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                          <button
-                            onClick={() => navigate(`/cursos/${curso.idCurso}`)}
-                            className="px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-xs"
-                          >
-                            <BookOpen size={14} />
-                            Ver contenido
-                          </button>
-                          <button
-                            onClick={() => handleDesmatricular(curso.idCurso)}
-                            className="px-3 py-1.5 border border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-all"
-                            title="Darse de baja de este curso"
-                          >
-                            Darse de baja
-                          </button>
-                        </div>
-                      );
-                    }
-                    if (curso.tipo === 'público') {
-                      return (
-                        <button
-                          onClick={() => handleInscribir(curso.idCurso)}
-                          className="w-full sm:w-auto bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2 rounded-lg font-semibold shadow-sm transition-all hover:shadow-md"
-                        >
-                          Matricularme
-                        </button>
-                      );
-                    }
-                    return (
-                      <span className="px-3 py-1.5 bg-gray-50 text-gray-400 font-bold rounded-lg">
-                        Solo invitación
-                      </span>
-                    );
-                  })()}
+                  {renderEnrollAction(curso)}
                 </div>
               )}
             </div>

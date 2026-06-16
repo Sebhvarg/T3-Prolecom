@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Validator;
 
 class MaterialController extends Controller
 {
+    private const MSG_NO_TEMA = 'El material no está asociado a ningún tema';
+
     private function checkPermission($curso, $user)
     {
         $isAdmin = $user->roles->pluck('rol')->contains('Administrador');
@@ -23,6 +25,16 @@ class MaterialController extends Controller
             return true;
         }
         return $curso->estudiantes()->where('usuarios.idUsuario', $user->idUsuario)->exists();
+    }
+
+    private function resolveItemAndCurso(int $id): array
+    {
+        $material = MaterialAprendizaje::findOrFail($id);
+        $itemTema = $material->itemTema;
+        if (!$itemTema) {
+            abort(404, self::MSG_NO_TEMA);
+        }
+        return [$material, $itemTema, $itemTema->tema->curso];
     }
 
     public function store(Request $request, $temaId)
@@ -49,12 +61,8 @@ class MaterialController extends Controller
             return response()->json(['errors' => $validator->errors()], 400);
         }
 
-        if ($request->hasFile('archivo')) {
-            // Guardamos el archivo de forma privada en el disco local
-            $path = $request->file('archivo')->store('materials', 'local');
-        } else {
-            return response()->json(['message' => 'El archivo es obligatorio'], 400);
-        }
+        // El validador ya garantiza que el archivo existe y es válido
+        $path = $request->file('archivo')->store('materials', 'local');
 
         $material = MaterialAprendizaje::create([
             'titulo' => $request->titulo,
@@ -81,12 +89,7 @@ class MaterialController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        $material = MaterialAprendizaje::findOrFail($id);
-        $itemTema = $material->itemTema;
-        if (!$itemTema) {
-            return response()->json(['message' => 'El material no está asociado a ningún tema'], 404);
-        }
-        $curso = $itemTema->tema->curso;
+        [$material, $itemTema, $curso] = $this->resolveItemAndCurso((int) $id);
         $user = $request->user();
 
         if (!$this->checkPermission($curso, $user)) {
@@ -109,12 +112,7 @@ class MaterialController extends Controller
     // STREAMING SEGURO (Para reproducir video o cargar PDF en visor seguro)
     public function stream(Request $request, $id)
     {
-        $material = MaterialAprendizaje::findOrFail($id);
-        $itemTema = $material->itemTema;
-        if (!$itemTema) {
-            return response()->json(['message' => 'El material no está asociado a ningún tema'], 404);
-        }
-        $curso = $itemTema->tema->curso;
+        [$material, , $curso] = $this->resolveItemAndCurso((int) $id);
         $user = $request->user();
 
         if (!$this->isAuthorizedToView($curso, $user)) {
@@ -134,12 +132,7 @@ class MaterialController extends Controller
     // DESCARGA SEGURA
     public function download(Request $request, $id)
     {
-        $material = MaterialAprendizaje::findOrFail($id);
-        $itemTema = $material->itemTema;
-        if (!$itemTema) {
-            return response()->json(['message' => 'El material no está asociado a ningún tema'], 404);
-        }
-        $curso = $itemTema->tema->curso;
+        [$material, , $curso] = $this->resolveItemAndCurso((int) $id);
         $user = $request->user();
 
         if (!$this->isAuthorizedToView($curso, $user)) {
@@ -158,3 +151,4 @@ class MaterialController extends Controller
         return Storage::disk('local')->download($material->enlaceArchivo, $filename);
     }
 }
+

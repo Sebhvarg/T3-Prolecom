@@ -259,9 +259,9 @@ const CursoDetallePage = () => {
       // Intentar obtener el nombre del header Content-Disposition
       const disposition = response.headers.get('Content-Disposition');
       let filename = material.titulo;
-      if (disposition && disposition.indexOf('filename=') !== -1) {
-        const matches = disposition.match(/filename="?([^"]+)"?/);
-        if (matches && matches[1]) filename = matches[1];
+      if (disposition && disposition.includes('filename=')) {
+        const matches = /filename="?([^"]+)"?/.exec(disposition);
+        if (matches?.[1]) filename = matches[1];
       } else {
         filename += material.tipo === 'PDF' ? '.pdf' : '.mp4';
       }
@@ -384,25 +384,29 @@ const CursoDetallePage = () => {
           {curso.temas?.map((tema) => (
             <div key={tema.idTema} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300">
               {/* Header Tema */}
-              <div 
-                onClick={() => toggleTema(tema.idTema)}
-                className="p-5 flex justify-between items-center cursor-pointer hover:bg-gray-50/50 transition-colors select-none"
-              >
-                <div className="flex items-center gap-4 flex-1">
+              <div className="p-5 flex justify-between items-center hover:bg-gray-50/50 transition-colors select-none">
+                <button 
+                  type="button"
+                  onClick={() => toggleTema(tema.idTema)}
+                  className="flex items-center gap-4 flex-1 text-left focus:outline-none"
+                  aria-expanded={expandedTemas[tema.idTema]}
+                >
                   <div className="p-2.5 bg-blue-50 text-blue-700 rounded-xl">
-                    <BookOpenIcon className="w-5 h-5" />
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-900 text-lg leading-tight">{tema.nombre}</h3>
                     {tema.descripcion && <p className="text-gray-500 text-sm mt-0.5">{tema.descripcion}</p>}
                   </div>
-                </div>
+                </button>
                 
                 <div className="flex items-center gap-3">
                   {canManage && (
                     <div className="flex gap-2">
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleOpenMaterialModal(tema.idTema); }}
+                        onClick={() => handleOpenMaterialModal(tema.idTema)}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-bold rounded-lg transition-colors"
                       >
                         <Plus size={14} />
@@ -417,7 +421,14 @@ const CursoDetallePage = () => {
                       </button>
                     </div>
                   )}
-                  {expandedTemas[tema.idTema] ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
+                  <button
+                    type="button"
+                    onClick={() => toggleTema(tema.idTema)}
+                    className="p-1 text-gray-400 hover:text-gray-600 focus:outline-none"
+                    aria-label={expandedTemas[tema.idTema] ? "Colapsar tema" : "Expandir tema"}
+                  >
+                    {expandedTemas[tema.idTema] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  </button>
                 </div>
               </div>
 
@@ -434,92 +445,18 @@ const CursoDetallePage = () => {
                       const isDesafio = item.itemable_type.includes('Desafio');
 
                       if (isMaterial) {
-                        return (
-                          <div key={item.idItemTema} className="flex justify-between items-center bg-white border border-gray-100 p-4 rounded-xl shadow-xs hover:shadow-md transition-shadow w-full">
-                            <div className="flex items-center gap-4.5">
-                              <div className={`p-2.5 rounded-xl ${
-                                resource.tipo === 'PDF' ? 'bg-red-50 text-red-700' : 'bg-purple-50 text-purple-700'
-                              }`}>
-                                {resource.tipo === 'PDF' ? <FileText size={20} /> : <Video size={20} />}
-                              </div>
-                              <div>
-                                <h4 className="font-bold text-gray-900 text-sm md:text-base leading-snug">{resource.titulo}</h4>
-                                {resource.descripcion && <p className="text-gray-500 text-xs mt-0.5">{resource.descripcion}</p>}
-                                <div className="flex items-center gap-3 mt-1.5 text-xxs text-gray-400 font-semibold uppercase tracking-wider">
-                                  <span>Subido por {resource.creador?.nombreCompleto || 'Profesor'}</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              {/* Botón Ver Seguro */}
-                              <button
-                                onClick={() => handleViewSecure(resource)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors"
-                              >
-                                {resource.tipo === 'video' ? <Play size={14} /> : <Eye size={14} />}
-                                <span>{resource.tipo === 'video' ? 'Reproducir' : 'Ver'}</span>
-                              </button>
-                              
-                              {/* Botón Descargar Seguro */}
-                              <button
-                                onClick={() => handleDownloadSecure(resource)}
-                                className="p-1.5 border border-gray-100 hover:border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                                title="Descargar"
-                              >
-                                <Download size={14} />
-                              </button>
-
-                              {/* Botón Eliminar Material */}
-                              {canManage && (
-                                <button
-                                  onClick={() => handleDeleteMaterial(resource.idMaterial)}
-                                  className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                  title="Eliminar Material"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              )}
-                            </div>
-                          </div>
+                        return renderMaterialItem(
+                          item,
+                          resource,
+                          canManage,
+                          handleViewSecure,
+                          handleDownloadSecure,
+                          handleDeleteMaterial
                         );
                       }
 
                       if (isDesafio) {
-                        return (
-                          <div key={item.idItemTema} className="flex justify-between items-center bg-white border border-gray-100 p-4 rounded-xl shadow-xs hover:shadow-md transition-shadow w-full">
-                            <div className="flex items-center gap-4.5">
-                              <div className="p-2.5 bg-amber-50 text-amber-700 rounded-xl">
-                                <Code size={20} />
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <h4 className="font-bold text-gray-900 text-sm md:text-base leading-snug">{resource.titulo}</h4>
-                                  <span className={`px-2 py-0.5 text-xxs font-bold rounded-md uppercase tracking-wider ${
-                                    resource.dificultad === 'Easy' ? 'bg-green-50 text-green-700' :
-                                    resource.dificultad === 'Medium' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'
-                                  }`}>
-                                    {resource.dificultad}
-                                  </span>
-                                </div>
-                                <p className="text-gray-500 text-xs mt-0.5 line-clamp-1">{resource.descripcionProblema}</p>
-                                <div className="flex items-center gap-3 mt-1.5 text-xxs text-gray-400 font-semibold uppercase tracking-wider">
-                                  <span>Desafío de programación • Creado por {resource.creador?.nombreCompleto || 'Profesor'}</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => navigate(`/cursos/${id}/desafios/${resource.idDesafio}`)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-lg transition-colors"
-                              >
-                                <Play size={14} />
-                                <span>Resolver</span>
-                              </button>
-                            </div>
-                          </div>
-                        );
+                        return renderDesafioItem(item, resource, id, navigate);
                       }
 
                       return null;
@@ -546,8 +483,9 @@ const CursoDetallePage = () => {
             <p className="text-gray-500 text-sm mb-6">Organiza el contenido del curso creando unidades o secciones.</p>
             <form onSubmit={handleTemaSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">Nombre del Tema</label>
+                <label htmlFor="tema-nombre" className="block text-sm font-bold text-gray-700 mb-1.5">Nombre del Tema</label>
                 <input 
+                  id="tema-nombre"
                   type="text" 
                   required
                   placeholder="Ej: Fundamentos de bucles, OOP en Python..."
@@ -557,8 +495,9 @@ const CursoDetallePage = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">Descripción (Opcional)</label>
+                <label htmlFor="tema-descripcion" className="block text-sm font-bold text-gray-700 mb-1.5">Descripción (Opcional)</label>
                 <textarea 
+                  id="tema-descripcion"
                   placeholder="Detalla qué conceptos se cubren en esta sección..."
                   value={temaForm.descripcion}
                   onChange={(e) => setTemaForm(prev => ({ ...prev, descripcion: e.target.value }))}
@@ -602,8 +541,9 @@ const CursoDetallePage = () => {
             <p className="text-gray-500 text-sm mb-6">Añade guías en formato PDF o grabaciones de clase.</p>
             <form onSubmit={handleMaterialSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">Título</label>
+                <label htmlFor="material-titulo" className="block text-sm font-bold text-gray-700 mb-1.5">Título</label>
                 <input 
+                  id="material-titulo"
                   type="text" 
                   required
                   placeholder="Ej: Apuntes de Condicionales, Video Clase 1..."
@@ -613,8 +553,9 @@ const CursoDetallePage = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">Descripción (Opcional)</label>
+                <label htmlFor="material-descripcion" className="block text-sm font-bold text-gray-700 mb-1.5">Descripción (Opcional)</label>
                 <input 
+                  id="material-descripcion"
                   type="text"
                   placeholder="Ej: Lectura complementaria de 15 páginas..."
                   value={materialForm.descripcion}
@@ -623,8 +564,9 @@ const CursoDetallePage = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">Tipo de Recurso</label>
+                <label htmlFor="material-tipo" className="block text-sm font-bold text-gray-700 mb-1.5">Tipo de Recurso</label>
                 <select
+                  id="material-tipo"
                   value={materialForm.tipo}
                   onChange={(e) => setMaterialForm(prev => ({ ...prev, tipo: e.target.value }))}
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
@@ -634,8 +576,9 @@ const CursoDetallePage = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">Seleccionar Archivo (Máx 30MB)</label>
+                <label htmlFor="material-archivo" className="block text-sm font-bold text-gray-700 mb-1.5">Seleccionar Archivo (Máx 30MB)</label>
                 <input 
+                  id="material-archivo"
                   type="file" 
                   required
                   accept={materialForm.tipo === 'PDF' ? 'application/pdf' : 'video/*'}
@@ -735,7 +678,9 @@ const CursoDetallePage = () => {
                       className="w-full max-h-full rounded-2xl shadow-lg"
                       autoPlay
                       controlsList="nodownload" // previene el botón de descarga nativo del navegador
-                    />
+                    >
+                      <track kind="captions" />
+                    </video>
                   )}
                 </>
               )}
@@ -747,11 +692,93 @@ const CursoDetallePage = () => {
   );
 };
 
-// Pequeño componente local auxiliar de Icono
-const BookOpenIcon = ({ className }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-  </svg>
-);
+const renderMaterialItem = (item, resource, canManage, handleViewSecure, handleDownloadSecure, handleDeleteMaterial) => {
+  return (
+    <div key={item.idItemTema} className="flex justify-between items-center bg-white border border-gray-100 p-4 rounded-xl shadow-xs hover:shadow-md transition-shadow w-full">
+      <div className="flex items-center gap-4.5">
+        <div className={`p-2.5 rounded-xl ${
+          resource.tipo === 'PDF' ? 'bg-red-50 text-red-700' : 'bg-purple-50 text-purple-700'
+        }`}>
+          {resource.tipo === 'PDF' ? <FileText size={20} /> : <Video size={20} />}
+        </div>
+        <div>
+          <h4 className="font-bold text-gray-900 text-sm md:text-base leading-snug">{resource.titulo}</h4>
+          {resource.descripcion && <p className="text-gray-500 text-xs mt-0.5">{resource.descripcion}</p>}
+          <div className="flex items-center gap-3 mt-1.5 text-xxs text-gray-400 font-semibold uppercase tracking-wider">
+            <span>Subido por {resource.creador?.nombreCompleto || 'Profesor'}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => handleViewSecure(resource)}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors"
+        >
+          {resource.tipo === 'video' ? <Play size={14} /> : <Eye size={14} />}
+          <span>{resource.tipo === 'video' ? 'Reproducir' : 'Ver'}</span>
+        </button>
+        
+        <button
+          onClick={() => handleDownloadSecure(resource)}
+          className="p-1.5 border border-gray-100 hover:border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+          title="Descargar"
+        >
+          <Download size={14} />
+        </button>
+
+        {canManage && (
+          <button
+            onClick={() => handleDeleteMaterial(resource.idMaterial)}
+            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+            title="Eliminar Material"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const renderDesafioItem = (item, resource, id, navigate) => {
+  const getDificultadBadgeClass = (dificultad) => {
+    if (dificultad === 'Easy') return 'bg-green-50 text-green-700';
+    if (dificultad === 'Medium') return 'bg-amber-50 text-amber-700';
+    return 'bg-red-50 text-red-700';
+  };
+
+  return (
+    <div key={item.idItemTema} className="flex justify-between items-center bg-white border border-gray-100 p-4 rounded-xl shadow-xs hover:shadow-md transition-shadow w-full">
+      <div className="flex items-center gap-4.5">
+        <div className="p-2.5 bg-amber-50 text-amber-700 rounded-xl">
+          <Code size={20} />
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <h4 className="font-bold text-gray-900 text-sm md:text-base leading-snug">{resource.titulo}</h4>
+            <span className={`px-2 py-0.5 text-xxs font-bold rounded-md uppercase tracking-wider ${getDificultadBadgeClass(resource.dificultad)}`}>
+              {resource.dificultad}
+            </span>
+          </div>
+          <p className="text-gray-500 text-xs mt-0.5 line-clamp-1">{resource.descripcionProblema}</p>
+          <div className="flex items-center gap-3 mt-1.5 text-xxs text-gray-400 font-semibold uppercase tracking-wider">
+            <span>Desafío de programación • Creado por {resource.creador?.nombreCompleto || 'Profesor'}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => navigate(`/cursos/${id}/desafios/${resource.idDesafio}`)}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-lg transition-colors"
+        >
+          <Play size={14} />
+          <span>Resolver</span>
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export default CursoDetallePage;
