@@ -7,7 +7,7 @@ import { desafiosService } from '../../api/desafiosService';
 import { storage } from '../../utils/crypto';
 import { 
   ArrowLeft, Plus, Trash2, FileText, Video, Play, Download, Eye, 
-  X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code, Sparkles 
+  X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code 
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -744,7 +744,7 @@ const CursoDetallePage = () => {
                     min="1"
                     required
                     value={desafioForm.puntos}
-                    onChange={(e) => setDesafioForm(prev => ({ ...prev, puntos: parseInt(e.target.value) || 10 }))}
+                    onChange={(e) => setDesafioForm(prev => ({ ...prev, puntos: Number.parseInt(e.target.value, 10) || 10 }))}
                     className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
                   />
                 </div>
@@ -787,7 +787,7 @@ const CursoDetallePage = () => {
                 
                 <div className="space-y-3 max-h-44 overflow-y-auto pr-1">
                   {desafioForm.testCases.map((tc, index) => (
-                    <div key={index} className="flex gap-2 items-center bg-gray-50 p-3 rounded-xl border border-gray-150 relative">
+                    <div key={`tc-case-${index}`} className="flex gap-2 items-center bg-gray-50 p-3 rounded-xl border border-gray-150 relative">
                       <div className="flex-1">
                         <input 
                           type="text"
@@ -806,8 +806,9 @@ const CursoDetallePage = () => {
                         />
                       </div>
                       <div className="flex flex-col items-center gap-1 shrink-0">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase select-none">Oculto</label>
+                        <label htmlFor={`tc-hidden-${index}`} className="text-[10px] font-bold text-gray-500 uppercase select-none">Oculto</label>
                         <input 
+                          id={`tc-hidden-${index}`}
                           type="checkbox"
                           checked={tc.is_hidden}
                           onChange={(e) => handleTestCaseChange(index, 'is_hidden', e.target.checked)}

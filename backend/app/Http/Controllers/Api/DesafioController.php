@@ -20,7 +20,7 @@ class DesafioController extends Controller
      */
     public function indexByTema(Request $request, $idTema)
     {
-        $tema = Tema::findOrFail($idTema);
+        Tema::findOrFail($idTema);
         $user = $request->user();
 
         // Obtener los desafíos a través de items_tema
@@ -156,7 +156,7 @@ class DesafioController extends Controller
         ]);
 
         $user = $request->user();
-        $desafio = Desafio::findOrFail($idDesafio);
+        Desafio::findOrFail($idDesafio);
 
         // Crear registro en la tabla de soluciones
         $solucion = Solucion::create([
