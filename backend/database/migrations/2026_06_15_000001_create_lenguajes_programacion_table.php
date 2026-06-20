@@ -13,6 +13,7 @@ return new class extends Migration
             $table->string('nombre', 50)->unique();
             $table->string('slug', 50)->unique()->comment('Identificador corto: python, javascript, etc.');
             $table->string('icono', 10)->nullable()->comment('Emoji o código de icono');
+            $table->integer('judge0_id')->nullable();
             $table->boolean('activo')->default(true);
             $table->timestamps();
         });
