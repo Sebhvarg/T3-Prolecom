@@ -7,7 +7,7 @@ import { desafiosService } from '../../api/desafiosService';
 import { storage } from '../../utils/crypto';
 import { 
   ArrowLeft, Plus, Trash2, FileText, Video, Play, Download, Eye, 
-  X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code, Sparkles 
+  X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code 
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';

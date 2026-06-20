@@ -36,10 +36,5 @@ class RolesAndStatesSeeder extends Seeder
             ['idRol' => 1, 'ruta' => '/administrar-cursos'],
             ['idRol' => 6, 'ruta' => '/dashboard'],
         ]);
-
-        DB::table('lenguajes_programacion')->insert([
-            ['idLenguaje' => 1, 'nombre' => 'Python', 'judge0_id' => 71, 'activo' => true, 'created_at' => now(), 'updated_at' => now()],
-            ['idLenguaje' => 2, 'nombre' => 'JavaScript', 'judge0_id' => 63, 'activo' => true, 'created_at' => now(), 'updated_at' => now()],
-        ]);
     }
 }
