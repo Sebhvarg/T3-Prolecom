@@ -4,6 +4,10 @@ use App\Http\Controllers\Api\AuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+if (!defined('ROUTE_CURSO_ID')) {
+    define('ROUTE_CURSO_ID', '/cursos/{id}');
+}
+
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -15,13 +19,17 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json($dashboard->render());
     });
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/lenguajes', function () {
+        return response()->json(\App\Models\LenguajeProgramacion::where('activo', true)->get());
+    });
+
 
     // Rutas de Cursos e Inscripciones
     $cursoRoute = '/cursos/{id}';
     Route::get('/cursos', [\App\Http\Controllers\Api\CursoController::class, 'index']);
-    Route::get($cursoRoute, [\App\Http\Controllers\Api\CursoController::class, 'show']);
-    Route::post('/cursos/{id}/inscribir', [\App\Http\Controllers\Api\CursoController::class, 'inscribir']);
-    Route::delete('/cursos/{id}/desmatricular', [\App\Http\Controllers\Api\CursoController::class, 'desmatricular']);
+    Route::get(ROUTE_CURSO_ID, [\App\Http\Controllers\Api\CursoController::class, 'show']);
+    Route::post(ROUTE_CURSO_ID . '/inscribir', [\App\Http\Controllers\Api\CursoController::class, 'inscribir']);
+    Route::delete(ROUTE_CURSO_ID . '/desmatricular', [\App\Http\Controllers\Api\CursoController::class, 'desmatricular']);
 
     // Rutas de Temas (Módulos)
     Route::post('/cursos/{id}/temas', [\App\Http\Controllers\Api\TemaController::class, 'store']);
@@ -51,10 +59,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('role:Administrador,Profesor')->group(function () use ($cursoRoute) {
         Route::post('/cursos', [\App\Http\Controllers\Api\CursoController::class, 'store']);
-        Route::put($cursoRoute, [\App\Http\Controllers\Api\CursoController::class, 'update']);
-        Route::delete($cursoRoute, [\App\Http\Controllers\Api\CursoController::class, 'destroy']);
-        Route::get('/cursos/{id}/estudiantes', [\App\Http\Controllers\Api\CursoController::class, 'getEstudiantes']);
-        Route::post('/cursos/{id}/matricular-manual', [\App\Http\Controllers\Api\CursoController::class, 'matricularManual']);
+        Route::put(ROUTE_CURSO_ID, [\App\Http\Controllers\Api\CursoController::class, 'update']);
+        Route::delete(ROUTE_CURSO_ID, [\App\Http\Controllers\Api\CursoController::class, 'destroy']);
+        Route::get(ROUTE_CURSO_ID . '/estudiantes', [\App\Http\Controllers\Api\CursoController::class, 'getEstudiantes']);
+        Route::post(ROUTE_CURSO_ID . '/matricular-manual', [\App\Http\Controllers\Api\CursoController::class, 'matricularManual']);
         Route::get('/estudiantes', [\App\Http\Controllers\Api\UserController::class, 'listarEstudiantes']);
     });
 });

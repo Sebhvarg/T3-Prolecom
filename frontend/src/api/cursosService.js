@@ -98,3 +98,4 @@ export const cursosService = {
     return await authService.apiFetch('/lenguajes');
   }
 };
+

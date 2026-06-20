@@ -14,7 +14,21 @@ class LenguajeProgramacion extends Model
 
     protected $fillable = [
         'nombre',
+        'slug',
         'judge0_id',
+        'icono',
         'activo',
     ];
+
+    protected $casts = [
+        'activo' => 'boolean',
+    ];
+
+    /**
+     * Cursos que usan este lenguaje.
+     */
+    public function cursos()
+    {
+        return $this->hasMany(Curso::class, 'idLenguaje', 'idLenguaje');
+    }
 }
