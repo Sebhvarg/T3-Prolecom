@@ -34,6 +34,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/materiales/{id}/stream', [\App\Http\Controllers\Api\MaterialController::class, 'stream']);
     Route::get('/materiales/{id}/download', [\App\Http\Controllers\Api\MaterialController::class, 'download']);
 
+    // Rutas de Desafíos y Soluciones
+    Route::get('/lenguajes', function () {
+        return response()->json(\App\Models\LenguajeProgramacion::where('activo', true)->get());
+    });
+    Route::get('/temas/{idTema}/desafios', [\App\Http\Controllers\Api\DesafioController::class, 'indexByTema']);
+    Route::get('/desafios/{id}', [\App\Http\Controllers\Api\DesafioController::class, 'show']);
+    Route::post('/desafios/{id}/soluciones', [\App\Http\Controllers\Api\DesafioController::class, 'enviarSolucion']);
+    Route::get('/desafios/{id}/soluciones', [\App\Http\Controllers\Api\DesafioController::class, 'listarIntentos']);
+
+    Route::middleware('role:Administrador,Profesor,Ayudante')->group(function () {
+        Route::post('/temas/{idTema}/desafios', [\App\Http\Controllers\Api\DesafioController::class, 'store']);
+        Route::put('/desafios/{id}', [\App\Http\Controllers\Api\DesafioController::class, 'update']);
+        Route::delete('/desafios/{id}', [\App\Http\Controllers\Api\DesafioController::class, 'destroy']);
+    });
+
     Route::middleware('role:Administrador,Profesor')->group(function () use ($cursoRoute) {
         Route::post('/cursos', [\App\Http\Controllers\Api\CursoController::class, 'store']);
         Route::put($cursoRoute, [\App\Http\Controllers\Api\CursoController::class, 'update']);

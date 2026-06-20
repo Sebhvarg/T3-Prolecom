@@ -17,6 +17,14 @@ class Solucion extends Model
         'estado',
         'idEstudiante',
         'idDesafio',
+        'idLenguaje',
+        'casos_pasados',
+        'casos_totales',
+        'tiempo_ejecucion_ms',
+        'memoria_ejecucion_kb',
+        'stdout',
+        'stderr',
+        'puntos_otorgados',
     ];
 
     public function estudiante()
@@ -27,5 +35,10 @@ class Solucion extends Model
     public function desafio()
     {
         return $this->belongsTo(Desafio::class, 'idDesafio', 'idDesafio');
+    }
+
+    public function lenguaje()
+    {
+        return $this->belongsTo(LenguajeProgramacion::class, 'idLenguaje', 'idLenguaje');
     }
 }

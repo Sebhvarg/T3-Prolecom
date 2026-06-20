@@ -7,6 +7,7 @@ import StudentDashboard from './pages/estudiante/StudentDashboard';
 import ProfesorDashboard from './pages/profesor/ProfesorDashboard';
 import CursosPage from './pages/cursos/CursosPage';
 import CursoDetallePage from './pages/cursos/CursoDetallePage';
+import DesafioDetallePage from './pages/cursos/DesafioDetallePage';
 
 const ModeradorDashboard = () => <h1>Panel de Moderador</h1>;
 const AyudanteDashboard = () => <h1>Panel de Ayudante</h1>;
@@ -46,6 +47,7 @@ function App() {
           <Route element={<PrivateRoute allowedRoles={[1, 2, 3, 4, 5, 6]} />}>
             <Route path="/cursos" element={<CursosPage />} />
             <Route path="/cursos/:id" element={<CursoDetallePage />} />
+            <Route path="/cursos/:id/desafios/:idDesafio" element={<DesafioDetallePage />} />
           </Route>
 
           {/* Redirección por defecto */}

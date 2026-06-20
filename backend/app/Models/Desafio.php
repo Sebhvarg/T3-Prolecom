@@ -21,6 +21,8 @@ class Desafio extends Model
         'estado',
         'idCreador',
         'idCurso',
+        'puntos',
+        'starter_code',
     ];
 
     protected $casts = [

@@ -92,5 +92,9 @@ export const cursosService = {
     return await authService.apiFetch(`/materiales/${id}`, {
       method: 'DELETE',
     });
+  },
+
+  getLenguajes: async () => {
+    return await authService.apiFetch('/lenguajes');
   }
 };
