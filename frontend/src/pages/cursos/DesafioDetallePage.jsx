@@ -62,10 +62,10 @@ const DesafioDetallePage = () => {
   }, [idDesafio]);
 
   const handleLanguageChange = (langId) => {
-    const selected = lenguajes.find(l => l.idLenguaje === parseInt(langId));
+    const selected = lenguajes.find(l => l.idLenguaje === Number.parseInt(langId, 10));
     setSelectedLanguage(selected);
     // Cambiar código base si el usuario no ha editado mucho o si es el starter_code
-    if (desafio && desafio.starter_code) {
+    if (desafio?.starter_code) {
       setCode(desafio.starter_code);
     } else {
       setCode(selected.slug === 'python' ? '# Escribe tu código aquí\n' : '// Escribe tu código aquí\n');
@@ -80,7 +80,7 @@ const DesafioDetallePage = () => {
       attemptsCount++;
       try {
         const intentos = await desafiosService.getIntentos(idDesafio);
-        const latest = intentos.find(i => i.idSolucion === idSolucion || i.idSolucion === parseInt(idSolucion));
+        const latest = intentos.find(i => i.idSolucion === idSolucion || i.idSolucion === Number.parseInt(idSolucion, 10));
         
         if (latest && latest.estado !== 'pendiente') {
           clearInterval(pollIntervalRef.current);
@@ -260,7 +260,7 @@ const DesafioDetallePage = () => {
         {/* Botones de Acción */}
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <button
-            onClick={() => handleSubmit(false)}
+            onClick={() => handleSubmit()}
             disabled={evaluating || !selectedLanguage}
             className="flex items-center gap-2 bg-[#0f2027] hover:bg-[#203a43] text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed select-none"
           >

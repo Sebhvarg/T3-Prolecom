@@ -52,6 +52,8 @@ class Judge0Service
             $payload['stdin'] = $stdin;
         }
 
+        $result = ['error' => 'Fallo interno al compilar.'];
+
         try {
             $request = Http::withHeaders($this->getHeaders());
 
@@ -59,16 +61,17 @@ class Judge0Service
             $response = $request->post($this->baseUrl . '/submissions?base64_encoded=false&wait=true', $payload);
 
             if ($response->successful()) {
-                return $response->json();
+                $result = $response->json();
+            } else {
+                Log::error('Error de Judge0: ' . $response->body());
+                $result = ['error' => 'No se pudo conectar con el motor de compilación.'];
             }
-
-            Log::error('Error de Judge0: ' . $response->body());
-            return ['error' => 'No se pudo conectar con el motor de compilación.'];
             
         } catch (\Exception $e) {
             Log::error('Excepción en Judge0Service: ' . $e->getMessage());
-            return ['error' => 'Fallo interno al compilar.'];
         }
+
+        return $result;
     }
 
     private function getHeaders()
