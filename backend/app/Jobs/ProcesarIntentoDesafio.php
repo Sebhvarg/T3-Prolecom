@@ -79,53 +79,19 @@ class ProcesarIntentoDesafio implements ShouldQueue
         }
 
         foreach ($testCases as $testCase) {
-            $input = $testCase['input'] ?? '';
-            $expectedOutput = $testCase['expected_output'] ?? $testCase['output'] ?? '';
+            $eval = $this->evaluarCasoDePrueba($judge0, $languageId, $solucion->codigoFuente, $testCase);
 
-            // Llamada síncrona a Judge0
-            $result = $judge0->submitCode(
-                $languageId,
-                $solucion->codigoFuente,
-                $expectedOutput,
-                $input
-            );
+            $execTime += $eval['time'];
+            $execMemory += $eval['memory'];
+            $stdout .= $eval['stdout'];
 
-            if (isset($result['error'])) {
-                $estado = 'rechazado'; // Mapeamos compile/server errors a rechazado
-                $stderr = $result['error'];
+            if (!$eval['success']) {
+                $estado = 'rechazado';
+                $stderr = $eval['stderr'];
                 break;
             }
 
-            $judgeStatus = $result['status']['id'] ?? 0;
-            $execTime += (int) (($result['time'] ?? 0) * 1000); // Guardamos en ms
-            $execMemory += (int) ($result['memory'] ?? 0);
-
-            if ($judgeStatus === 3) {
-                // 3 = Accepted
-                $passed++;
-            } elseif ($judgeStatus === 4) {
-                // Wrong Answer
-                $estado = 'rechazado';
-                $stderr = "Respuesta incorrecta para el caso de prueba público.";
-                break;
-            } elseif ($judgeStatus === 5) {
-                // Time Limit Exceeded
-                $estado = 'rechazado';
-                $stderr = "Límite de tiempo excedido.";
-                break;
-            } elseif ($judgeStatus === 6) {
-                // Compile Error
-                $estado = 'rechazado';
-                $stderr = $result['compile_output'] ?? 'Error de compilación.';
-                break;
-            } else {
-                // Runtime Error u otros
-                $estado = 'rechazado';
-                $stderr = $result['stderr'] ?? 'Error de ejecución.';
-                break;
-            }
-
-            $stdout .= ($result['stdout'] ?? '') . "\n";
+            $passed++;
         }
 
         if ($passed < $total && $estado === 'aprobado') {
@@ -181,6 +147,57 @@ class ProcesarIntentoDesafio implements ShouldQueue
                 Log::info("Otorgado {$puntos} XP al estudiante {$idEstudiante} por el desafío {$idDesafio}");
             }
         }
+    }
+
+    /**
+     * Evalúa un único caso de prueba usando Judge0.
+     */
+    private function evaluarCasoDePrueba(Judge0Service $judge0, int $languageId, string $codigoFuente, array $testCase): array
+    {
+        $input = $testCase['input'] ?? '';
+        $expectedOutput = $testCase['expected_output'] ?? $testCase['output'] ?? '';
+
+        $result = $judge0->submitCode($languageId, $codigoFuente, $expectedOutput, $input);
+
+        if (isset($result['error'])) {
+            return [
+                'success' => false,
+                'stderr' => $result['error'],
+                'time' => 0,
+                'memory' => 0,
+                'stdout' => ''
+            ];
+        }
+
+        $judgeStatus = $result['status']['id'] ?? 0;
+        $execTime = (int) (($result['time'] ?? 0) * 1000);
+        $execMemory = (int) ($result['memory'] ?? 0);
+        $stdout = ($result['stdout'] ?? '') . "\n";
+
+        if ($judgeStatus === 3) {
+            return [
+                'success' => true,
+                'stderr' => '',
+                'time' => $execTime,
+                'memory' => $execMemory,
+                'stdout' => $stdout
+            ];
+        }
+
+        $stderr = match ($judgeStatus) {
+            4 => "Respuesta incorrecta para el caso de prueba público.",
+            5 => "Límite de tiempo excedido.",
+            6 => $result['compile_output'] ?? 'Error de compilación.',
+            default => $result['stderr'] ?? 'Error de ejecución.',
+        };
+
+        return [
+            'success' => false,
+            'stderr' => $stderr,
+            'time' => $execTime,
+            'memory' => $execMemory,
+            'stdout' => $stdout
+        ];
     }
 
     /**
