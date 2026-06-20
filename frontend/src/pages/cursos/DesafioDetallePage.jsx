@@ -100,7 +100,7 @@ const DesafioDetallePage = () => {
     }, 1500);
   };
 
-  const handleSubmit = async (isTestRun = false) => {
+  const handleSubmit = async () => {
     if (!selectedLanguage) return;
     
     setError('');
