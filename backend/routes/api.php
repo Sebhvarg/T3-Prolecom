@@ -11,6 +11,7 @@ if (!defined('ROUTE_CURSO_ID')) {
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::put('/perfil/password', [\App\Http\Controllers\Api\PerfilController::class, 'cambiarPassword']);
     Route::get('/user', function (Request $request) {
         return $request->user();
     });

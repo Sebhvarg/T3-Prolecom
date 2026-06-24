@@ -376,7 +376,7 @@ const CursosPage = () => {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="titulo" className="text-sm font-semibold text-gray-700">Título del Curso</label>
+                <label htmlFor="titulo" className="text-sm font-semibold text-gray-700">Título del Curso <span className="text-red-500">*</span></label>
                 <input
                   id="titulo"
                   type="text"
@@ -389,7 +389,7 @@ const CursosPage = () => {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="descripcion" className="text-sm font-semibold text-gray-700">Descripción</label>
+                <label htmlFor="descripcion" className="text-sm font-semibold text-gray-700">Descripción <span className="text-red-500">*</span></label>
                 <textarea
                   id="descripcion"
                   required
@@ -403,7 +403,7 @@ const CursosPage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="lp" className="text-sm font-semibold text-gray-700">Lenguaje / LP</label>
+                  <label htmlFor="lp" className="text-sm font-semibold text-gray-700">Lenguaje / LP <span className="text-red-500">*</span></label>
                   <select
                     id="lp"
                     required
@@ -421,7 +421,7 @@ const CursosPage = () => {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="tipo" className="text-sm font-semibold text-gray-700">Tipo de Curso</label>
+                  <label htmlFor="tipo" className="text-sm font-semibold text-gray-700">Tipo de Curso <span className="text-red-500">*</span></label>
                   <select
                     id="tipo"
                     className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364] text-gray-800 bg-white"
