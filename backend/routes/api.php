@@ -20,20 +20,6 @@ if (! defined('ROUTE_DESAFIO_ID')) {
 
 Route::post('/login', [AuthController::class, 'login']);
 
-Route::get('/run-seeds', function () {
-    try {
-        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-        return response()->json([
-            'message' => 'Seeds ejecutadas exitosamente',
-            'output' => \Illuminate\Support\Facades\Artisan::output()
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => $e->getMessage()
-        ], 500);
-    }
-});
-
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
