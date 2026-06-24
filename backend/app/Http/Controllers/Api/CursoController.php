@@ -91,9 +91,13 @@ class CursoController extends Controller
             'idProfeCreador' => $request->user()->idUsuario,
         ]);
 
+        // Aplicar la plantilla correspondiente al curso usando el patrón de diseño Strategy
+        $strategy = \App\Strategies\CourseTemplate\CursoTemplateFactory::getStrategy($curso->lp);
+        $strategy->loadTemplate($curso);
+
         return response()->json([
             'message' => 'Curso creado con éxito',
-            'curso' => $curso->load('creador:idUsuario,nombreCompleto')
+            'curso' => $curso->load(['creador:idUsuario,nombreCompleto', 'temas'])
         ], 201);
     }
 
