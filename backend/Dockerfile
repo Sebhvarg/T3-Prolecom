@@ -47,6 +47,19 @@ RUN a2enmod mpm_prefork || true
 
 WORKDIR /var/www/html
 
+# Crear estructura de carpetas de almacenamiento (storage) requeridas por Laravel
+RUN mkdir -p \
+    storage/app/public \
+    storage/framework/cache/data \
+    storage/framework/sessions \
+    storage/framework/testing \
+    storage/framework/views \
+    storage/logs \
+    bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
+
+
 # Forzar eliminación de módulos MPM conflictivos al arrancar (RUNTIME)
 CMD rm -f /etc/apache2/mods-enabled/mpm_event.* /etc/apache2/mods-enabled/mpm_worker.* \
     && exec apache2-foreground
