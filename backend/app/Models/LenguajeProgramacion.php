@@ -10,6 +10,7 @@ class LenguajeProgramacion extends Model
     use HasFactory;
 
     protected $table = 'lenguajes_programacion';
+
     protected $primaryKey = 'idLenguaje';
 
     protected $fillable = [

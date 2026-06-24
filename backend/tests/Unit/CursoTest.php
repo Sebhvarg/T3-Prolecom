@@ -3,10 +3,10 @@
 namespace Tests\Unit;
 
 use App\Models\Curso;
-use App\Models\User;
 use App\Models\Rol;
-use App\Models\EstadoCuenta;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class CursoTest extends TestCase
@@ -14,7 +14,9 @@ class CursoTest extends TestCase
     use RefreshDatabase;
 
     protected $profesorRol;
+
     protected $estudianteRol;
+
     protected $activoEstado;
 
     protected function setUp(): void
@@ -22,14 +24,14 @@ class CursoTest extends TestCase
         parent::setUp();
 
         // Seed states and roles using DB table to bypass mass assignment
-        \Illuminate\Support\Facades\DB::table('estadosCuenta')->insertOrIgnore([
+        DB::table('estadosCuenta')->insertOrIgnore([
             'idEstado' => 1,
-            'estado' => 'Activo'
+            'estado' => 'Activo',
         ]);
 
-        \Illuminate\Support\Facades\DB::table('roles')->insertOrIgnore([
+        DB::table('roles')->insertOrIgnore([
             ['idRol' => 3, 'rol' => 'Profesor'],
-            ['idRol' => 6, 'rol' => 'Estudiante']
+            ['idRol' => 6, 'rol' => 'Estudiante'],
         ]);
 
         $this->profesorRol = Rol::find(3);
@@ -46,7 +48,7 @@ class CursoTest extends TestCase
             'descripcion' => 'Aprende Python',
             'lp' => 'Python',
             'tipo' => 'público',
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
 
         $this->assertInstanceOf(User::class, $curso->creador);
@@ -69,7 +71,7 @@ class CursoTest extends TestCase
             'descripcion' => 'Aprende Python',
             'lp' => 'Python',
             'tipo' => 'público',
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
 
         $curso->estudiantes()->attach([$student1->idUsuario, $student2->idUsuario]);

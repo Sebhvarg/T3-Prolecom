@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Ruta extends Model
 {
     protected $table = 'rutas';
+
     protected $fillable = ['idRol', 'ruta'];
 
     public function rol()

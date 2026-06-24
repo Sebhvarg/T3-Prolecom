@@ -10,6 +10,7 @@ class Desafio extends Model
     use HasFactory;
 
     protected $table = 'desafios';
+
     protected $primaryKey = 'idDesafio';
 
     protected $fillable = [

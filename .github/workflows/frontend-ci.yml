@@ -33,5 +33,15 @@ jobs:
     - name: Run linting
       run: yarn lint
 
+    - name: Generate ESLint JSON report (for SonarQube)
+      run: yarn lint:report
+
+    - name: Upload ESLint report
+      uses: actions/upload-artifact@v4
+      with:
+        name: eslint-report
+        path: frontend/eslint-report.json
+        if-no-files-found: warn
+
     - name: Build project
       run: yarn build

@@ -21,7 +21,7 @@ return new class extends Migration
         Schema::table('soluciones', function (Blueprint $table) {
             // Mapear los estados adicionales para Judge0
             $table->string('estado', 50)->default('pendiente')->change();
-            
+
             $table->unsignedBigInteger('idLenguaje')->nullable()->after('idDesafio');
             $table->unsignedInteger('casos_pasados')->default(0)->after('idLenguaje');
             $table->unsignedInteger('casos_totales')->default(0)->after('casos_pasados');

@@ -24,7 +24,7 @@ const CursosPage = () => {
   });
 
   // Matriculación y Filtros states
-  const [activeTab, setActiveTab] = useState('todos'); // 'todos', 'mis_cursos', 'disponibles'
+  const [activeTab, setActiveTab] = useState('mis_cursos'); // 'mis_cursos', 'disponibles'
   const [filterLp, setFilterLp] = useState('');
   const [filterTipo, setFilterTipo] = useState('');
   const [lps, setLps] = useState([]);
@@ -50,7 +50,7 @@ const CursosPage = () => {
         else if (activeTab === 'disponibles') params.filtro = 'disponibles';
       }
       const data = await cursosService.getCursos(params);
-      setCursos(data);
+      setCursos(data.slice().sort((a, b) => a.titulo.localeCompare(b.titulo, 'es', { numeric: true })));
     } catch (err) {
       console.error(err);
       setError('No se pudieron cargar los cursos.');
@@ -64,7 +64,7 @@ const CursosPage = () => {
     const loadAllLps = async () => {
       try {
         const data = await cursosService.getLenguajes();
-        setLps(data || []);
+        setLps((data || []).slice().sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { numeric: true })));
       } catch (err) {
         console.error('Error al cargar lenguajes:', err);
       }
@@ -163,7 +163,7 @@ const CursosPage = () => {
     setAlumnosLoading(true);
     try {
       const enrolled = await cursosService.getEstudiantesMatriculados(cursoId);
-      setAlumnosMatriculados(enrolled);
+      setAlumnosMatriculados(enrolled.slice().sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto, 'es', { numeric: true })));
     } catch (err) {
       console.error(err);
       setError('Error al actualizar la lista de alumnos.');
@@ -183,7 +183,7 @@ const CursosPage = () => {
     
     try {
       const allStudents = await cursosService.getEstudiantesSistema();
-      setEstudiantesSistema(allStudents);
+      setEstudiantesSistema(allStudents.slice().sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto, 'es', { numeric: true })));
     } catch (err) {
       console.error(err);
     }
@@ -305,7 +305,6 @@ const CursosPage = () => {
         ) : (
           <div className="flex gap-2">
             {[
-              { id: 'todos', label: 'Todos los cursos' },
               { id: 'mis_cursos', label: 'Mis Cursos' },
               { id: 'disponibles', label: 'Cursos Disponibles' },
             ].map((tab) => (
@@ -376,7 +375,7 @@ const CursosPage = () => {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="titulo" className="text-sm font-semibold text-gray-700">Título del Curso</label>
+                <label htmlFor="titulo" className="text-sm font-semibold text-gray-700">Título del Curso <span className="text-red-500">*</span></label>
                 <input
                   id="titulo"
                   type="text"
@@ -389,7 +388,7 @@ const CursosPage = () => {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="descripcion" className="text-sm font-semibold text-gray-700">Descripción</label>
+                <label htmlFor="descripcion" className="text-sm font-semibold text-gray-700">Descripción <span className="text-red-500">*</span></label>
                 <textarea
                   id="descripcion"
                   required
@@ -403,7 +402,7 @@ const CursosPage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="lp" className="text-sm font-semibold text-gray-700">Lenguaje / LP</label>
+                  <label htmlFor="lp" className="text-sm font-semibold text-gray-700">Lenguaje / LP <span className="text-red-500">*</span></label>
                   <select
                     id="lp"
                     required
@@ -480,7 +479,7 @@ const CursosPage = () => {
             {/* Form to Enroll Student Manually */}
             <form onSubmit={handleMatricularManual} className="mb-6 p-4 bg-gray-50 border border-gray-100 rounded-2xl flex flex-col sm:flex-row gap-3 items-end">
               <div className="flex-1 flex flex-col gap-1.5 w-full">
-                <label htmlFor="select-estudiante" className="text-xs font-bold text-gray-500 uppercase tracking-wider">Matricular alumno manualmente</label>
+                <label htmlFor="select-estudiante" className="text-xs font-bold text-gray-500 uppercase tracking-wider">Matricular alumno manualmente <span className="text-red-500">*</span></label>
                 <select
                   id="select-estudiante"
                   required

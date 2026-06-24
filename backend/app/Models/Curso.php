@@ -10,6 +10,7 @@ class Curso extends Model
     use HasFactory;
 
     protected $table = 'cursos';
+
     protected $primaryKey = 'idCurso';
 
     protected $fillable = [
@@ -28,7 +29,7 @@ class Curso extends Model
     public function estudiantes()
     {
         return $this->belongsToMany(User::class, 'inscripciones_cursos', 'idCurso', 'idUsuarioEstudiante')
-                    ->withPivot('fechaInscripcion');
+            ->withPivot('fechaInscripcion');
     }
 
     public function temas()

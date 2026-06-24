@@ -1,0 +1,23 @@
+parameters:
+    paths:
+        - app
+
+    # Nivel 5: detecta errores de tipos, métodos inexistentes,
+    # variables no definidas y retornos incorrectos.
+    # Nota: larastan no soporta Laravel 13 aún; se usa PHPStan puro.
+    level: 5
+
+    excludePaths:
+        - app/Http/Middleware/TrustProxies.php (?)
+
+    reportUnmatchedIgnoredErrors: false
+
+    # Suprimir errores relacionados a helpers y magia de Laravel
+    # que PHPStan no puede inferir sin la extensión Larastan
+    ignoreErrors:
+        - '#Call to an undefined method Illuminate\\.*#'
+        - '#Access to an undefined property Illuminate\\.*#'
+        - '#Unsafe usage of new static\(\)#'
+        - '#Access to an undefined property App\\Models\\.*#'
+        - '#Call to an undefined static method App\\Models\\.*#'
+        - '#Cannot call method .* on .*class-string\|object.*#'

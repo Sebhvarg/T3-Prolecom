@@ -28,3 +28,4 @@ Thumbs.db
 test_db.php
 test_token.php
 .env*
+build/logs/

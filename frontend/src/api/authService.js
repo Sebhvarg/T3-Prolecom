@@ -104,3 +104,11 @@ export const authService = {
   }
 };
 
+export const ROLE_REDIRECTS = {
+  'Administrador': '/admin',
+  'Moderador': '/moderador/dashboard',
+  'Profesor': '/profesor/dashboard',
+  'Ayudante': '/ayudante/dashboard',
+  'Estudiante': '/dashboard/estudiante'
+};
+
