@@ -15,9 +15,9 @@ class Judge0Service
 
     public function __construct()
     {
-        $this->baseUrl = env('JUDGE0_URL', '');
-        $this->token = env('JUDGE0_TOKEN', '');
-        $this->host = env('JUDGE0_HOST', 'judge0-ce.p.rapidapi.com');
+        $this->baseUrl = config('services.judge0.url', '');
+        $this->token = config('services.judge0.url') ? config('services.judge0.token', '') : '';
+        $this->host = config('services.judge0.host', 'judge0-ce.p.rapidapi.com');
     }
 
     /**
