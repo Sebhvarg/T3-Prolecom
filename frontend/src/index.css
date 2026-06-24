@@ -43,5 +43,28 @@
   body {
     @apply bg-[var(--bg)] text-[var(--text)] font-sans antialiased;
   }
+
+  /* Cursor pointer en todos los elementos interactivos */
+  button:not(:disabled),
+  a,
+  select,
+  label[for],
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"],
+  [role="option"],
+  [role="checkbox"],
+  [role="radio"],
+  summary {
+    cursor: pointer;
+  }
+
+  /* Cursor not-allowed en elementos deshabilitados */
+  button:disabled,
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    cursor: not-allowed;
+  }
 }
 

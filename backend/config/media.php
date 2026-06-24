@@ -12,6 +12,6 @@ return [
     */
 
     'allowed_mimes' => 'pdf,mp4,mov,avi,mkv,webm',
-    
+
     'max_size' => 30720, // 30 MB (30 * 1024 KB)
 ];

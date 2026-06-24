@@ -2,24 +2,28 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Rol;
-use App\Models\EstadoCuenta;
 use App\Models\Curso;
+use App\Models\Rol;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class AuthAndRBACTest extends TestCase
 {
     use RefreshDatabase;
 
     private const TIPO_PUBLICO = 'público';
+
     private const API_CURSOS_ROUTE = '/api/cursos';
 
     protected $adminRol;
+
     protected $profesorRol;
+
     protected $estudianteRol;
+
     protected $activoEstado;
 
     protected function setUp(): void
@@ -27,15 +31,15 @@ class AuthAndRBACTest extends TestCase
         parent::setUp();
 
         // Seed basic roles and states for testing using DB table to bypass mass assignment guarding of IDs
-        \Illuminate\Support\Facades\DB::table('estadosCuenta')->insertOrIgnore([
+        DB::table('estadosCuenta')->insertOrIgnore([
             'idEstado' => 1,
-            'estado' => 'Activo'
+            'estado' => 'Activo',
         ]);
 
-        \Illuminate\Support\Facades\DB::table('roles')->insertOrIgnore([
+        DB::table('roles')->insertOrIgnore([
             ['idRol' => 1, 'rol' => 'Administrador'],
             ['idRol' => 3, 'rol' => 'Profesor'],
-            ['idRol' => 6, 'rol' => 'Estudiante']
+            ['idRol' => 6, 'rol' => 'Estudiante'],
         ]);
 
         $this->adminRol = Rol::find(1);
@@ -60,7 +64,7 @@ class AuthAndRBACTest extends TestCase
             'titulo' => 'Curso de Prueba',
             'descripcion' => 'Descripción',
             'lp' => 'Python',
-            'tipo' => self::TIPO_PUBLICO
+            'tipo' => self::TIPO_PUBLICO,
         ]);
 
         $response->assertStatus(403);
@@ -77,13 +81,13 @@ class AuthAndRBACTest extends TestCase
             'titulo' => 'Curso de Python',
             'descripcion' => 'Aprende Python desde cero',
             'lp' => 'Python',
-            'tipo' => self::TIPO_PUBLICO
+            'tipo' => self::TIPO_PUBLICO,
         ]);
 
         $response->assertStatus(201);
         $this->assertDatabaseHas('cursos', [
             'titulo' => 'Curso de Python',
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
     }
 
@@ -98,7 +102,7 @@ class AuthAndRBACTest extends TestCase
             'titulo' => 'Curso de Admin',
             'descripcion' => 'Aprende administración de sistemas',
             'lp' => 'Linux',
-            'tipo' => self::TIPO_PUBLICO
+            'tipo' => self::TIPO_PUBLICO,
         ]);
 
         $response->assertStatus(201);
@@ -117,7 +121,7 @@ class AuthAndRBACTest extends TestCase
             'descripcion' => 'Original',
             'lp' => 'A',
             'tipo' => self::TIPO_PUBLICO,
-            'idProfeCreador' => $professorA->idUsuario
+            'idProfeCreador' => $professorA->idUsuario,
         ]);
 
         Sanctum::actingAs($professorB);
@@ -142,7 +146,7 @@ class AuthAndRBACTest extends TestCase
             'descripcion' => 'Original',
             'lp' => 'A',
             'tipo' => self::TIPO_PUBLICO,
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
 
         Sanctum::actingAs($admin);
@@ -154,7 +158,7 @@ class AuthAndRBACTest extends TestCase
         $response->assertStatus(200);
         $this->assertDatabaseHas('cursos', [
             'idCurso' => $course->idCurso,
-            'titulo' => 'Curso Editado por Admin'
+            'titulo' => 'Curso Editado por Admin',
         ]);
     }
 }

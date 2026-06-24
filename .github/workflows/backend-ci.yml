@@ -31,7 +31,23 @@ jobs:
       run: php -r "file_exists('.env') || copy('.env.example', '.env');"
 
     - name: Install dependencies
-      run: composer install
+      run: composer install --no-interaction --prefer-dist
 
-    - name: Run tests
-      run: composer test
+    - name: Check code style (Pint)
+      run: ./vendor/bin/pint --test
+
+    - name: Static analysis (PHPStan)
+      run: composer analyse
+
+    - name: Prepare coverage directory
+      run: mkdir -p build/logs
+
+    - name: Run tests with coverage
+      run: php artisan config:clear && php -d xdebug.mode=coverage vendor/bin/phpunit --coverage-clover build/logs/clover.xml
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: clover-coverage
+        path: backend/build/logs/clover.xml
+        if-no-files-found: warn

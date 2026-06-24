@@ -2,22 +2,26 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Rol;
 use App\Models\Curso;
+use App\Models\Rol;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class InscripcionTest extends TestCase
 {
     use RefreshDatabase;
 
     private const TIPO_PUBLICO = 'público';
+
     private const ID_CURSO_PATH = '0.idCurso';
 
     protected $adminRol;
+
     protected $profesorRol;
+
     protected $estudianteRol;
 
     protected function setUp(): void
@@ -25,15 +29,15 @@ class InscripcionTest extends TestCase
         parent::setUp();
 
         // Seed basic roles and states for testing using DB table
-        \Illuminate\Support\Facades\DB::table('estadosCuenta')->insertOrIgnore([
+        DB::table('estadosCuenta')->insertOrIgnore([
             'idEstado' => 1,
-            'estado' => 'Activo'
+            'estado' => 'Activo',
         ]);
 
-        \Illuminate\Support\Facades\DB::table('roles')->insertOrIgnore([
+        DB::table('roles')->insertOrIgnore([
             ['idRol' => 1, 'rol' => 'Administrador'],
             ['idRol' => 3, 'rol' => 'Profesor'],
-            ['idRol' => 6, 'rol' => 'Estudiante']
+            ['idRol' => 6, 'rol' => 'Estudiante'],
         ]);
 
         $this->adminRol = Rol::find(1);
@@ -54,7 +58,7 @@ class InscripcionTest extends TestCase
             'descripcion' => 'Aprende Python',
             'lp' => 'Python',
             'tipo' => self::TIPO_PUBLICO,
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
 
         Sanctum::actingAs($student);
@@ -64,7 +68,7 @@ class InscripcionTest extends TestCase
         $response->assertStatus(201);
         $this->assertDatabaseHas('inscripciones_cursos', [
             'idUsuarioEstudiante' => $student->idUsuario,
-            'idCurso' => $course->idCurso
+            'idCurso' => $course->idCurso,
         ]);
     }
 
@@ -81,7 +85,7 @@ class InscripcionTest extends TestCase
             'descripcion' => 'Solo invitados',
             'lp' => 'Java',
             'tipo' => 'privado',
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
 
         Sanctum::actingAs($student);
@@ -91,7 +95,7 @@ class InscripcionTest extends TestCase
         $response->assertStatus(403);
         $this->assertDatabaseMissing('inscripciones_cursos', [
             'idUsuarioEstudiante' => $student->idUsuario,
-            'idCurso' => $course->idCurso
+            'idCurso' => $course->idCurso,
         ]);
     }
 
@@ -108,7 +112,7 @@ class InscripcionTest extends TestCase
             'descripcion' => 'Aprende JS',
             'lp' => 'JavaScript',
             'tipo' => self::TIPO_PUBLICO,
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
 
         // Enroll first time
@@ -135,7 +139,7 @@ class InscripcionTest extends TestCase
             'descripcion' => 'Aprende C#',
             'lp' => 'C#',
             'tipo' => self::TIPO_PUBLICO,
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
 
         $course->estudiantes()->attach($student->idUsuario, ['fechaInscripcion' => now()]);
@@ -147,7 +151,7 @@ class InscripcionTest extends TestCase
         $response->assertStatus(200);
         $this->assertDatabaseMissing('inscripciones_cursos', [
             'idUsuarioEstudiante' => $student->idUsuario,
-            'idCurso' => $course->idCurso
+            'idCurso' => $course->idCurso,
         ]);
     }
 
@@ -164,19 +168,19 @@ class InscripcionTest extends TestCase
             'descripcion' => 'Curso para matricular manualmente',
             'lp' => 'PHP',
             'tipo' => 'privado',
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
 
         Sanctum::actingAs($professor);
 
         $response = $this->postJson("/api/cursos/{$course->idCurso}/matricular-manual", [
-            'email' => $student->email
+            'email' => $student->email,
         ]);
 
         $response->assertStatus(201);
         $this->assertDatabaseHas('inscripciones_cursos', [
             'idUsuarioEstudiante' => $student->idUsuario,
-            'idCurso' => $course->idCurso
+            'idCurso' => $course->idCurso,
         ]);
     }
 
@@ -196,13 +200,13 @@ class InscripcionTest extends TestCase
             'descripcion' => 'Aprende Python',
             'lp' => 'Python',
             'tipo' => self::TIPO_PUBLICO,
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
 
         Sanctum::actingAs($studentA);
 
         $response = $this->postJson("/api/cursos/{$course->idCurso}/matricular-manual", [
-            'email' => $studentB->email
+            'email' => $studentB->email,
         ]);
 
         $response->assertStatus(403);
@@ -221,7 +225,7 @@ class InscripcionTest extends TestCase
             'descripcion' => 'Curso para matricular manualmente',
             'lp' => 'PHP',
             'tipo' => 'privado',
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
 
         $course->estudiantes()->attach($student->idUsuario, ['fechaInscripcion' => now()]);
@@ -229,13 +233,13 @@ class InscripcionTest extends TestCase
         Sanctum::actingAs($professor);
 
         $response = $this->deleteJson("/api/cursos/{$course->idCurso}/desmatricular", [
-            'idUsuarioEstudiante' => $student->idUsuario
+            'idUsuarioEstudiante' => $student->idUsuario,
         ]);
 
         $response->assertStatus(200);
         $this->assertDatabaseMissing('inscripciones_cursos', [
             'idUsuarioEstudiante' => $student->idUsuario,
-            'idCurso' => $course->idCurso
+            'idCurso' => $course->idCurso,
         ]);
     }
 
@@ -252,7 +256,7 @@ class InscripcionTest extends TestCase
             'descripcion' => 'Python',
             'lp' => 'Python',
             'tipo' => self::TIPO_PUBLICO,
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
 
         $courseB = Curso::create([
@@ -260,7 +264,7 @@ class InscripcionTest extends TestCase
             'descripcion' => 'JS',
             'lp' => 'JavaScript',
             'tipo' => 'privado',
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
 
         // Student is enrolled only in A
