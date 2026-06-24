@@ -1,8 +1,10 @@
 # Etapa base para extensiones de Laravel
 FROM php:8.4-apache AS base
 
-# Habilitar mod_rewrite para Laravel
+# Habilitar mod_rewrite para Laravel y resolver conflictos de MPM
 RUN a2enmod rewrite
+RUN a2dismod mpm_event mpm_worker || true
+RUN a2enmod mpm_prefork || true
 
 # Instalar el instalador de extensiones de PHP (muy rápido y maneja dependencias)
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
