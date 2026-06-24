@@ -19,15 +19,15 @@ class AuthService
     {
         $usuario = $this->authRepository->findByUsernameOrEmailWithRoles($credentials['login']);
 
-        if (!$usuario || !Hash::check($credentials['password'], $usuario->password)) {
+        if (! $usuario || ! Hash::check($credentials['password'], $usuario->password)) {
             throw ValidationException::withMessages([
-                'error' => 'Credenciales inválidas'
+                'error' => 'Credenciales inválidas',
             ])->status(401);
         }
 
         if ($usuario->estado->estado !== 'Activo') {
             throw ValidationException::withMessages([
-                'error' => 'Cuenta ' . $usuario->estado->estado
+                'error' => 'Cuenta '.$usuario->estado->estado,
             ])->status(403);
         }
 
@@ -47,7 +47,7 @@ class AuthService
                 'rol' => $usuario->roles->pluck('rol')->first(),
                 'id_rol' => $usuario->roles->pluck('idRol')->first(),
                 'rutas' => $rutas ? explode(';', $rutas) : [],
-            ]
+            ],
         ];
     }
 }

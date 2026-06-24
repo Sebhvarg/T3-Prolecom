@@ -3,30 +3,36 @@
 namespace Tests\Feature;
 
 use App\Models\Curso;
-use App\Models\User;
+use App\Models\ItemTema;
+use App\Models\MaterialAprendizaje;
 use App\Models\Rol;
 use App\Models\Tema;
-use App\Models\MaterialAprendizaje;
-use App\Models\ItemTema;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use Laravel\Sanctum\Sanctum;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\UploadedFile;
+use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class TemaAndMaterialApiTest extends TestCase
 {
     use RefreshDatabase;
 
     private const COURSE_TITLE = 'Curso de PHP';
-    private const COURSE_DESC  = 'PHP testing';
-    private const COURSE_TYPE  = 'público';
-    private const TEMA_NAME    = 'Tema 1';
-    private const MIME_PDF     = 'application/pdf';
+
+    private const COURSE_DESC = 'PHP testing';
+
+    private const COURSE_TYPE = 'público';
+
+    private const TEMA_NAME = 'Tema 1';
+
+    private const MIME_PDF = 'application/pdf';
 
     protected $adminRol;
+
     protected $profesorRol;
+
     protected $estudianteRol;
 
     protected function setUp(): void
@@ -35,13 +41,13 @@ class TemaAndMaterialApiTest extends TestCase
 
         DB::table('estadosCuenta')->insertOrIgnore([
             'idEstado' => 1,
-            'estado' => 'Activo'
+            'estado' => 'Activo',
         ]);
 
         DB::table('roles')->insertOrIgnore([
             ['idRol' => 1, 'rol' => 'Administrador'],
             ['idRol' => 3, 'rol' => 'Profesor'],
-            ['idRol' => 6, 'rol' => 'Estudiante']
+            ['idRol' => 6, 'rol' => 'Estudiante'],
         ]);
 
         $this->adminRol = Rol::find(1);
@@ -61,20 +67,20 @@ class TemaAndMaterialApiTest extends TestCase
             'descripcion' => 'Pruebas con Laravel',
             'lp' => 'PHP',
             'tipo' => self::COURSE_TYPE,
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
 
         Sanctum::actingAs($professor);
 
         $response = $this->postJson("/api/cursos/{$course->idCurso}/temas", [
             'nombre' => 'Tema 1: Conceptos Básicos',
-            'descripcion' => 'Introducción general'
+            'descripcion' => 'Introducción general',
         ]);
 
         $response->assertStatus(201);
         $this->assertDatabaseHas('temas', [
             'nombre' => 'Tema 1: Conceptos Básicos',
-            'idCurso' => $course->idCurso
+            'idCurso' => $course->idCurso,
         ]);
     }
 
@@ -91,7 +97,7 @@ class TemaAndMaterialApiTest extends TestCase
             'descripcion' => 'Pruebas con Laravel',
             'lp' => 'PHP',
             'tipo' => self::COURSE_TYPE,
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
 
         Sanctum::actingAs($student);
@@ -113,12 +119,12 @@ class TemaAndMaterialApiTest extends TestCase
             'descripcion' => self::COURSE_DESC,
             'lp' => 'PHP',
             'tipo' => self::COURSE_TYPE,
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
 
         $tema = Tema::create([
             'nombre' => self::TEMA_NAME,
-            'idCurso' => $course->idCurso
+            'idCurso' => $course->idCurso,
         ]);
 
         Sanctum::actingAs($professor);
@@ -129,13 +135,13 @@ class TemaAndMaterialApiTest extends TestCase
             'titulo' => 'Documento Guía',
             'descripcion' => 'Material PDF',
             'tipo' => 'PDF',
-            'archivo' => $file
+            'archivo' => $file,
         ]);
 
         $response->assertStatus(201);
         $this->assertDatabaseHas('materiales_aprendizaje', [
             'titulo' => 'Documento Guía',
-            'tipo' => 'PDF'
+            'tipo' => 'PDF',
         ]);
 
         $material = MaterialAprendizaje::first();
@@ -144,7 +150,7 @@ class TemaAndMaterialApiTest extends TestCase
         $this->assertDatabaseHas('items_tema', [
             'idTema' => $tema->idTema,
             'itemable_type' => MaterialAprendizaje::class,
-            'itemable_id' => $material->idMaterial
+            'itemable_id' => $material->idMaterial,
         ]);
     }
 
@@ -158,12 +164,12 @@ class TemaAndMaterialApiTest extends TestCase
             'descripcion' => self::COURSE_DESC,
             'lp' => 'PHP',
             'tipo' => self::COURSE_TYPE,
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
 
         $tema = Tema::create([
             'nombre' => self::TEMA_NAME,
-            'idCurso' => $course->idCurso
+            'idCurso' => $course->idCurso,
         ]);
 
         Sanctum::actingAs($professor);
@@ -173,7 +179,7 @@ class TemaAndMaterialApiTest extends TestCase
         $response = $this->postJson("/api/temas/{$tema->idTema}/materiales", [
             'titulo' => 'Malicious File',
             'tipo' => 'PDF',
-            'archivo' => $invalidFile
+            'archivo' => $invalidFile,
         ]);
         $response->assertStatus(400);
 
@@ -182,7 +188,7 @@ class TemaAndMaterialApiTest extends TestCase
         $response = $this->postJson("/api/temas/{$tema->idTema}/materiales", [
             'titulo' => 'Large Video',
             'tipo' => 'video',
-            'archivo' => $largeFile
+            'archivo' => $largeFile,
         ]);
         $response->assertStatus(400);
     }
@@ -200,7 +206,7 @@ class TemaAndMaterialApiTest extends TestCase
             'descripcion' => self::COURSE_DESC,
             'lp' => 'PHP',
             'tipo' => self::COURSE_TYPE,
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
 
         // Enroll student
@@ -208,7 +214,7 @@ class TemaAndMaterialApiTest extends TestCase
 
         $tema = Tema::create([
             'nombre' => self::TEMA_NAME,
-            'idCurso' => $course->idCurso
+            'idCurso' => $course->idCurso,
         ]);
 
         // Save a mock file in local disk
@@ -218,14 +224,14 @@ class TemaAndMaterialApiTest extends TestCase
             'titulo' => 'Guía Académica',
             'tipo' => 'PDF',
             'enlaceArchivo' => $path,
-            'idUsuarioCreador' => $professor->idUsuario
+            'idUsuarioCreador' => $professor->idUsuario,
         ]);
 
         ItemTema::create([
             'idTema' => $tema->idTema,
             'itemable_type' => MaterialAprendizaje::class,
             'itemable_id' => $material->idMaterial,
-            'orden' => 1
+            'orden' => 1,
         ]);
 
         Sanctum::actingAs($student);
@@ -252,26 +258,26 @@ class TemaAndMaterialApiTest extends TestCase
             'descripcion' => self::COURSE_DESC,
             'lp' => 'PHP',
             'tipo' => self::COURSE_TYPE,
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
 
         $tema = Tema::create([
             'nombre' => self::TEMA_NAME,
-            'idCurso' => $course->idCurso
+            'idCurso' => $course->idCurso,
         ]);
 
         $material = MaterialAprendizaje::create([
             'titulo' => 'Guía Oculta',
             'tipo' => 'PDF',
             'enlaceArchivo' => 'materials/oculto.pdf',
-            'idUsuarioCreador' => $professor->idUsuario
+            'idUsuarioCreador' => $professor->idUsuario,
         ]);
 
         ItemTema::create([
             'idTema' => $tema->idTema,
             'itemable_type' => MaterialAprendizaje::class,
             'itemable_id' => $material->idMaterial,
-            'orden' => 1
+            'orden' => 1,
         ]);
 
         Sanctum::actingAs($student);
@@ -290,12 +296,12 @@ class TemaAndMaterialApiTest extends TestCase
             'descripcion' => self::COURSE_DESC,
             'lp' => 'PHP',
             'tipo' => self::COURSE_TYPE,
-            'idProfeCreador' => $professor->idUsuario
+            'idProfeCreador' => $professor->idUsuario,
         ]);
 
         $tema = Tema::create([
             'nombre' => self::TEMA_NAME,
-            'idCurso' => $course->idCurso
+            'idCurso' => $course->idCurso,
         ]);
 
         $path = Storage::disk('local')->putFile('materials', UploadedFile::fake()->create('archivo.pdf', 500, self::MIME_PDF));
@@ -304,14 +310,14 @@ class TemaAndMaterialApiTest extends TestCase
             'titulo' => 'Archivo a eliminar',
             'tipo' => 'PDF',
             'enlaceArchivo' => $path,
-            'idUsuarioCreador' => $professor->idUsuario
+            'idUsuarioCreador' => $professor->idUsuario,
         ]);
 
         ItemTema::create([
             'idTema' => $tema->idTema,
             'itemable_type' => MaterialAprendizaje::class,
             'itemable_id' => $material->idMaterial,
-            'orden' => 1
+            'orden' => 1,
         ]);
 
         Sanctum::actingAs($professor);

@@ -10,6 +10,7 @@ class Solucion extends Model
     use HasFactory;
 
     protected $table = 'soluciones';
+
     protected $primaryKey = 'idSolucion';
 
     protected $fillable = [

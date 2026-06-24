@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'judge0' => [
+        'url' => env('JUDGE0_URL', ''),
+        'token' => env('JUDGE0_TOKEN', ''),
+        'host' => env('JUDGE0_HOST', 'judge0-ce.p.rapidapi.com'),
+    ],
+
 ];

@@ -186,7 +186,7 @@ class TestUserSeeder extends Seeder
             'juan' => $juanId,
             'karla' => $karlaId,
             'alex' => $alexId,
-            'teresa' => $teresaId
+            'teresa' => $teresaId,
         ];
     }
 
