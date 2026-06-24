@@ -2,10 +2,10 @@
 
 namespace App\Services\Dashboards;
 
-use App\Models\User;
 use App\Models\Curso;
 use App\Models\Pregunta;
 use App\Models\Solucion;
+use App\Models\User;
 
 class ProfesorDashboard extends BaseDashboard
 {
@@ -21,7 +21,7 @@ class ProfesorDashboard extends BaseDashboard
         return [
             ['name' => 'Principal', 'route' => '/profesor/dashboard'],
             ['name' => 'Cursos', 'route' => '/cursos'],
-        
+
         ];
     }
 
@@ -66,6 +66,7 @@ class ProfesorDashboard extends BaseDashboard
             ->map(function ($pregunta) {
                 $nombreCompleto = $pregunta->creador->nombreCompleto ?? 'Estudiante';
                 $primerNombre = explode(' ', $nombreCompleto)[0];
+
                 return [
                     'tipo' => 'foro',
                     'estudiante' => $primerNombre,
@@ -82,27 +83,28 @@ class ProfesorDashboard extends BaseDashboard
         $soluciones = Solucion::whereHas('desafio', function ($q) use ($cursosProfe) {
             $q->whereIn('idCurso', $cursosProfe);
         })
-        ->with(['estudiante:idUsuario,nombreCompleto', 'desafio.curso'])
-        ->where('estado', 'aprobado')
-        ->latest()
-        ->take(5)
-        ->get()
-        ->map(function ($solucion) {
-            $nombreCompleto = $solucion->estudiante->nombreCompleto ?? 'Estudiante';
-            $primerNombre = explode(' ', $nombreCompleto)[0];
-            $cursoId = $solucion->desafio->idCurso ?? 0;
-            $cursoTitulo = $solucion->desafio->curso->titulo ?? 'Curso';
-            return [
-                'tipo' => 'desafio',
-                'estudiante' => $primerNombre,
-                'detalle' => 'completó',
-                'titulo_actividad' => $solucion->desafio->titulo ?? 'Actividad',
-                'curso' => $cursoTitulo,
-                'paralelo' => 10 + ($cursoId % 5),
-                'fecha' => $solucion->created_at ? $solucion->created_at->toISOString() : now()->toISOString(),
-                'timestamp' => $solucion->created_at ? $solucion->created_at->timestamp : now()->timestamp,
-            ];
-        });
+            ->with(['estudiante:idUsuario,nombreCompleto', 'desafio.curso'])
+            ->where('estado', 'aprobado')
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(function ($solucion) {
+                $nombreCompleto = $solucion->estudiante->nombreCompleto ?? 'Estudiante';
+                $primerNombre = explode(' ', $nombreCompleto)[0];
+                $cursoId = $solucion->desafio->idCurso ?? 0;
+                $cursoTitulo = $solucion->desafio->curso->titulo ?? 'Curso';
+
+                return [
+                    'tipo' => 'desafio',
+                    'estudiante' => $primerNombre,
+                    'detalle' => 'completó',
+                    'titulo_actividad' => $solucion->desafio->titulo ?? 'Actividad',
+                    'curso' => $cursoTitulo,
+                    'paralelo' => 10 + ($cursoId % 5),
+                    'fecha' => $solucion->created_at ? $solucion->created_at->toISOString() : now()->toISOString(),
+                    'timestamp' => $solucion->created_at ? $solucion->created_at->timestamp : now()->timestamp,
+                ];
+            });
 
         // Combinar y ordenar por más reciente
         return collect()

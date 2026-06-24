@@ -31,16 +31,16 @@ class SolucionEvaluada implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'idSolucion'          => $this->solucion->idSolucion,
-            'idDesafio'           => $this->solucion->idDesafio,
-            'estado'              => $this->solucion->estado,
-            'casos_pasados'       => $this->solucion->casos_pasados,
-            'casos_totales'       => $this->solucion->casos_totales,
-            'puntos_otorgados'    => $this->solucion->puntos_otorgados,
+            'idSolucion' => $this->solucion->idSolucion,
+            'idDesafio' => $this->solucion->idDesafio,
+            'estado' => $this->solucion->estado,
+            'casos_pasados' => $this->solucion->casos_pasados,
+            'casos_totales' => $this->solucion->casos_totales,
+            'puntos_otorgados' => $this->solucion->puntos_otorgados,
             'tiempo_ejecucion_ms' => $this->solucion->tiempo_ejecucion_ms,
-            'memoria_ejecucion_kb'=> $this->solucion->memoria_ejecucion_kb,
-            'stdout'              => $this->solucion->stdout,
-            'stderr'              => $this->solucion->stderr,
+            'memoria_ejecucion_kb' => $this->solucion->memoria_ejecucion_kb,
+            'stdout' => $this->solucion->stdout,
+            'stderr' => $this->solucion->stderr,
         ];
     }
 }

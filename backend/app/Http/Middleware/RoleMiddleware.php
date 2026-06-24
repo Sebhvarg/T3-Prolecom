@@ -11,20 +11,20 @@ class RoleMiddleware
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      * @param  string  ...$roles
      */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
-        if (!$request->user()) {
+        if (! $request->user()) {
             return response()->json(['message' => 'No autenticado'], 401);
         }
 
         // Verificamos si el usuario tiene alguno de los roles permitidos
         $userRoles = $request->user()->roles->pluck('rol')->toArray();
-        
+
         foreach ($roles as $role) {
-            if (in_array($role, $userRoles)) {
+            if (in_array($role, $userRoles, true)) {
                 return $next($request);
             }
         }
