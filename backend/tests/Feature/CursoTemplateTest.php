@@ -2,18 +2,20 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Rol;
 use App\Models\Curso;
+use App\Models\Rol;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class CursoTemplateTest extends TestCase
 {
     use RefreshDatabase;
 
     private const TIPO_PUBLICO = 'público';
+
     private const API_CURSOS_ROUTE = '/api/cursos';
 
     protected $profesorRol;
@@ -23,15 +25,15 @@ class CursoTemplateTest extends TestCase
         parent::setUp();
 
         // Seed basic roles and states
-        \Illuminate\Support\Facades\DB::table('estadosCuenta')->insertOrIgnore([
+        DB::table('estadosCuenta')->insertOrIgnore([
             'idEstado' => 1,
-            'estado' => 'Activo'
+            'estado' => 'Activo',
         ]);
 
-        \Illuminate\Support\Facades\DB::table('roles')->insertOrIgnore([
+        DB::table('roles')->insertOrIgnore([
             ['idRol' => 1, 'rol' => 'Administrador'],
             ['idRol' => 3, 'rol' => 'Profesor'],
-            ['idRol' => 6, 'rol' => 'Estudiante']
+            ['idRol' => 6, 'rol' => 'Estudiante'],
         ]);
 
         $this->profesorRol = Rol::find(3);
@@ -48,7 +50,7 @@ class CursoTemplateTest extends TestCase
             'titulo' => 'Curso Master de Python',
             'descripcion' => 'Aprende Python a nivel experto con plantillas automáticas',
             'lp' => 'Python',
-            'tipo' => self::TIPO_PUBLICO
+            'tipo' => self::TIPO_PUBLICO,
         ]);
 
         $response->assertStatus(201);
@@ -75,7 +77,7 @@ class CursoTemplateTest extends TestCase
         foreach ($temasEsperados as $tema) {
             $this->assertDatabaseHas('temas', [
                 'idCurso' => $curso->idCurso,
-                'nombre' => $tema
+                'nombre' => $tema,
             ]);
         }
     }
@@ -91,7 +93,7 @@ class CursoTemplateTest extends TestCase
             'titulo' => 'Curso de JavaScript',
             'descripcion' => 'Aprende JS moderno',
             'lp' => 'JavaScript',
-            'tipo' => self::TIPO_PUBLICO
+            'tipo' => self::TIPO_PUBLICO,
         ]);
 
         $response->assertStatus(201);

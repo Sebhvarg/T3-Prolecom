@@ -25,5 +25,6 @@ abstract class BaseDashboard implements DashboardInterface
     }
 
     abstract protected function getSidebar(): array;
+
     abstract protected function getWidgets(): array;
 }

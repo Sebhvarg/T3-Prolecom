@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Log;
 class Judge0Service
 {
     protected $baseUrl;
+
     protected $token;
+
     protected $host;
 
     public function __construct()
@@ -27,15 +29,16 @@ class Judge0Service
         // Si no está configurada la URL de Judge0, simulamos una compilación exitosa
         if (empty($this->baseUrl)) {
             Log::info('Judge0Service: Corriendo en modo Simulación (sin JUDGE0_URL).');
+
             return [
                 'status' => [
                     'id' => 3, // 3 = Accepted
-                    'description' => 'Accepted'
+                    'description' => 'Accepted',
                 ],
                 'time' => '0.05',
                 'memory' => 1250,
                 'stdout' => $expectedOutput ?? "OK\n",
-                'stderr' => null
+                'stderr' => null,
             ];
         }
 
@@ -58,17 +61,17 @@ class Judge0Service
             $request = Http::withHeaders($this->getHeaders());
 
             // Petición síncrona con wait=true
-            $response = $request->post($this->baseUrl . '/submissions?base64_encoded=false&wait=true', $payload);
+            $response = $request->post($this->baseUrl.'/submissions?base64_encoded=false&wait=true', $payload);
 
             if ($response->successful()) {
                 $result = $response->json();
             } else {
-                Log::error('Error de Judge0: ' . $response->body());
+                Log::error('Error de Judge0: '.$response->body());
                 $result = ['error' => 'No se pudo conectar con el motor de compilación.'];
             }
-            
+
         } catch (\Exception $e) {
-            Log::error('Excepción en Judge0Service: ' . $e->getMessage());
+            Log::error('Excepción en Judge0Service: '.$e->getMessage());
         }
 
         return $result;
@@ -85,7 +88,7 @@ class Judge0Service
             $headers['X-RapidAPI-Key'] = $this->token;
             $headers['X-RapidAPI-Host'] = $this->host;
         } else {
-            if (!empty($this->token)) {
+            if (! empty($this->token)) {
                 $headers['X-Auth-Token'] = $this->token;
             }
         }

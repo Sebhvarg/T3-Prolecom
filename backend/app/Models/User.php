@@ -11,9 +11,10 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $table = 'usuarios';
+
     protected $primaryKey = 'idUsuario';
 
     protected $fillable = [
@@ -45,7 +46,7 @@ class User extends Authenticatable
     public function cursosInscritos()
     {
         return $this->belongsToMany(Curso::class, 'inscripciones_cursos', 'idUsuarioEstudiante', 'idCurso')
-                    ->withPivot('fechaInscripcion');
+            ->withPivot('fechaInscripcion');
     }
 
     protected function casts(): array

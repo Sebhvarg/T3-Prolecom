@@ -3,7 +3,6 @@
 namespace App\Jobs;
 
 use App\Events\SolucionEvaluada;
-use App\Models\Desafio;
 use App\Models\Solucion;
 use App\Models\User;
 use App\Services\Judge0Service;
@@ -37,9 +36,10 @@ class ProcesarIntentoDesafio implements ShouldQueue
     {
         $solucion = $this->solucion;
         $desafio = $solucion->desafio;
-        
-        if (!$desafio) {
+
+        if (! $desafio) {
             Log::error("ProcesarIntentoDesafio: Desafío no encontrado para la solución {$solucion->idSolucion}");
+
             return;
         }
 
@@ -55,10 +55,11 @@ class ProcesarIntentoDesafio implements ShouldQueue
                 'casos_totales' => 0,
                 'puntos_otorgados' => $desafio->puntos,
             ]);
-            
+
             // Otorgar XP
             $this->otorgarXP($solucion->idEstudiante, $desafio->puntos, $desafio->idDesafio);
             broadcast(new SolucionEvaluada($solucion->fresh()));
+
             return;
         }
 
@@ -85,7 +86,7 @@ class ProcesarIntentoDesafio implements ShouldQueue
             $execMemory += $eval['memory'];
             $stdout .= $eval['stdout'];
 
-            if (!$eval['success']) {
+            if (! $eval['success']) {
                 $estado = 'rechazado';
                 $stderr = $eval['stderr'];
                 break;
@@ -139,7 +140,7 @@ class ProcesarIntentoDesafio implements ShouldQueue
             ->where('idSolucion', '!=', $this->solucion->idSolucion)
             ->exists();
 
-        if (!$alreadySolved) {
+        if (! $alreadySolved) {
             // Es la primera vez que lo resuelve con éxito, otorgamos XP
             $usuario = User::find($idEstudiante);
             if ($usuario) {
@@ -165,14 +166,14 @@ class ProcesarIntentoDesafio implements ShouldQueue
                 'stderr' => $result['error'],
                 'time' => 0,
                 'memory' => 0,
-                'stdout' => ''
+                'stdout' => '',
             ];
         }
 
         $judgeStatus = $result['status']['id'] ?? 0;
         $execTime = (int) (($result['time'] ?? 0) * 1000);
         $execMemory = (int) ($result['memory'] ?? 0);
-        $stdout = ($result['stdout'] ?? '') . "\n";
+        $stdout = ($result['stdout'] ?? '')."\n";
 
         if ($judgeStatus === 3) {
             return [
@@ -180,13 +181,13 @@ class ProcesarIntentoDesafio implements ShouldQueue
                 'stderr' => '',
                 'time' => $execTime,
                 'memory' => $execMemory,
-                'stdout' => $stdout
+                'stdout' => $stdout,
             ];
         }
 
         $stderr = match ($judgeStatus) {
-            4 => "Respuesta incorrecta para el caso de prueba público.",
-            5 => "Límite de tiempo excedido.",
+            4 => 'Respuesta incorrecta para el caso de prueba público.',
+            5 => 'Límite de tiempo excedido.',
             6 => $result['compile_output'] ?? 'Error de compilación.',
             default => $result['stderr'] ?? 'Error de ejecución.',
         };
@@ -196,7 +197,7 @@ class ProcesarIntentoDesafio implements ShouldQueue
             'stderr' => $stderr,
             'time' => $execTime,
             'memory' => $execMemory,
-            'stdout' => $stdout
+            'stdout' => $stdout,
         ];
     }
 
@@ -207,7 +208,7 @@ class ProcesarIntentoDesafio implements ShouldQueue
     {
         $this->solucion->update([
             'estado' => 'rechazado',
-            'stderr' => 'Error interno de compilación o timeout de red: ' . $exception->getMessage(),
+            'stderr' => 'Error interno de compilación o timeout de red: '.$exception->getMessage(),
         ]);
 
         broadcast(new SolucionEvaluada($this->solucion->fresh()));

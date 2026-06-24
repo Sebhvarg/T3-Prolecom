@@ -2,10 +2,10 @@
 
 namespace Database\Factories;
 
+use App\Models\EstadoCuenta;
 use App\Models\Usuario;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 /**
  * @extends Factory<Usuario>
@@ -37,8 +37,7 @@ class UsuarioFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'password' => static::$password ??= Hash::make('password'),
             'fechaDeNacimiento' => fake()->date(),
-            'idEstado' => \App\Models\EstadoCuenta::firstOrCreate(['estado' => 'Activo'])->idEstado,
+            'idEstado' => EstadoCuenta::firstOrCreate(['estado' => 'Activo'])->idEstado,
         ];
     }
 }
-
