@@ -50,7 +50,7 @@ const CursosPage = () => {
         else if (activeTab === 'disponibles') params.filtro = 'disponibles';
       }
       const data = await cursosService.getCursos(params);
-      setCursos(data);
+      setCursos(data.slice().sort((a, b) => a.titulo.localeCompare(b.titulo, 'es', { numeric: true })));
     } catch (err) {
       console.error(err);
       setError('No se pudieron cargar los cursos.');
@@ -64,7 +64,7 @@ const CursosPage = () => {
     const loadAllLps = async () => {
       try {
         const data = await cursosService.getLenguajes();
-        setLps(data || []);
+        setLps((data || []).slice().sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { numeric: true })));
       } catch (err) {
         console.error('Error al cargar lenguajes:', err);
       }
@@ -163,7 +163,7 @@ const CursosPage = () => {
     setAlumnosLoading(true);
     try {
       const enrolled = await cursosService.getEstudiantesMatriculados(cursoId);
-      setAlumnosMatriculados(enrolled);
+      setAlumnosMatriculados(enrolled.slice().sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto, 'es', { numeric: true })));
     } catch (err) {
       console.error(err);
       setError('Error al actualizar la lista de alumnos.');
@@ -183,7 +183,7 @@ const CursosPage = () => {
     
     try {
       const allStudents = await cursosService.getEstudiantesSistema();
-      setEstudiantesSistema(allStudents);
+      setEstudiantesSistema(allStudents.slice().sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto, 'es', { numeric: true })));
     } catch (err) {
       console.error(err);
     }

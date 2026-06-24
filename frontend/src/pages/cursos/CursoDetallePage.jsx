@@ -63,6 +63,13 @@ const CursoDetallePage = () => {
     setLoading(true);
     try {
       const data = await cursosService.getCurso(id);
+      // Ordenar temas y sus ítems alfabético-numéricamente
+      if (data.temas) {
+        data.temas.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { numeric: true }));
+        data.temas.forEach(t => {
+          if (t.items) t.items.sort((a, b) => a.titulo.localeCompare(b.titulo, 'es', { numeric: true }));
+        });
+      }
       setCurso(data);
       
       // Auto-expandir todos los temas al iniciar

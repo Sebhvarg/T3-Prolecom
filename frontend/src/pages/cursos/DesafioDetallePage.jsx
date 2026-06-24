@@ -36,12 +36,13 @@ const DesafioDetallePage = () => {
         ]);
         
         setDesafio(desafioData);
-        setLenguajes(lenguajesData);
+        const sortedLenguajes = lenguajesData.slice().sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { numeric: true }));
+        setLenguajes(sortedLenguajes);
 
         // Seleccionar por defecto el lenguaje del desafío
         if (lenguajesData.length > 0) {
-          const matched = lenguajesData.find(l => l.nombre.toLowerCase().includes(desafioData.lp?.toLowerCase() || 'python')) 
-                          || lenguajesData[0];
+          const matched = sortedLenguajes.find(l => l.nombre.toLowerCase().includes(desafioData.lp?.toLowerCase() || 'python')) 
+                          || sortedLenguajes[0];
           setSelectedLanguage(matched);
           setCode(desafioData.starter_code || matched.starter_code || '# Escribe tu código aquí\n');
         }
