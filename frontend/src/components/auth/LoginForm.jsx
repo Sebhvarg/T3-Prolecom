@@ -52,7 +52,7 @@ const LoginForm = () => {
       )}
       
       <div className="flex flex-col gap-2">
-        <label htmlFor="user" className="text-sm font-medium text-[#444]">Usuario</label>
+        <label htmlFor="user" className="text-sm font-medium text-[#444]">Usuario <span className="text-red-500">*</span></label>
         <input
           type="text"
           id="user"
@@ -65,7 +65,7 @@ const LoginForm = () => {
       </div>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="password" id="label-password" className="text-sm font-medium text-[#444]">Contraseña</label>
+        <label htmlFor="password" id="label-password" className="text-sm font-medium text-[#444]">Contraseña <span className="text-red-500">*</span></label>
         <input
           type="password"
           id="password"
