@@ -27,6 +27,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Rutas de Cursos e Inscripciones
     $cursoRoute = '/cursos/{id}';
     Route::get('/cursos', [\App\Http\Controllers\Api\CursoController::class, 'index']);
+    Route::get('/cursos/total', [\App\Http\Controllers\Api\CursoController::class, 'cursosTotal']);
     Route::get(ROUTE_CURSO_ID, [\App\Http\Controllers\Api\CursoController::class, 'show']);
     Route::post(ROUTE_CURSO_ID . '/inscribir', [\App\Http\Controllers\Api\CursoController::class, 'inscribir']);
     Route::delete(ROUTE_CURSO_ID . '/desmatricular', [\App\Http\Controllers\Api\CursoController::class, 'desmatricular']);
@@ -68,5 +69,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get(ROUTE_CURSO_ID . '/estudiantes', [\App\Http\Controllers\Api\CursoController::class, 'getEstudiantes']);
         Route::post(ROUTE_CURSO_ID . '/matricular-manual', [\App\Http\Controllers\Api\CursoController::class, 'matricularManual']);
         Route::get('/estudiantes', [\App\Http\Controllers\Api\UserController::class, 'listarEstudiantes']);
+        Route::get('/usuarios/activos', [\App\Http\Controllers\Api\UserController::class, 'usuariosActivos']);
     });
 });
