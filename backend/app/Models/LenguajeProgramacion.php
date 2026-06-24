@@ -2,16 +2,20 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class LenguajeProgramacion extends Model
 {
+    use HasFactory;
+
     protected $table = 'lenguajes_programacion';
     protected $primaryKey = 'idLenguaje';
 
     protected $fillable = [
         'nombre',
         'slug',
+        'judge0_id',
         'icono',
         'activo',
     ];
