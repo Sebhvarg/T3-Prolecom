@@ -207,7 +207,7 @@ class DesafioController extends Controller
             return response()->json(['message' => 'Acceso denegado.'], 403);
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'titulo' => 'string|max:150',
             'descripcionProblema' => 'string',
             'dificultad' => 'in:Easy,Medium,Hard',
@@ -220,7 +220,7 @@ class DesafioController extends Controller
             'estado' => 'in:pendiente,publicado',
         ]);
 
-        $desafio->update($request->all());
+        $desafio->update($validated);
 
         return response()->json([
             'message' => 'Desafío actualizado con éxito.',
