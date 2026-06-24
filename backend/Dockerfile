@@ -62,8 +62,11 @@ RUN mkdir -p \
 
 # Forzar eliminación de módulos MPM conflictivos al arrancar (RUNTIME)
 CMD rm -f /etc/apache2/mods-enabled/mpm_event.* /etc/apache2/mods-enabled/mpm_worker.* \
+    && chown -R www-data:www-data storage/app \
+    && chmod -R 775 storage/app \
     && php artisan storage:link --force \
     && exec apache2-foreground
+
 
 
 
