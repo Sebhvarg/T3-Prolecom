@@ -1,6 +1,6 @@
 import { storage } from '../utils/crypto';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://127.0.0.1:8000/api';
 
 function parseErrorMessage(data) {
   if (!data) return 'Ocurrió un error inesperado';
