@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronRight, Home } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { ROLE_REDIRECTS } from '../../api/authService';
 
 const Breadcrumbs = () => {
   const { user } = useAuth();
@@ -32,14 +33,7 @@ const Breadcrumbs = () => {
   // Obtener la ruta de inicio correcta según el rol del usuario para evitar redirección al login
   const getHomePath = () => {
     if (!user) return '/login';
-    const roleRedirects = {
-      'Administrador': '/admin',
-      'Moderador': '/moderador/dashboard',
-      'Profesor': '/profesor/dashboard',
-      'Ayudante': '/ayudante/dashboard',
-      'Estudiante': '/dashboard/estudiante'
-    };
-    return roleRedirects[user.rol] || '/login';
+    return ROLE_REDIRECTS[user.rol] || '/login';
   };
 
   // Helper para determinar la etiqueta de cada segmento del path

@@ -81,18 +81,11 @@ const StudentDashboard = () => {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {cursos.map(curso => (
-          <div
+          <button
             key={curso.idCurso}
-            role="button"
-            tabIndex={0}
+            type="button"
             onClick={() => navigate(`/cursos/${curso.idCurso}`)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                navigate(`/cursos/${curso.idCurso}`);
-              }
-            }}
-            className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex hover:shadow-md transition-all group cursor-pointer hover:-translate-y-0.5 transform duration-200"
+            className="w-full text-left bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex hover:shadow-md transition-all group cursor-pointer hover:-translate-y-0.5 transform duration-200"
           >
             <div className="flex-1 p-6 flex flex-col justify-between">
               <div>
@@ -108,7 +101,7 @@ const StudentDashboard = () => {
               <img src={getLanguageLogo(curso.lp)} alt={curso.lp} className="w-12 h-12 drop-shadow-xs" />
               <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{curso.lp}</span>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     );
