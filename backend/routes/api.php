@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\Route;
 if (! defined('ROUTE_CURSO_ID')) {
     define('ROUTE_CURSO_ID', '/cursos/{id}');
 }
+if (! defined('ROUTE_DESAFIO_ID')) {
+    define('ROUTE_DESAFIO_ID', '/desafios/{id}');
+}
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -51,13 +54,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/materiales/{id}/download', [MaterialController::class, 'download']);
 
     // Rutas de Desafíos y Soluciones
-    if (! defined('ROUTE_DESAFIO_ID')) {
-        define('ROUTE_DESAFIO_ID', '/desafios/{id}');
-    }
-
-    Route::get('/lenguajes', function () {
-        return response()->json(LenguajeProgramacion::where('activo', true)->get());
-    });
     Route::get('/temas/{idTema}/desafios', [DesafioController::class, 'indexByTema']);
     Route::get(ROUTE_DESAFIO_ID, [DesafioController::class, 'show']);
     Route::post(ROUTE_DESAFIO_ID.'/soluciones', [DesafioController::class, 'enviarSolucion']);
