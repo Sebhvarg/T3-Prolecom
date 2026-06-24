@@ -582,7 +582,7 @@ const CursoDetallePage = () => {
             <p className="text-gray-500 text-sm mb-6">Organiza el contenido del curso creando unidades o secciones.</p>
             <form onSubmit={handleTemaSubmit} className="space-y-4">
               <div>
-                <label htmlFor="tema-nombre" className="block text-sm font-bold text-gray-700 mb-1.5">Nombre del Tema</label>
+                <label htmlFor="tema-nombre" className="block text-sm font-bold text-gray-700 mb-1.5">Nombre del Tema <span className="text-red-500">*</span></label>
                 <input 
                   id="tema-nombre"
                   type="text" 
@@ -640,7 +640,7 @@ const CursoDetallePage = () => {
             <p className="text-gray-500 text-sm mb-6">Añade guías en formato PDF o grabaciones de clase.</p>
             <form onSubmit={handleMaterialSubmit} className="space-y-4">
               <div>
-                <label htmlFor="material-titulo" className="block text-sm font-bold text-gray-700 mb-1.5">Título</label>
+                <label htmlFor="material-titulo" className="block text-sm font-bold text-gray-700 mb-1.5">Título <span className="text-red-500">*</span></label>
                 <input 
                   id="material-titulo"
                   type="text" 
@@ -675,7 +675,7 @@ const CursoDetallePage = () => {
                 </select>
               </div>
               <div>
-                <label htmlFor="material-archivo" className="block text-sm font-bold text-gray-700 mb-1.5">Seleccionar Archivo (Máx 30MB)</label>
+                <label htmlFor="material-archivo" className="block text-sm font-bold text-gray-700 mb-1.5">Seleccionar Archivo (Máx 30MB) <span className="text-red-500">*</span></label>
                 <input 
                   id="material-archivo"
                   type="file" 
@@ -723,7 +723,7 @@ const CursoDetallePage = () => {
             <form onSubmit={handleDesafioSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="desafio-titulo" className="block text-sm font-bold text-gray-700 mb-1.5">Título del Desafío</label>
+                  <label htmlFor="desafio-titulo" className="block text-sm font-bold text-gray-700 mb-1.5">Título del Desafío <span className="text-red-500">*</span></label>
                   <input 
                     id="desafio-titulo"
                     type="text" 
@@ -751,7 +751,7 @@ const CursoDetallePage = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="desafio-puntos" className="block text-sm font-bold text-gray-700 mb-1.5">Puntos de XP</label>
+                  <label htmlFor="desafio-puntos" className="block text-sm font-bold text-gray-700 mb-1.5">Puntos de XP <span className="text-red-500">*</span></label>
                   <input 
                     id="desafio-puntos"
                     type="number" 
@@ -776,7 +776,7 @@ const CursoDetallePage = () => {
               </div>
 
               <div>
-                <label htmlFor="desafio-descripcion" className="block text-sm font-bold text-gray-700 mb-1.5">Enunciado del Problema</label>
+                <label htmlFor="desafio-descripcion" className="block text-sm font-bold text-gray-700 mb-1.5">Enunciado del Problema <span className="text-red-500">*</span></label>
                 <textarea 
                   id="desafio-descripcion"
                   required

@@ -1,4 +1,5 @@
 import Sidebar from './Sidebar';
+import Breadcrumbs from './Breadcrumbs';
 import { Bell, User } from 'lucide-react';
 
 const DashboardContainer = ({ title, user, children }) => {
@@ -25,6 +26,7 @@ const DashboardContainer = ({ title, user, children }) => {
           </div>
         </header>
         <div className="flex-1 overflow-x-hidden overflow-y-auto p-8 bg-gray-50">
+          <Breadcrumbs />
           {children}
         </div>
       </main>
