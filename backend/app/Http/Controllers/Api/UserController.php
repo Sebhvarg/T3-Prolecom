@@ -16,4 +16,13 @@ class UserController extends Controller
 
         return response()->json($estudiantes);
     }
+
+    public function usuariosActivos()
+    {
+        $count = User::whereHas('estado', function ($q) {
+            $q->where('estado', 'Activo');
+        })->count();
+
+        return response()->json(['count' => $count]);
+    }
 }
