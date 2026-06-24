@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { ROLE_REDIRECTS } from '../../api/authService';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_SECONDS = 120; // 2 minutos
@@ -79,15 +80,7 @@ const LoginForm = () => {
       setAttempts(0);
       setLockedUntil(null);
 
-      const roleRedirects = {
-        'Administrador': '/admin',
-        'Moderador': '/moderador/dashboard',
-        'Profesor': '/profesor/dashboard',
-        'Ayudante': '/ayudante/dashboard',
-        'Estudiante': '/dashboard/estudiante'
-      };
-
-      const targetPath = roleRedirects[userData.rol] || '/dashboard';
+      const targetPath = ROLE_REDIRECTS[userData.rol] || '/dashboard';
       navigate(targetPath);
     } catch (err) {
       handleLoginError(err, attempts);
