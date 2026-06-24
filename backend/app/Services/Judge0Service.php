@@ -65,11 +65,17 @@ class Judge0Service
             } else {
                 Log::error('Error de Judge0: ' . $response->body());
                 $result = ['error' => 'No se pudo conectar con el motor de compilación.'];
+                $result = $response->json();
+            } else {
+                Log::error('Error de Judge0: ' . $response->body());
+                $result = ['error' => 'No se pudo conectar con el motor de compilación.'];
             }
             
         } catch (\Exception $e) {
             Log::error('Excepción en Judge0Service: ' . $e->getMessage());
         }
+
+        return $result;
 
         return $result;
     }

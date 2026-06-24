@@ -596,8 +596,25 @@ const CursoCard = ({
   handleInscribir,
   navigate
 }) => {
+  const hasAccess = canManage || curso.esta_matriculado;
+
+  const handleCardClick = (e) => {
+    // Evitar navegación si se hace clic en botones, enlaces o elementos interactivos dentro de la card
+    if (e.target.closest('button') || e.target.closest('a')) {
+      return;
+    }
+    if (hasAccess) {
+      navigate(`/cursos/${curso.idCurso}`);
+    }
+  };
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group h-full">
+    <div 
+      onClick={handleCardClick}
+      className={`bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group h-full ${
+        hasAccess ? 'cursor-pointer hover:-translate-y-1 transform' : ''
+      }`}
+    >
       <div className="p-6 flex-1 flex flex-col justify-between">
         <div>
           <div className="flex justify-between items-start mb-4">
