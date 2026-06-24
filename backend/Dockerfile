@@ -45,6 +45,13 @@ RUN a2enmod mpm_prefork || true
 
 WORKDIR /var/www/html
 
+# Forzar eliminación de módulos MPM conflictivos al arrancar (RUNTIME) y ajustar puertos dinámicos para Railway
+CMD rm -f /etc/apache2/mods-enabled/mpm_event.* /etc/apache2/mods-enabled/mpm_worker.* \
+    && sed -i "s/^Listen .*/Listen ${PORT:-80}/" /etc/apache2/ports.conf \
+    && sed -i "s/<VirtualHost .*/<VirtualHost *:${PORT:-80}>/" /etc/apache2/sites-available/000-default.conf \
+    && exec apache2-foreground
+
+
 # Etapa de Desarrollo
 FROM base AS development
 # Copiar solo archivos de dependencias para aprovechar la caché
