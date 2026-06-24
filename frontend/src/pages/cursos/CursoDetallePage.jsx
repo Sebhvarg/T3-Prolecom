@@ -3,13 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { cursosService } from '../../api/cursosService';
+import { desafiosService } from '../../api/desafiosService';
 import { storage } from '../../utils/crypto';
 import { 
   ArrowLeft, Plus, Trash2, FileText, Video, Play, Download, Eye, 
   X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code 
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://172.19.139.35:8000/api';
 
 const CursoDetallePage = () => {
   const { id } = useParams();
@@ -26,6 +27,17 @@ const CursoDetallePage = () => {
   const [isTemaModalOpen, setIsTemaModalOpen] = useState(false);
   const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
   const [activeTemaId, setActiveTemaId] = useState(null);
+
+  // Desafio Modal States
+  const [isDesafioModalOpen, setIsDesafioModalOpen] = useState(false);
+  const [desafioForm, setDesafioForm] = useState({
+    titulo: '',
+    descripcionProblema: '',
+    dificultad: 'Easy',
+    puntos: 10,
+    starter_code: '',
+    testCases: [{ input: '', expected_output: '', is_hidden: false }]
+  });
 
   // Forms data
   const [temaForm, setTemaForm] = useState({ nombre: '', descripcion: '' });
@@ -181,6 +193,59 @@ const CursoDetallePage = () => {
     }
   };
 
+  // --- DESAFIOS LOGIC ---
+  const handleOpenDesafioModal = (temaId) => {
+    setActiveTemaId(temaId);
+    setDesafioForm({
+      titulo: '',
+      descripcionProblema: '',
+      dificultad: 'Easy',
+      puntos: 10,
+      starter_code: '',
+      testCases: [{ input: '', expected_output: '', is_hidden: false }]
+    });
+    setIsDesafioModalOpen(true);
+  };
+
+  const handleAddTestCase = () => {
+    setDesafioForm(prev => ({
+      ...prev,
+      testCases: [...prev.testCases, { input: '', expected_output: '', is_hidden: false }]
+    }));
+  };
+
+  const handleRemoveTestCase = (index) => {
+    setDesafioForm(prev => ({
+      ...prev,
+      testCases: prev.testCases.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleTestCaseChange = (index, field, value) => {
+    setDesafioForm(prev => {
+      const updated = [...prev.testCases];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, testCases: updated };
+    });
+  };
+
+  const handleDesafioSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setActionLoading(true);
+    try {
+      await desafiosService.createDesafio(activeTemaId, desafioForm);
+      setSuccess('Desafío creado exitosamente.');
+      setIsDesafioModalOpen(false);
+      fetchCurso();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Error al crear el desafío.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleDeleteMaterial = async (materialId) => {
     if (!globalThis.confirm('¿Estás seguro de eliminar este material de aprendizaje de forma permanente?')) return;
     setError('');
@@ -191,6 +256,19 @@ const CursoDetallePage = () => {
     } catch (err) {
       console.error(err);
       setError(err.message || 'Error al eliminar el material.');
+    }
+  };
+
+  const handleDeleteDesafio = async (desafioId) => {
+    if (!globalThis.confirm('¿Estás seguro de eliminar este desafío de forma permanente?')) return;
+    setError('');
+    try {
+      await desafiosService.deleteDesafio(desafioId);
+      setSuccess('Desafío eliminado correctamente.');
+      fetchCurso();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Error al eliminar el desafío.');
     }
   };
 
@@ -413,6 +491,13 @@ const CursoDetallePage = () => {
                         <span>Subir Material</span>
                       </button>
                       <button
+                        onClick={() => handleOpenDesafioModal(tema.idTema)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-lg transition-colors"
+                      >
+                        <Plus size={14} />
+                        <span>Crear Desafío</span>
+                      </button>
+                      <button
                         onClick={(e) => handleDeleteTema(tema.idTema, e)}
                         className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                         title="Eliminar Tema"
@@ -456,7 +541,7 @@ const CursoDetallePage = () => {
                       }
 
                       if (isDesafio) {
-                        return renderDesafioItem(item, resource, id, navigate);
+                        return renderDesafioItem(item, resource, id, navigate, canManage, handleDeleteDesafio);
                       }
 
                       return null;
@@ -609,6 +694,164 @@ const CursoDetallePage = () => {
         </div>
       )}
 
+      {/* --- MODAL CREAR DESAFÍO --- */}
+      {isDesafioModalOpen && (
+        <div className="fixed inset-0 bg-black/55 backdrop-blur-xs flex justify-center items-center z-50 p-4 overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl relative my-8">
+            <button 
+              onClick={() => setIsDesafioModalOpen(false)}
+              className="absolute right-6 top-6 p-1.5 text-gray-400 hover:bg-gray-50 rounded-lg"
+            >
+              <X size={18} />
+            </button>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Crear Nuevo Desafío de Programación</h3>
+            <p className="text-gray-500 text-sm mb-6">Agrega un reto de código al banco de ejercicios para este tema.</p>
+            <form onSubmit={handleDesafioSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="desafio-titulo" className="block text-sm font-bold text-gray-700 mb-1.5">Título del Desafío</label>
+                  <input 
+                    id="desafio-titulo"
+                    type="text" 
+                    required
+                    placeholder="Ej: Suma de dos números..."
+                    value={desafioForm.titulo}
+                    onChange={(e) => setDesafioForm(prev => ({ ...prev, titulo: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="desafio-dificultad" className="block text-sm font-bold text-gray-700 mb-1.5">Dificultad</label>
+                  <select
+                    id="desafio-dificultad"
+                    value={desafioForm.dificultad}
+                    onChange={(e) => setDesafioForm(prev => ({ ...prev, dificultad: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+                  >
+                    <option value="Easy">Fácil</option>
+                    <option value="Medium">Medio</option>
+                    <option value="Hard">Difícil</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="desafio-puntos" className="block text-sm font-bold text-gray-700 mb-1.5">Puntos de XP</label>
+                  <input 
+                    id="desafio-puntos"
+                    type="number" 
+                    min="1"
+                    required
+                    value={desafioForm.puntos}
+                    onChange={(e) => setDesafioForm(prev => ({ ...prev, puntos: Number.parseInt(e.target.value, 10) || 10 }))}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="desafio-starter-code" className="block text-sm font-bold text-gray-700 mb-1.5">Código Base (Starter Code)</label>
+                <textarea 
+                  id="desafio-starter-code"
+                  placeholder="def solucion():&#10;    # escribe tu código aquí"
+                  value={desafioForm.starter_code}
+                  onChange={(e) => setDesafioForm(prev => ({ ...prev, starter_code: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364] h-36 font-mono text-sm bg-gray-50/50 resize-y"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="desafio-descripcion" className="block text-sm font-bold text-gray-700 mb-1.5">Enunciado del Problema</label>
+                <textarea 
+                  id="desafio-descripcion"
+                  required
+                  placeholder="Escribe la descripción del problema en Markdown o texto claro..."
+                  value={desafioForm.descripcionProblema}
+                  onChange={(e) => setDesafioForm(prev => ({ ...prev, descripcionProblema: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364] h-20 resize-none text-sm"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-bold text-gray-700">Casos de Prueba (Mínimo 1)</span>
+                  <button
+                    type="button"
+                    onClick={handleAddTestCase}
+                    className="text-xs bg-blue-50 text-blue-700 font-bold px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
+                  >
+                    + Agregar Caso
+                  </button>
+                </div>
+                
+                <div className="space-y-3 max-h-44 overflow-y-auto pr-1">
+                  {desafioForm.testCases.map((tc, index) => (
+                    <div key={`tc-case-${index}`} className="flex gap-2 items-center bg-gray-50 p-3 rounded-xl border border-gray-150 relative">
+                      <div className="flex-1">
+                        <input 
+                          type="text"
+                          placeholder="Input (ej: 5)"
+                          value={tc.input}
+                          onChange={(e) => handleTestCaseChange(index, 'input', e.target.value)}
+                          className="w-full border border-gray-200 rounded-lg px-2.5 py-1 text-xs mb-1.5"
+                        />
+                        <input 
+                          type="text"
+                          required
+                          placeholder="Salida esperada (ej: 10)"
+                          value={tc.expected_output}
+                          onChange={(e) => handleTestCaseChange(index, 'expected_output', e.target.value)}
+                          className="w-full border border-gray-200 rounded-lg px-2.5 py-1 text-xs"
+                        />
+                      </div>
+                      <div className="flex flex-col items-center gap-1 shrink-0">
+                        <label htmlFor={`tc-hidden-${index}`} className="text-[10px] font-bold text-gray-500 uppercase select-none">Oculto</label>
+                        <input 
+                          id={`tc-hidden-${index}`}
+                          type="checkbox"
+                          checked={tc.is_hidden}
+                          onChange={(e) => handleTestCaseChange(index, 'is_hidden', e.target.checked)}
+                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300"
+                        />
+                      </div>
+                      {desafioForm.testCases.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTestCase(index)}
+                          className="p-1 text-red-500 hover:bg-red-50 rounded-lg"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setIsDesafioModalOpen(false)}
+                  className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold hover:bg-gray-50"
+                  disabled={actionLoading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-[#2c5364] hover:bg-[#203a43] text-white rounded-xl text-sm font-semibold shadow flex items-center gap-2"
+                  disabled={actionLoading}
+                >
+                  {actionLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>Publicar Desafío</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* --- MODAL VISOR SEGURO (SECURE VIEWER) --- */}
       {activeViewerMaterial && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex justify-center items-center z-50 p-4 animate-fade-in">
@@ -741,7 +984,7 @@ const renderMaterialItem = (item, resource, canManage, handleViewSecure, handleD
   );
 };
 
-const renderDesafioItem = (item, resource, id, navigate) => {
+const renderDesafioItem = (item, resource, id, navigate, canManage, handleDeleteDesafio) => {
   const getDificultadBadgeClass = (dificultad) => {
     if (dificultad === 'Easy') return 'bg-green-50 text-green-700';
     if (dificultad === 'Medium') return 'bg-amber-50 text-amber-700';
@@ -771,11 +1014,21 @@ const renderDesafioItem = (item, resource, id, navigate) => {
       <div className="flex items-center gap-2">
         <button
           onClick={() => navigate(`/cursos/${id}/desafios/${resource.idDesafio}`)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-lg transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#d97706] hover:bg-[#b45309] text-white text-xs font-bold rounded-lg transition-colors shadow-xs"
         >
           <Play size={14} />
           <span>Resolver</span>
         </button>
+
+        {canManage && (
+          <button
+            onClick={() => handleDeleteDesafio(resource.idDesafio)}
+            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+            title="Eliminar Desafío"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
       </div>
     </div>
   );
