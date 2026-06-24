@@ -12,6 +12,12 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://172.19.139.35:8000/api';
 
+let testCaseIdCounter = 0;
+const generateTestCaseId = () => {
+  testCaseIdCounter += 1;
+  return `tc-id-${testCaseIdCounter}`;
+};
+
 const CursoDetallePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -36,7 +42,7 @@ const CursoDetallePage = () => {
     dificultad: 'Easy',
     puntos: 10,
     starter_code: '',
-    testCases: [{ input: '', expected_output: '', is_hidden: false }]
+    testCases: [{ id: generateTestCaseId(), input: '', expected_output: '', is_hidden: false }]
   });
 
   // Forms data
@@ -202,7 +208,7 @@ const CursoDetallePage = () => {
       dificultad: 'Easy',
       puntos: 10,
       starter_code: '',
-      testCases: [{ input: '', expected_output: '', is_hidden: false }]
+      testCases: [{ id: generateTestCaseId(), input: '', expected_output: '', is_hidden: false }]
     });
     setIsDesafioModalOpen(true);
   };
@@ -210,7 +216,7 @@ const CursoDetallePage = () => {
   const handleAddTestCase = () => {
     setDesafioForm(prev => ({
       ...prev,
-      testCases: [...prev.testCases, { input: '', expected_output: '', is_hidden: false }]
+      testCases: [...prev.testCases, { id: generateTestCaseId(), input: '', expected_output: '', is_hidden: false }]
     }));
   };
 
@@ -234,7 +240,15 @@ const CursoDetallePage = () => {
     setError('');
     setActionLoading(true);
     try {
-      await desafiosService.createDesafio(activeTemaId, desafioForm);
+      const cleanedDesafioForm = {
+        ...desafioForm,
+        testCases: desafioForm.testCases.map((tc) => {
+          const copy = { ...tc };
+          delete copy.id;
+          return copy;
+        })
+      };
+      await desafiosService.createDesafio(activeTemaId, cleanedDesafioForm);
       setSuccess('Desafío creado exitosamente.');
       setIsDesafioModalOpen(false);
       fetchCurso();
@@ -787,7 +801,7 @@ const CursoDetallePage = () => {
                 
                 <div className="space-y-3 max-h-44 overflow-y-auto pr-1">
                   {desafioForm.testCases.map((tc, index) => (
-                    <div key={`tc-case-${index}`} className="flex gap-2 items-center bg-gray-50 p-3 rounded-xl border border-gray-150 relative">
+                    <div key={tc.id || `tc-case-${index}`} className="flex gap-2 items-center bg-gray-50 p-3 rounded-xl border border-gray-150 relative">
                       <div className="flex-1">
                         <input 
                           type="text"
