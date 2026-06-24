@@ -24,7 +24,7 @@ const CursosPage = () => {
   });
 
   // Matriculación y Filtros states
-  const [activeTab, setActiveTab] = useState('todos'); // 'todos', 'mis_cursos', 'disponibles'
+  const [activeTab, setActiveTab] = useState('mis_cursos'); // 'mis_cursos', 'disponibles'
   const [filterLp, setFilterLp] = useState('');
   const [filterTipo, setFilterTipo] = useState('');
   const [lps, setLps] = useState([]);
@@ -305,7 +305,6 @@ const CursosPage = () => {
         ) : (
           <div className="flex gap-2">
             {[
-              { id: 'todos', label: 'Todos los cursos' },
               { id: 'mis_cursos', label: 'Mis Cursos' },
               { id: 'disponibles', label: 'Cursos Disponibles' },
             ].map((tab) => (
