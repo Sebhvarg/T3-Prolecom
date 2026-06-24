@@ -8,7 +8,7 @@ parameters:
     level: 5
 
     excludePaths:
-        - app/Http/Middleware/TrustProxies.php
+        - app/Http/Middleware/TrustProxies.php (?)
 
     # Suprimir errores relacionados a helpers y magia de Laravel
     # que PHPStan no puede inferir sin la extensión Larastan

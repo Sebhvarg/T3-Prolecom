@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { cursosService } from '../../api/cursosService';
-import { MessageSquare, Bookmark, BookOpen, Clock, Users } from 'lucide-react';
+import { MessageSquare, Bookmark, BookOpen, Clock } from 'lucide-react';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
