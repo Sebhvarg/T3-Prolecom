@@ -9,6 +9,11 @@ CMD ["yarn", "dev", "--host"]
 
 # Etapa de Construcción (Para producción)
 FROM node:20-alpine AS builder
+ARG VITE_API_URL
+ARG VITE_STORAGE_KEY
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_STORAGE_KEY=$VITE_STORAGE_KEY
+
 WORKDIR /app
 COPY package.json yarn.lock* ./
 RUN yarn install --frozen-lockfile
