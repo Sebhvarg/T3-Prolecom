@@ -608,9 +608,22 @@ const CursoCard = ({
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      // Evitar scroll de la página si se presiona la barra espaciadora
+      if (e.key === ' ') {
+        e.preventDefault();
+      }
+      handleCardClick(e);
+    }
+  };
+
   return (
     <div 
       onClick={handleCardClick}
+      onKeyDown={handleKeyDown}
+      role={hasAccess ? 'button' : undefined}
+      tabIndex={hasAccess ? 0 : undefined}
       className={`bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group h-full ${
         hasAccess ? 'cursor-pointer hover:-translate-y-1 transform' : ''
       }`}
