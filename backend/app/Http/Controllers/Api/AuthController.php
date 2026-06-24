@@ -21,7 +21,7 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'login' => 'required',
-            'password' => 'required'
+            'password' => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -30,6 +30,7 @@ class AuthController extends Controller
 
         try {
             $data = $this->authService->login($request->only('login', 'password'));
+
             return response()->json($data);
         } catch (ValidationException $e) {
             return response()->json($e->errors(), $e->status);
@@ -39,6 +40,7 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
+
         return response()->json(['message' => 'Sesión cerrada correctamente']);
     }
 }

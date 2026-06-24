@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class Rol extends Model
 {
     protected $table = 'roles';
+
     protected $primaryKey = 'idRol';
+
     public $timestamps = false; // El script original no tenía timestamps en roles
 
     protected $fillable = ['rol'];

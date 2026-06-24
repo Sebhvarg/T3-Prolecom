@@ -2,10 +2,10 @@
 
 namespace Tests\Unit;
 
-use App\Models\User;
 use App\Models\Rol;
-use App\Models\EstadoCuenta;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class UserTest extends TestCase
@@ -14,10 +14,10 @@ class UserTest extends TestCase
 
     public function test_usuario_can_have_multiple_roles()
     {
-        \Illuminate\Support\Facades\DB::table('estadosCuenta')->insertOrIgnore(['idEstado' => 1, 'estado' => 'Activo']);
-        \Illuminate\Support\Facades\DB::table('roles')->insertOrIgnore([
+        DB::table('estadosCuenta')->insertOrIgnore(['idEstado' => 1, 'estado' => 'Activo']);
+        DB::table('roles')->insertOrIgnore([
             ['idRol' => 1, 'rol' => 'Administrador'],
-            ['idRol' => 2, 'rol' => 'Profesor']
+            ['idRol' => 2, 'rol' => 'Profesor'],
         ]);
 
         $rol1 = Rol::find(1);

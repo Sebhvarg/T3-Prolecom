@@ -6,9 +6,6 @@ class CursoTemplateFactory
 {
     /**
      * Obtiene la estrategia de plantilla adecuada para el lenguaje del curso.
-     *
-     * @param string|null $lp
-     * @return CursoTemplateStrategy
      */
     public static function getStrategy(?string $lp): CursoTemplateStrategy
     {
@@ -16,9 +13,9 @@ class CursoTemplateFactory
 
         switch ($language) {
             case 'python':
-                return new PythonTemplateStrategy();
+                return new PythonTemplateStrategy;
             default:
-                return new DefaultTemplateStrategy();
+                return new DefaultTemplateStrategy;
         }
     }
 }

@@ -10,6 +10,7 @@ class Pregunta extends Model
     use HasFactory;
 
     protected $table = 'preguntas';
+
     protected $primaryKey = 'idPregunta';
 
     protected $fillable = [

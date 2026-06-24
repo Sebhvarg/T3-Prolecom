@@ -10,6 +10,7 @@ class Tema extends Model
     use HasFactory;
 
     protected $table = 'temas';
+
     protected $primaryKey = 'idTema';
 
     protected $fillable = [

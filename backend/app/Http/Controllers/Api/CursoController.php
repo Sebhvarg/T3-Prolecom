@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Curso;
 use App\Models\User;
+use App\Strategies\CourseTemplate\CursoTemplateFactory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -16,12 +17,12 @@ class CursoController extends Controller
         $query = Curso::query()->with('creador:idUsuario,nombreCompleto');
 
         // Filtro por Lenguaje (LP)
-        if ($request->has('lp') && !empty($request->lp)) {
+        if ($request->has('lp') && ! empty($request->lp)) {
             $query->where('lp', $request->lp);
         }
 
         // Filtro por Tipo (Público/Privado)
-        if ($request->has('tipo') && !empty($request->tipo)) {
+        if ($request->has('tipo') && ! empty($request->tipo)) {
             $query->where('tipo', $request->tipo);
         }
 
@@ -56,7 +57,7 @@ class CursoController extends Controller
     {
         $curso = Curso::with([
             'creador:idUsuario,nombreCompleto',
-            'temas.items.itemable'
+            'temas.items.itemable',
         ])->findOrFail($id);
 
         $curso->temas->each(function ($tema) {
@@ -92,12 +93,12 @@ class CursoController extends Controller
         ]);
 
         // Aplicar la plantilla correspondiente al curso usando el patrón de diseño Strategy
-        $strategy = \App\Strategies\CourseTemplate\CursoTemplateFactory::getStrategy($curso->lp);
+        $strategy = CursoTemplateFactory::getStrategy($curso->lp);
         $strategy->loadTemplate($curso);
 
         return response()->json([
             'message' => 'Curso creado con éxito',
-            'curso' => $curso->load(['creador:idUsuario,nombreCompleto', 'temas'])
+            'curso' => $curso->load(['creador:idUsuario,nombreCompleto', 'temas']),
         ], 201);
     }
 
@@ -107,7 +108,7 @@ class CursoController extends Controller
 
         $user = $request->user();
         $isAdmin = $user->roles->pluck('rol')->contains('Administrador');
-        if (!$isAdmin && $curso->idProfeCreador !== $user->idUsuario) {
+        if (! $isAdmin && $curso->idProfeCreador !== $user->idUsuario) {
             return response()->json(['message' => 'No tienes permisos para editar este curso'], 403);
         }
 
@@ -126,7 +127,7 @@ class CursoController extends Controller
 
         return response()->json([
             'message' => 'Curso actualizado con éxito',
-            'curso' => $curso->load('creador:idUsuario,nombreCompleto')
+            'curso' => $curso->load('creador:idUsuario,nombreCompleto'),
         ]);
     }
 
@@ -136,7 +137,7 @@ class CursoController extends Controller
 
         $user = $request->user();
         $isAdmin = $user->roles->pluck('rol')->contains('Administrador');
-        if (!$isAdmin && $curso->idProfeCreador !== $user->idUsuario) {
+        if (! $isAdmin && $curso->idProfeCreador !== $user->idUsuario) {
             return response()->json(['message' => 'No tienes permisos para eliminar este curso'], 403);
         }
 
@@ -177,7 +178,7 @@ class CursoController extends Controller
             $targetUserId = $request->input('idUsuarioEstudiante');
         }
 
-        if (!$curso->estudiantes()->where('usuarios.idUsuario', $targetUserId)->exists()) {
+        if (! $curso->estudiantes()->where('usuarios.idUsuario', $targetUserId)->exists()) {
             return response()->json(['message' => 'El estudiante no está inscrito en este curso'], 400);
         }
 
@@ -212,7 +213,7 @@ class CursoController extends Controller
                 'idUsuario' => $student->idUsuario,
                 'nombreCompleto' => $student->nombreCompleto,
                 'email' => $student->email,
-            ]
+            ],
         ], 201);
     }
 
@@ -225,6 +226,7 @@ class CursoController extends Controller
 
         return response()->json($estudiantes);
     }
+
     public function cursosTotal()
     {
         return response()->json(['count' => Curso::count()]);

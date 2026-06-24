@@ -8,9 +8,6 @@ class PythonTemplateStrategy implements CursoTemplateStrategy
 {
     /**
      * Carga los temas predefinidos para un curso de Python.
-     *
-     * @param Curso $curso
-     * @return void
      */
     public function loadTemplate(Curso $curso): void
     {

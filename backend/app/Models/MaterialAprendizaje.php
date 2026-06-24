@@ -10,6 +10,7 @@ class MaterialAprendizaje extends Model
     use HasFactory;
 
     protected $table = 'materiales_aprendizaje';
+
     protected $primaryKey = 'idMaterial';
 
     protected $fillable = [

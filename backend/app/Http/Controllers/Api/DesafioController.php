@@ -3,12 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Desafio;
-use App\Models\Curso;
-use App\Models\Tema;
-use App\Models\Solucion;
-use App\Models\LenguajeProgramacion;
 use App\Jobs\ProcesarIntentoDesafio;
+use App\Models\Curso;
+use App\Models\Desafio;
+use App\Models\Solucion;
+use App\Models\Tema;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -33,18 +32,18 @@ class DesafioController extends Controller
 
         // Si es un Estudiante, solo ver desafíos publicados
         $isStaff = $user->roles->pluck('rol')->intersect(['Administrador', 'Profesor', 'Ayudante'])->isNotEmpty();
-        if (!$isStaff) {
+        if (! $isStaff) {
             $query->where('estado', 'publicado');
         }
 
         $desafios = $query->get();
 
         // Ocultar casos de prueba ocultos para estudiantes
-        if (!$isStaff) {
+        if (! $isStaff) {
             foreach ($desafios as $desafio) {
                 $testCases = $desafio->testCases ?? [];
                 $testCases = array_values(array_filter($testCases, function ($tc) {
-                    return !($tc['is_hidden'] ?? false);
+                    return ! ($tc['is_hidden'] ?? false);
                 }));
                 $desafio->testCases = $testCases;
             }
@@ -65,9 +64,9 @@ class DesafioController extends Controller
 
         // Filtrar casos ocultos si el usuario es estudiante
         $testCases = $desafio->testCases ?? [];
-        if (!$isStaff) {
+        if (! $isStaff) {
             $testCases = array_values(array_filter($testCases, function ($tc) {
-                return !($tc['is_hidden'] ?? false);
+                return ! ($tc['is_hidden'] ?? false);
             }));
         }
         $desafio->testCases = $testCases;
@@ -135,12 +134,13 @@ class DesafioController extends Controller
 
             return response()->json([
                 'message' => ($isProfessor || $isAdmin) ? 'Desafío creado y publicado exitosamente.' : 'Desafío enviado a revisión del profesor.',
-                'desafio' => $desafio
+                'desafio' => $desafio,
             ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Error al crear desafío: " . $e->getMessage());
+            Log::error('Error al crear desafío: '.$e->getMessage());
+
             return response()->json(['message' => 'Error al crear el desafío en la base de datos.'], 500);
         }
     }
@@ -175,7 +175,7 @@ class DesafioController extends Controller
 
         return response()->json([
             'message' => 'Solución recibida. Evaluando código...',
-            'solucion' => $solucion
+            'solucion' => $solucion,
         ], 201);
     }
 
@@ -203,7 +203,7 @@ class DesafioController extends Controller
 
         // Solo profesores creadores o admins pueden modificar el reto
         $isStaff = $user->roles->pluck('rol')->intersect(['Administrador', 'Profesor', 'Ayudante'])->isNotEmpty();
-        if (!$isStaff) {
+        if (! $isStaff) {
             return response()->json(['message' => 'Acceso denegado.'], 403);
         }
 
@@ -224,7 +224,7 @@ class DesafioController extends Controller
 
         return response()->json([
             'message' => 'Desafío actualizado con éxito.',
-            'desafio' => $desafio
+            'desafio' => $desafio,
         ]);
     }
 
@@ -239,7 +239,7 @@ class DesafioController extends Controller
         $isProfessor = $user->roles->pluck('rol')->contains('Profesor');
         $isAdmin = $user->roles->pluck('rol')->contains('Administrador');
 
-        if (!$isProfessor && !$isAdmin) {
+        if (! $isProfessor && ! $isAdmin) {
             return response()->json(['message' => 'Acceso denegado. Solo profesores pueden eliminar retos.'], 403);
         }
 
@@ -255,9 +255,11 @@ class DesafioController extends Controller
             $desafio->delete();
 
             DB::commit();
+
             return response()->json(['message' => 'Desafío eliminado correctamente.']);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json(['message' => 'Error al eliminar el desafío.'], 500);
         }
     }
