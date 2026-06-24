@@ -41,6 +41,32 @@ const LoginForm = () => {
     return () => clearInterval(timerRef.current);
   }, [isLocked, lockedUntil]);
 
+  const handleLoginError = useCallback((err, currentAttempts) => {
+    console.error(err);
+    const newAttempts = currentAttempts + 1;
+    setAttempts(newAttempts);
+
+    if (newAttempts >= MAX_ATTEMPTS) {
+      const until = Date.now() + LOCKOUT_SECONDS * 1000;
+      setLockedUntil(until);
+      setCountdown(LOCKOUT_SECONDS);
+      setError(`Has alcanzado el límite de ${MAX_ATTEMPTS} intentos. Por seguridad, espera 2 minutos antes de volver a intentarlo.`);
+    } else {
+      const left = MAX_ATTEMPTS - newAttempts;
+      const attemptSuffix = left === 1 ? '' : 's';
+      const remainingSuffix = left === 1 ? '' : 's';
+      const detail = `${left} intento${attemptSuffix} restante${remainingSuffix}`;
+
+      if (err.message === 'USER_NOT_FOUND_OR_INACTIVE') {
+        setError(`Usuario no encontrado o cuenta inactiva. ${detail}.`);
+      } else if (err.message === 'WRONG_PASSWORD') {
+        setError(`Contraseña incorrecta. ${detail}.`);
+      } else {
+        setError(`Error al iniciar sesión. ${detail}.`);
+      }
+    }
+  }, []);
+
   const handleLogin = useCallback(async (e) => {
     e.preventDefault();
     if (isLocked) return;
@@ -50,7 +76,6 @@ const LoginForm = () => {
 
     try {
       const userData = await login(user, password);
-      // Éxito: limpiar intentos
       setAttempts(0);
       setLockedUntil(null);
 
@@ -65,35 +90,22 @@ const LoginForm = () => {
       const targetPath = roleRedirects[userData.rol] || '/dashboard';
       navigate(targetPath);
     } catch (err) {
-      console.error(err);
-
-      const newAttempts = attempts + 1;
-      setAttempts(newAttempts);
-
-      if (newAttempts >= MAX_ATTEMPTS) {
-        const until = Date.now() + LOCKOUT_SECONDS * 1000;
-        setLockedUntil(until);
-        setCountdown(LOCKOUT_SECONDS);
-        setError(`Has alcanzado el límite de ${MAX_ATTEMPTS} intentos. Por seguridad, espera 2 minutos antes de volver a intentarlo.`);
-      } else {
-        const left = MAX_ATTEMPTS - newAttempts;
-        if (err.message === 'USER_NOT_FOUND_OR_INACTIVE') {
-          setError(`Usuario no encontrado o cuenta inactiva. ${left} intento${left !== 1 ? 's' : ''} restante${left !== 1 ? 's' : ''}.`);
-        } else if (err.message === 'WRONG_PASSWORD') {
-          setError(`Contraseña incorrecta. ${left} intento${left !== 1 ? 's' : ''} restante${left !== 1 ? 's' : ''}.`);
-        } else {
-          setError(`Error al iniciar sesión. ${left} intento${left !== 1 ? 's' : ''} restante${left !== 1 ? 's' : ''}.`);
-        }
-      }
+      handleLoginError(err, attempts);
     } finally {
       setLoading(false);
     }
-  }, [isLocked, login, user, password, attempts, navigate]);
+  }, [isLocked, login, user, password, attempts, navigate, handleLoginError]);
 
   const formatCountdown = (secs) => {
     const m = Math.floor(secs / 60).toString().padStart(2, '0');
     const s = (secs % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
+  };
+
+  const getSubmitButtonText = () => {
+    if (loading) return 'Cargando...';
+    if (isLocked) return `Bloqueado (${formatCountdown(countdown)})`;
+    return 'Iniciar Sesión';
   };
 
   return (
@@ -115,8 +127,6 @@ const LoginForm = () => {
         </div>
       )}
 
-
-      
       <div className="flex flex-col gap-2">
         <label htmlFor="user" className="text-sm font-medium text-[#444]">Usuario <span className="text-red-500">*</span></label>
         <input
@@ -150,7 +160,7 @@ const LoginForm = () => {
         className="bg-[#2c5364] text-white p-3 rounded-lg font-semibold hover:bg-[#203a43] transition-colors disabled:opacity-70 disabled:cursor-not-allowed mt-2" 
         disabled={loading || isLocked}
       >
-        {loading ? 'Cargando...' : isLocked ? `Bloqueado (${formatCountdown(countdown)})` : 'Iniciar Sesión'}
+        {getSubmitButtonText()}
       </button>
     </form>
   );

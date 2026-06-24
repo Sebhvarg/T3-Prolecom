@@ -11,11 +11,10 @@ class CursoTemplateFactory
     {
         $language = strtolower(trim($lp ?? ''));
 
-        switch ($language) {
-            case 'python':
-                return new PythonTemplateStrategy;
-            default:
-                return new DefaultTemplateStrategy;
+        if ($language === 'python') {
+            return new PythonTemplateStrategy;
         }
+
+        return new DefaultTemplateStrategy;
     }
 }
