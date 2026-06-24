@@ -24,7 +24,7 @@ class RoleMiddleware
         $userRoles = $request->user()->roles->pluck('rol')->toArray();
 
         foreach ($roles as $role) {
-            if (in_array($role, $userRoles)) {
+            if (in_array($role, $userRoles, true)) {
                 return $next($request);
             }
         }
