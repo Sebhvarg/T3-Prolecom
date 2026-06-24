@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 const Breadcrumbs = () => {
   const { user } = useAuth();
   const location = useLocation();
-  const pathnames = location.pathname.split('/').filter((x) => x);
+  const pathnames = location.pathname.split('/').filter(Boolean);
 
   // Mapeo de rutas estáticas a etiquetas amigables
   const routeLabels = {
@@ -83,14 +83,14 @@ const Breadcrumbs = () => {
         return (
           <div key={to} className="flex items-center space-x-2">
             <ChevronRight size={12} className="text-gray-400" />
-            {!isClickable ? (
-              <span className={isLast ? "font-semibold text-gray-700" : "text-gray-400"}>
-                {label}
-              </span>
-            ) : (
+            {isClickable ? (
               <Link to={to} className="hover:text-[#2c5364] transition-colors">
                 {label}
               </Link>
+            ) : (
+              <span className={isLast ? "font-semibold text-gray-700" : "text-gray-400"}>
+                {label}
+              </span>
             )}
           </div>
         );
