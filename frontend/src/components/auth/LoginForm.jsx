@@ -18,7 +18,7 @@ const LoginForm = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const isLocked = lockedUntil !== null && Date.now() < lockedUntil;
+  const isLocked = lockedUntil !== null;
 
   // Cuenta regresiva mientras está bloqueado
   useEffect(() => {
@@ -73,6 +73,7 @@ const LoginForm = () => {
       if (newAttempts >= MAX_ATTEMPTS) {
         const until = Date.now() + LOCKOUT_SECONDS * 1000;
         setLockedUntil(until);
+        setCountdown(LOCKOUT_SECONDS);
         setError(`Has alcanzado el límite de ${MAX_ATTEMPTS} intentos. Por seguridad, espera 2 minutos antes de volver a intentarlo.`);
       } else {
         const left = MAX_ATTEMPTS - newAttempts;
