@@ -19,7 +19,7 @@ const DashboardContainer = ({ title, user, children }) => {
                 <User size={20} className="text-gray-600" />
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-700 leading-tight">{user?.usuario || 'Cargando...'}</span>
+                <span className="text-sm font-medium text-gray-700 leading-tight">{user?.usuario?.toUpperCase() || 'Cargando...'}</span>
                 <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full w-fit uppercase tracking-tighter mt-1">{user?.rol || 'Usuario'}</span>
               </div>
             </div>
