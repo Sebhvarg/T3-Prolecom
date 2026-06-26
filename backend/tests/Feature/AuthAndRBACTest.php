@@ -22,17 +22,15 @@ class AuthAndRBACTest extends TestCase
 
     private const ESTUDIANTE_EMAIL = 'estud_test@gmail.com';
 
-    private const PASSWORD_VALIDO = 'SecurePass123!';
+    private const VALID_TEST_KEY = 'SecurePass123!';
 
     private const ESTUDIANTE_NOMBRE = 'Estudiante Prueba';
 
-    protected $adminRol;
+    protected ?Rol $adminRol = null;
 
-    protected $profesorRol;
+    protected ?Rol $profesorRol = null;
 
-    protected $estudianteRol;
-
-    protected $activoEstado;
+    protected ?Rol $estudianteRol = null;
 
     protected function setUp(): void
     {
@@ -176,7 +174,7 @@ class AuthAndRBACTest extends TestCase
             'nombreCompleto' => 'Profesor de Prueba',
             'usuario' => 'ProfeTest',
             'email' => 'profe_test@gmail.com',
-            'password' => self::PASSWORD_VALIDO,
+            'password' => self::VALID_TEST_KEY,
             'fechaDeNacimiento' => '1980-05-15',
             'rol' => 'Profesor',
         ]);
@@ -215,7 +213,7 @@ class AuthAndRBACTest extends TestCase
             'nombreCompleto' => 'Estudiante de Prueba',
             'usuario' => 'EstudTest',
             'email' => self::ESTUDIANTE_EMAIL,
-            'password' => self::PASSWORD_VALIDO,
+            'password' => self::VALID_TEST_KEY,
             'fechaDeNacimiento' => '2005-10-20',
             'rol' => 'Estudiante',
         ]);
@@ -263,59 +261,45 @@ class AuthAndRBACTest extends TestCase
         ]);
     }
 
-    public function test_registration_fails_if_username_does_not_start_with_uppercase()
+    private function assertRegistrationFails(array $data, array $expectedErrors)
     {
-        $response = $this->postJson(self::API_REGISTER_ROUTE, [
+        $response = $this->postJson(self::API_REGISTER_ROUTE, array_merge([
             'nombreCompleto' => self::ESTUDIANTE_NOMBRE,
-            'usuario' => 'estudTest',
+            'usuario' => 'Estudtest',
             'email' => self::ESTUDIANTE_EMAIL,
-            'password' => self::PASSWORD_VALIDO,
+            'password' => self::VALID_TEST_KEY,
             'rol' => 'Estudiante',
-        ]);
+        ], $data));
 
         $response->assertStatus(400);
-        $response->assertJsonValidationErrors(['usuario']);
+        $response->assertJsonValidationErrors($expectedErrors);
+    }
+
+    public function test_registration_fails_if_username_does_not_start_with_uppercase()
+    {
+        $this->assertRegistrationFails([
+            'usuario' => 'estudTest',
+        ], ['usuario']);
     }
 
     public function test_registration_fails_if_username_contains_spaces()
     {
-        $response = $this->postJson(self::API_REGISTER_ROUTE, [
-            'nombreCompleto' => self::ESTUDIANTE_NOMBRE,
+        $this->assertRegistrationFails([
             'usuario' => 'Estud Test',
-            'email' => self::ESTUDIANTE_EMAIL,
-            'password' => self::PASSWORD_VALIDO,
-            'rol' => 'Estudiante',
-        ]);
-
-        $response->assertStatus(400);
-        $response->assertJsonValidationErrors(['usuario']);
+        ], ['usuario']);
     }
 
     public function test_registration_fails_if_username_exceeds_length_limit()
     {
-        $response = $this->postJson(self::API_REGISTER_ROUTE, [
-            'nombreCompleto' => self::ESTUDIANTE_NOMBRE,
+        $this->assertRegistrationFails([
             'usuario' => 'Estudtestverylongusernamemorethan20chars',
-            'email' => self::ESTUDIANTE_EMAIL,
-            'password' => self::PASSWORD_VALIDO,
-            'rol' => 'Estudiante',
-        ]);
-
-        $response->assertStatus(400);
-        $response->assertJsonValidationErrors(['usuario']);
+        ], ['usuario']);
     }
 
     public function test_registration_fails_if_password_is_weak()
     {
-        $response = $this->postJson(self::API_REGISTER_ROUTE, [
-            'nombreCompleto' => self::ESTUDIANTE_NOMBRE,
-            'usuario' => 'Estudtest',
-            'email' => self::ESTUDIANTE_EMAIL,
+        $this->assertRegistrationFails([
             'password' => 'weakpass',
-            'rol' => 'Estudiante',
-        ]);
-
-        $response->assertStatus(400);
-        $response->assertJsonValidationErrors(['password']);
+        ], ['password']);
     }
 }

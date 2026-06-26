@@ -358,7 +358,7 @@ const CursoDetallePage = () => {
       // Intentar obtener el nombre del header Content-Disposition
       const disposition = response.headers.get('Content-Disposition');
       let filename = material.titulo;
-      if (disposition && disposition.includes('filename=')) {
+      if (disposition?.includes('filename=')) {
         const matches = /filename="?([^"]+)"?/.exec(disposition);
         if (matches?.[1]) filename = matches[1];
       } else {
