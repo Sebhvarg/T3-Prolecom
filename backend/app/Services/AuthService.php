@@ -13,6 +13,7 @@ class AuthService
     protected $authRepository;
 
     const MAX_ATTEMPTS = 5;
+
     const DECAY_SECONDS = 30;
 
     public function __construct(AuthRepositoryInterface $authRepository)
@@ -69,11 +70,12 @@ class AuthService
             ],
         ];
     }
+
     /**
      * Genera una clave única por usuario/IP para el rate limiter.
      */
     protected function throttleKey(string $login): string
     {
-        return 'login:' . Str::lower($login) . '|' . request()->ip();
+        return 'login:'.Str::lower($login).'|'.request()->ip();
     }
 }

@@ -9,7 +9,6 @@ const LOCKOUT_SECONDS = 120; // 2 minutos
 const LoginForm = () => {
   const [user, setUser] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [attempts, setAttempts] = useState(0);
