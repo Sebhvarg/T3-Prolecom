@@ -37,7 +37,6 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Rutas de Cursos e Inscripciones
-    $cursoRoute = '/cursos/{id}';
     Route::get('/cursos', [CursoController::class, 'index']);
     Route::get('/cursos/total', [CursoController::class, 'cursosTotal']);
     Route::get(ROUTE_CURSO_ID, [CursoController::class, 'show']);

@@ -4,6 +4,7 @@ import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { cursosService } from '../../api/cursosService';
 import { BookOpen, Plus, Edit2, Trash2, X, AlertCircle, CheckCircle, Users, UserPlus, Filter } from 'lucide-react';
+import PropTypes from 'prop-types';
 
 const CursosPage = () => {
   const navigate = useNavigate();
@@ -607,22 +608,9 @@ const CursoCard = ({
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      // Evitar scroll de la página si se presiona la barra espaciadora
-      if (e.key === ' ') {
-        e.preventDefault();
-      }
-      handleCardClick(e);
-    }
-  };
-
   return (
     <div 
       onClick={handleCardClick}
-      onKeyDown={handleKeyDown}
-      role={hasAccess ? 'button' : undefined}
-      tabIndex={hasAccess ? 0 : undefined}
       className={`bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group h-full ${
         hasAccess ? 'cursor-pointer hover:-translate-y-1 transform' : ''
       }`}
@@ -641,7 +629,17 @@ const CursoCard = ({
           </div>
 
           <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#2c5364] transition-colors line-clamp-2">
-            {curso.titulo}
+            {hasAccess ? (
+              <button
+                type="button"
+                onClick={() => navigate(`/cursos/${curso.idCurso}`)}
+                className="text-left font-bold text-gray-900 hover:text-[#2c5364] hover:underline focus:outline-none bg-transparent border-0 p-0 cursor-pointer"
+              >
+                {curso.titulo}
+              </button>
+            ) : (
+              curso.titulo
+            )}
           </h3>
           
           <p className="text-gray-500 mt-3 text-sm line-clamp-3 leading-relaxed">
@@ -727,6 +725,27 @@ const CursoCard = ({
       </div>
     </div>
   );
+};
+
+CursoCard.propTypes = {
+  curso: PropTypes.shape({
+    idCurso: PropTypes.number.isRequired,
+    titulo: PropTypes.string.isRequired,
+    descripcion: PropTypes.string,
+    lp: PropTypes.string.isRequired,
+    tipo: PropTypes.string.isRequired,
+    esta_matriculado: PropTypes.bool,
+    creador: PropTypes.shape({
+      nombreCompleto: PropTypes.string,
+    }),
+  }).isRequired,
+  canManage: PropTypes.bool.isRequired,
+  handleOpenAlumnosModal: PropTypes.func.isRequired,
+  handleOpenEditModal: PropTypes.func.isRequired,
+  handleDelete: PropTypes.func.isRequired,
+  handleDesmatricular: PropTypes.func.isRequired,
+  handleInscribir: PropTypes.func.isRequired,
+  navigate: PropTypes.func.isRequired,
 };
 
 export default CursosPage;
