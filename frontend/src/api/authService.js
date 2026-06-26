@@ -27,7 +27,7 @@ export const authService = {
 
     // Solo descifrar si la respuesta fue exitosa Y está protegida
     // Las respuestas de error NO están cifradas — descifrarlas resulta en null
-    if (response.ok && data && data.protected) {
+    if (response.ok && data?.protected) {
       data = storage.decryptPayload(data.payload);
     }
 

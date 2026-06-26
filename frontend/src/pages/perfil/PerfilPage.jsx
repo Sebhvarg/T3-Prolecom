@@ -24,6 +24,13 @@ const PerfilPage = () => {
   const confirmMatch = passwordNuevo && passwordConfirm && passwordNuevo === passwordConfirm;
   const confirmError = passwordConfirm && passwordNuevo !== passwordConfirm;
 
+  let confirmBorderClass = 'border-gray-300 focus:ring-[#2c5364]';
+  if (confirmError) {
+    confirmBorderClass = 'border-red-400 focus:ring-red-300';
+  } else if (confirmMatch) {
+    confirmBorderClass = 'border-green-400 focus:ring-green-300';
+  }
+
   const canSubmit =
     passwordActual.length > 0 &&
     passwordValida &&
@@ -158,13 +165,7 @@ const PerfilPage = () => {
                 <input
                   type={showConfirm ? 'text' : 'password'}
                   id="password_confirm"
-                  className={`w-full p-3 pr-12 rounded-xl border focus:outline-none focus:ring-2 text-gray-800 transition-colors ${
-                    confirmError
-                      ? 'border-red-400 focus:ring-red-300'
-                      : confirmMatch
-                      ? 'border-green-400 focus:ring-green-300'
-                      : 'border-gray-300 focus:ring-[#2c5364]'
-                  }`}
+                  className={`w-full p-3 pr-12 rounded-xl border focus:outline-none focus:ring-2 text-gray-800 transition-colors ${confirmBorderClass}`}
                   placeholder="Repite tu nueva contraseña"
                   value={passwordConfirm}
                   onChange={e => setPasswordConfirm(e.target.value)}

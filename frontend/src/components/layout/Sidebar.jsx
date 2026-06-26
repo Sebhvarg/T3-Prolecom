@@ -19,16 +19,21 @@ const Sidebar = () => {
   return (
     <div className="w-64 bg-[#0f2027] text-white flex flex-col h-full">
       <div className="p-6 flex items-center justify-center border-b border-gray-800">
-        <div className="cursor-pointer" onClick={() => navigate('/')}>
+        <button 
+          type="button" 
+          className="cursor-pointer bg-transparent border-0 p-0" 
+          onClick={() => navigate('/')}
+        >
           <img src={logo} alt="PROLECOM" className="h-10 w-auto" />
-        </div>
+        </button>
       </div>
 
       <nav className="flex-1 py-6 px-3 space-y-2">
         {menuItems.filter(item => item.show).map((item) => (
-          <div 
+          <button 
+            type="button"
             key={item.path}
-            className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+            className={`w-full text-left flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors bg-transparent border-0 ${
               location.pathname === item.path 
                 ? 'bg-[#2c5364] text-white' 
                 : 'text-gray-400 hover:bg-gray-800 hover:text-white'
@@ -37,13 +42,14 @@ const Sidebar = () => {
           >
             {item.icon}
             <span className="font-medium underline-offset-4">{item.name}</span>
-          </div>
+          </button>
         ))}
       </nav>
 
       <div className="p-4 border-t border-gray-800 space-y-2">
-        <div
-          className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors leading-none ${
+        <button
+          type="button"
+          className={`w-full text-left flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors leading-none bg-transparent border-0 ${
             location.pathname === '/perfil'
               ? 'bg-[#2c5364] text-white'
               : 'text-gray-400 hover:bg-gray-800 hover:text-white'
@@ -52,14 +58,15 @@ const Sidebar = () => {
         >
           <Settings size={20} />
           <span className="font-medium">Mi Perfil</span>
-        </div>
-        <div 
-          className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors text-gray-400 hover:bg-red-900/30 hover:text-red-400 leading-none" 
+        </button>
+        <button 
+          type="button"
+          className="w-full text-left flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors text-gray-400 hover:bg-red-900/30 hover:text-red-400 leading-none bg-transparent border-0" 
           onClick={logout}
         >
           <LogOut size={20} />
           <span className="font-medium">Salir</span>
-        </div>
+        </button>
       </div>
     </div>
   );
