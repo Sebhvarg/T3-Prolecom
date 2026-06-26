@@ -5,8 +5,8 @@ namespace Tests\Feature;
 use App\Models\Curso;
 use App\Models\Rol;
 use App\Models\User;
+use Database\Seeders\RolesAndStatesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -36,17 +36,7 @@ class AuthAndRBACTest extends TestCase
     {
         parent::setUp();
 
-        // Seed basic roles and states for testing using DB table to bypass mass assignment guarding of IDs
-        DB::table('estadosCuenta')->insertOrIgnore([
-            'idEstado' => 1,
-            'estado' => 'Activo',
-        ]);
-
-        DB::table('roles')->insertOrIgnore([
-            ['idRol' => 1, 'rol' => 'Administrador'],
-            ['idRol' => 3, 'rol' => 'Profesor'],
-            ['idRol' => 6, 'rol' => 'Estudiante'],
-        ]);
+        $this->seed(RolesAndStatesSeeder::class);
 
         $this->adminRol = Rol::find(1);
         $this->profesorRol = Rol::find(3);
