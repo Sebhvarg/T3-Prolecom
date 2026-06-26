@@ -25,13 +25,22 @@ export const authService = {
 
     let data = await response.json();
 
-    // Si la respuesta está protegida, la desciframos
-    if (data && data.protected) {
+    // Solo descifrar si la respuesta fue exitosa Y está protegida
+    // Las respuestas de error NO están cifradas — descifrarlas resulta en null
+    if (response.ok && data?.protected) {
       data = storage.decryptPayload(data.payload);
     }
 
     if (!response.ok || !data) {
-      throw new Error(data?.error || 'ERROR_LOGIN');
+      // Caso especial: demasiados intentos (HTTP 429)
+      // El backend devuelve: { error: "...", retry_after: N }
+      if (response.status === 429) {
+        const err = new Error(data?.error || 'Demasiados intentos fallidos.');
+        err.retry_after = data?.retry_after ?? 30;
+        throw err;
+      }
+      const message = data?.error || data?.message || 'ERROR_LOGIN';
+      throw new Error(message);
     }
 
     return data;
@@ -56,7 +65,7 @@ export const authService = {
     
     if (token === 'TAMPERED') {
       // Si el token fue alterado, forzamos cierre de sesión
-      window.dispatchEvent(new Event('storage')); // Esto disparará el checkIntegrity en AuthContext
+      globalThis.dispatchEvent(new Event('storage')); // Esto disparará el checkIntegrity en AuthContext
       throw new Error('SESSION_TAMPERED');
     }
 
@@ -80,14 +89,14 @@ export const authService = {
 
     if (response.status === 401) {
       authService.logout();
-      window.location.href = '/login';
+      globalThis.location.href = '/login';
       throw new Error('SESSION_EXPIRED');
     }
 
     let data;
     try {
       data = await response.json();
-      if (data && data.protected) {
+      if (data?.protected) {
         data = storage.decryptPayload(data.payload);
       }
     } catch (e) {

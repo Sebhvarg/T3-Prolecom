@@ -8,6 +8,7 @@ import ProfesorDashboard from './pages/profesor/ProfesorDashboard';
 import CursosPage from './pages/cursos/CursosPage';
 import CursoDetallePage from './pages/cursos/CursoDetallePage';
 import DesafioDetallePage from './pages/cursos/DesafioDetallePage';
+import PerfilPage from './pages/perfil/PerfilPage';
 
 const ModeradorDashboard = () => <h1>Panel de Moderador</h1>;
 const AyudanteDashboard = () => <h1>Panel de Ayudante</h1>;
@@ -48,6 +49,7 @@ function App() {
             <Route path="/cursos" element={<CursosPage />} />
             <Route path="/cursos/:id" element={<CursoDetallePage />} />
             <Route path="/cursos/:id/desafios/:idDesafio" element={<DesafioDetallePage />} />
+            <Route path="/perfil" element={<PerfilPage />} />
           </Route>
 
           {/* Redirección por defecto */}
