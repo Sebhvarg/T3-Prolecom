@@ -11,10 +11,10 @@ use App\Services\Dashboards\DashboardFactory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-if (! defined('ROUTE_CURSO_ID')) {
+if (!defined('ROUTE_CURSO_ID')) {
     define('ROUTE_CURSO_ID', '/cursos/{id}');
 }
-if (! defined('ROUTE_DESAFIO_ID')) {
+if (!defined('ROUTE_DESAFIO_ID')) {
     define('ROUTE_DESAFIO_ID', '/desafios/{id}');
 }
 
