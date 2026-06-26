@@ -25,13 +25,22 @@ export const authService = {
 
     let data = await response.json();
 
-    // Si la respuesta está protegida, la desciframos
-    if (data && data.protected) {
+    // Solo descifrar si la respuesta fue exitosa Y está protegida
+    // Las respuestas de error NO están cifradas — descifrarlas resulta en null
+    if (response.ok && data && data.protected) {
       data = storage.decryptPayload(data.payload);
     }
 
     if (!response.ok || !data) {
-      throw new Error(data?.error || 'ERROR_LOGIN');
+      // Caso especial: demasiados intentos (HTTP 429)
+      // El backend devuelve: { error: "...", retry_after: N }
+      if (response.status === 429) {
+        const err = new Error(data?.error || 'Demasiados intentos fallidos.');
+        err.retry_after = data?.retry_after ?? 30;
+        throw err;
+      }
+      const message = data?.error || data?.message || 'ERROR_LOGIN';
+      throw new Error(message);
     }
 
     return data;

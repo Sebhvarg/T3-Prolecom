@@ -420,7 +420,7 @@ const CursosPage = () => {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="tipo" className="text-sm font-semibold text-gray-700">Tipo de Curso</label>
+                  <label htmlFor="tipo" className="text-sm font-semibold text-gray-700">Tipo de Curso <span className="text-red-500">*</span></label>
                   <select
                     id="tipo"
                     className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364] text-gray-800 bg-white"
