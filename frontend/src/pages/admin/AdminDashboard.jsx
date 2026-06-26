@@ -39,7 +39,7 @@ const AdminDashboard = () => {
   return (
     <DashboardContainer title="Principal" user={user}>
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-800">¡Bienvenido, {user?.nombreCompleto || user?.usuario || 'Administrador'}!</h2>
+        <h2 className="text-2xl font-bold text-gray-800">¡Bienvenido, {user?.nombreCompleto || user?.usuario?.toUpperCase() || 'Administrador'}!</h2>
         <p className="text-gray-500">Supervisa la seguridad, estabilidad y rendimiento de Prolecom</p>
       </div>
 
