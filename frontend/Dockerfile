@@ -9,6 +9,11 @@ CMD ["yarn", "dev", "--host"]
 
 # Etapa de Construcción (Para producción)
 FROM node:20-alpine AS builder
+ARG VITE_API_URL
+ARG VITE_STORAGE_KEY
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_STORAGE_KEY=$VITE_STORAGE_KEY
+
 WORKDIR /app
 COPY package.json yarn.lock* ./
 RUN yarn install --frozen-lockfile
@@ -20,5 +25,6 @@ FROM nginx:stable-alpine AS production
 COPY --from=builder /app/dist /usr/share/nginx/html
 RUN echo "server { listen 80; location / { root /usr/share/nginx/html; index index.html; try_files \$uri \$uri/ /index.html; } }" > /etc/nginx/conf.d/default.conf
 EXPOSE 80
-CMD ["sh", "-c", "sed -i \"s/listen 80;/listen ${PORT:-80};/g\" /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"]
+CMD ["nginx", "-g", "daemon off;"]
+
 
