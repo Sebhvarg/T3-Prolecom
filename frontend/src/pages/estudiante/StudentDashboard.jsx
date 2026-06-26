@@ -131,7 +131,7 @@ const StudentDashboard = () => {
   return (
     <DashboardContainer title="Pagina Principal" user={user}>
       <div className="space-y-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">¡Bienvenido, {user?.nombreCompleto || user?.usuario || 'Estudiante'}!</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">¡Bienvenido, {user?.nombreCompleto || user?.usuario?.toUpperCase() || 'Estudiante'}!</h2>
         
         <section className="mb-10">
           <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
