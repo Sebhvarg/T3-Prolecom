@@ -10,7 +10,7 @@ import {
   X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code 
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://172.19.139.35:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
 let testCaseIdCounter = 0;
 const generateTestCaseId = () => {
@@ -358,7 +358,7 @@ const CursoDetallePage = () => {
       // Intentar obtener el nombre del header Content-Disposition
       const disposition = response.headers.get('Content-Disposition');
       let filename = material.titulo;
-      if (disposition && disposition.includes('filename=')) {
+      if (disposition?.includes('filename=')) {
         const matches = /filename="?([^"]+)"?/.exec(disposition);
         if (matches?.[1]) filename = matches[1];
       } else {
@@ -738,7 +738,7 @@ const CursoDetallePage = () => {
                     placeholder="Ej: Suma de dos números..."
                     value={desafioForm.titulo}
                     onChange={(e) => setDesafioForm(prev => ({ ...prev, titulo: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+                    className="w-full border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white shadow-sm transition-all"
                   />
                 </div>
                 <div>
@@ -747,7 +747,7 @@ const CursoDetallePage = () => {
                     id="desafio-dificultad"
                     value={desafioForm.dificultad}
                     onChange={(e) => setDesafioForm(prev => ({ ...prev, dificultad: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+                    className="w-full border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 shadow-sm transition-all cursor-pointer"
                   >
                     <option value="Easy">Fácil</option>
                     <option value="Medium">Medio</option>
@@ -766,7 +766,7 @@ const CursoDetallePage = () => {
                     required
                     value={desafioForm.puntos}
                     onChange={(e) => setDesafioForm(prev => ({ ...prev, puntos: Number.parseInt(e.target.value, 10) || 10 }))}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+                    className="w-full border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white shadow-sm transition-all"
                   />
                 </div>
               </div>
@@ -778,7 +778,7 @@ const CursoDetallePage = () => {
                   placeholder="def solucion():&#10;    # escribe tu código aquí"
                   value={desafioForm.starter_code}
                   onChange={(e) => setDesafioForm(prev => ({ ...prev, starter_code: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364] h-36 font-mono text-sm bg-gray-50/50 resize-y"
+                  className="w-full border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 h-36 font-mono text-sm bg-white text-gray-900 shadow-sm resize-y transition-all"
                 />
               </div>
 
@@ -790,7 +790,7 @@ const CursoDetallePage = () => {
                   placeholder="Escribe la descripción del problema en Markdown o texto claro..."
                   value={desafioForm.descripcionProblema}
                   onChange={(e) => setDesafioForm(prev => ({ ...prev, descripcionProblema: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364] h-20 resize-none text-sm"
+                  className="w-full border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 h-20 resize-none text-sm bg-white text-gray-900 shadow-sm transition-all"
                 />
               </div>
 
@@ -815,7 +815,7 @@ const CursoDetallePage = () => {
                           placeholder="Input (ej: 5)"
                           value={tc.input}
                           onChange={(e) => handleTestCaseChange(index, 'input', e.target.value)}
-                          className="w-full border border-gray-200 rounded-lg px-2.5 py-1 text-xs mb-1.5"
+                          className="w-full border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-lg px-2.5 py-1.5 text-xs mb-1.5 bg-white text-gray-900 shadow-xs transition-all"
                         />
                         <input 
                           type="text"
@@ -823,7 +823,7 @@ const CursoDetallePage = () => {
                           placeholder="Salida esperada (ej: 10)"
                           value={tc.expected_output}
                           onChange={(e) => handleTestCaseChange(index, 'expected_output', e.target.value)}
-                          className="w-full border border-gray-200 rounded-lg px-2.5 py-1 text-xs"
+                          className="w-full border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-lg px-2.5 py-1.5 text-xs bg-white text-gray-900 shadow-xs transition-all"
                         />
                       </div>
                       <div className="flex flex-col items-center gap-1 shrink-0">
