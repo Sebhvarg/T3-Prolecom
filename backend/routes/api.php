@@ -20,6 +20,7 @@ if (! defined('ROUTE_DESAFIO_ID')) {
 }
 
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::put('/perfil/password', [PerfilController::class, 'cambiarPassword']);

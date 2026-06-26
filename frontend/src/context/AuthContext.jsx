@@ -1,4 +1,5 @@
-import { createContext, useState, useContext, useEffect } from 'react';
+import { createContext, useState, useContext, useEffect, useMemo, useCallback } from 'react';
+import PropTypes from 'prop-types';
 import { authService } from '../api/authService';
 import { storage } from '../utils/crypto';
 import AlertModal from '../components/ui/AlertModal';
@@ -10,12 +11,12 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [showTamperModal, setShowTamperModal] = useState(false);
 
-  const handleTamper = () => {
+  const handleTamper = useCallback(() => {
     authService.logout();
     setUser(null);
     setShowTamperModal(true);
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     const checkIntegrity = () => {
@@ -37,17 +38,19 @@ export const AuthProvider = ({ children }) => {
 
     checkIntegrity();
 
-    // Escuchar cambios en localStorage desde otras pestañas
-    window.addEventListener('storage', (e) => {
+    const handleStorageChange = (e) => {
       if (['user', 'token', 'rutas'].includes(e.key)) {
         checkIntegrity();
       }
-    });
+    };
 
-    return () => window.removeEventListener('storage', () => {});
-  }, []);
+    // Escuchar cambios en localStorage desde otras pestañas
+    globalThis.addEventListener('storage', handleStorageChange);
 
-  const login = async (username, password) => {
+    return () => globalThis.removeEventListener('storage', handleStorageChange);
+  }, [handleTamper]);
+
+  const login = useCallback(async (username, password) => {
     const data = await authService.login(username, password);
     storage.set('token', data.token);
     storage.set('user', data.user);
@@ -56,15 +59,34 @@ export const AuthProvider = ({ children }) => {
     }
     setUser(data.user);
     return data.user;
-  };
+  }, []);
 
-  const logout = () => {
+  const register = useCallback(async (registerData) => {
+    const data = await authService.register(registerData);
+    storage.set('token', data.token);
+    storage.set('user', data.user);
+    if (data.user.rutas) {
+      storage.set('rutas', data.user.rutas);
+    }
+    setUser(data.user);
+    return data.user;
+  }, []);
+
+  const logout = useCallback(() => {
     authService.logout();
     setUser(null);
-  };
+  }, []);
+
+  const contextValue = useMemo(() => ({
+    user,
+    login,
+    register,
+    logout,
+    loading
+  }), [user, login, register, logout, loading]);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
       <AlertModal 
         isOpen={showTamperModal} 
@@ -73,6 +95,10 @@ export const AuthProvider = ({ children }) => {
       />
     </AuthContext.Provider>
   );
+};
+
+AuthProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };
 
 // eslint-disable-next-line react-refresh/only-export-components

@@ -35,8 +35,14 @@ const CursosPage = () => {
   const [selectedCursoForAlumnos, setSelectedCursoForAlumnos] = useState(null);
   const [alumnosMatriculados, setAlumnosMatriculados] = useState([]);
   const [estudiantesSistema, setEstudiantesSistema] = useState([]);
-  const [selectedEstudianteId, setSelectedEstudianteId] = useState('');
   const [alumnosLoading, setAlumnosLoading] = useState(false);
+
+  // Search and Sort states for Manual Enrollment (Point 4)
+  const [searchAvailable, setSearchAvailable] = useState('');
+  const [sortAvailable, setSortAvailable] = useState('asc');
+  const [searchEnrolled, setSearchEnrolled] = useState('');
+  const [sortEnrolled, setSortEnrolled] = useState('asc');
+  const [modalActiveTab, setModalActiveTab] = useState('matriculados');
 
   const canManage = user?.rol === 'Administrador' || user?.rol === 'Profesor';
 
@@ -178,31 +184,76 @@ const CursosPage = () => {
     setIsAlumnosModalOpen(true);
     setError('');
     setSuccess('');
-    setSelectedEstudianteId('');
+    setSearchAvailable('');
+    setSortAvailable('asc');
+    setSearchEnrolled('');
+    setSortEnrolled('asc');
+    setModalActiveTab('matriculados');
     
     refreshAlumnosList(curso.idCurso);
     
     try {
       const allStudents = await cursosService.getEstudiantesSistema();
-      setEstudiantesSistema(allStudents.slice().sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto, 'es', { numeric: true })));
+      setEstudiantesSistema(allStudents);
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleMatricularManual = async (e) => {
-    e.preventDefault();
-    if (!selectedEstudianteId) return;
+  const getFilteredAndSortedAvailable = () => {
+    let list = estudiantesSistema.filter(
+      (est) => !alumnosMatriculados.some((e) => e.idUsuario === est.idUsuario)
+    );
+
+    if (searchAvailable.trim() !== '') {
+      const q = searchAvailable.toLowerCase();
+      list = list.filter(
+        (est) =>
+          est.nombreCompleto.toLowerCase().includes(q) ||
+          est.email.toLowerCase().includes(q)
+      );
+    }
+
+    list.sort((a, b) => {
+      const nameA = a.nombreCompleto || '';
+      const nameB = b.nombreCompleto || '';
+      return sortAvailable === 'asc'
+        ? nameA.localeCompare(nameB, 'es', { numeric: true })
+        : nameB.localeCompare(nameA, 'es', { numeric: true });
+    });
+
+    return list;
+  };
+
+  const getFilteredAndSortedEnrolled = () => {
+    let list = [...alumnosMatriculados];
+
+    if (searchEnrolled.trim() !== '') {
+      const q = searchEnrolled.toLowerCase();
+      list = list.filter(
+        (est) =>
+          est.nombreCompleto.toLowerCase().includes(q) ||
+          est.email.toLowerCase().includes(q)
+      );
+    }
+
+    list.sort((a, b) => {
+      const nameA = a.nombreCompleto || '';
+      const nameB = b.nombreCompleto || '';
+      return sortEnrolled === 'asc'
+        ? nameA.localeCompare(nameB, 'es', { numeric: true })
+        : nameB.localeCompare(nameA, 'es', { numeric: true });
+    });
+
+    return list;
+  };
+
+  const handleMatricularDirect = async (student) => {
     setError('');
     setSuccess('');
-    
-    const student = estudiantesSistema.find(s => s.idUsuario.toString() === selectedEstudianteId.toString());
-    if (!student) return;
-    
     try {
       await cursosService.matricularManual(selectedCursoForAlumnos.idCurso, student.email);
       setSuccess(`Estudiante ${student.nombreCompleto} matriculado con éxito.`);
-      setSelectedEstudianteId('');
       refreshAlumnosList(selectedCursoForAlumnos.idCurso);
       fetchCursos();
     } catch (err) {
@@ -382,7 +433,7 @@ const CursosPage = () => {
                   type="text"
                   required
                   placeholder="Ej. Introducción a Python"
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364] text-gray-800"
+                  className="w-full p-3 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white shadow-sm transition-all"
                   value={formData.titulo}
                   onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
                 />
@@ -395,7 +446,7 @@ const CursosPage = () => {
                   required
                   rows={4}
                   placeholder="Detalles sobre lo que aprenderán los estudiantes..."
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364] text-gray-800"
+                  className="w-full p-3 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white shadow-sm transition-all"
                   value={formData.descripcion}
                   onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
                 />
@@ -407,7 +458,7 @@ const CursosPage = () => {
                   <select
                     id="lp"
                     required
-                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364] text-gray-800 bg-white"
+                    className="w-full p-3 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white shadow-sm transition-all cursor-pointer"
                     value={formData.lp}
                     onChange={(e) => setFormData({ ...formData, lp: e.target.value })}
                   >
@@ -424,7 +475,7 @@ const CursosPage = () => {
                   <label htmlFor="tipo" className="text-sm font-semibold text-gray-700">Tipo de Curso <span className="text-red-500">*</span></label>
                   <select
                     id="tipo"
-                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364] text-gray-800 bg-white"
+                    className="w-full p-3 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white shadow-sm transition-all cursor-pointer"
                     value={formData.tipo}
                     onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
                   >
@@ -470,115 +521,183 @@ const CursosPage = () => {
                 {selectedCursoForAlumnos.lp}
               </span>
               <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                Alumnos Matriculados
+                Gestión de Alumnos
               </h3>
               <p className="text-sm text-gray-500 mt-0.5">
                 Curso: <span className="font-semibold text-gray-800">{selectedCursoForAlumnos.titulo}</span>
               </p>
             </div>
 
-            {/* Form to Enroll Student Manually */}
-            <form onSubmit={handleMatricularManual} className="mb-6 p-4 bg-gray-50 border border-gray-100 rounded-2xl flex flex-col sm:flex-row gap-3 items-end">
-              <div className="flex-1 flex flex-col gap-1.5 w-full">
-                <label htmlFor="select-estudiante" className="text-xs font-bold text-gray-500 uppercase tracking-wider">Matricular alumno manualmente <span className="text-red-500">*</span></label>
-                <select
-                  id="select-estudiante"
-                  required
-                  value={selectedEstudianteId}
-                  onChange={(e) => setSelectedEstudianteId(e.target.value)}
-                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364] text-gray-800 bg-white text-sm"
-                >
-                  <option value="">Selecciona un estudiante...</option>
-                  {estudiantesSistema
-                    .filter(est => !alumnosMatriculados.some(e => e.idUsuario === est.idUsuario))
-                    .map(est => (
-                      <option key={est.idUsuario} value={est.idUsuario}>
-                        {est.nombreCompleto} ({est.email})
-                      </option>
-                    ))
-                  }
-                </select>
-              </div>
-              <button
-                type="submit"
-                disabled={!selectedEstudianteId}
-                className="w-full sm:w-auto bg-[#2c5364] hover:bg-[#203a43] disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-3 rounded-xl font-semibold shadow-sm transition-all hover:shadow-md flex items-center justify-center gap-2 whitespace-nowrap text-sm h-[46px]"
-              >
-                <UserPlus size={18} />
-                <span>Matricular</span>
-              </button>
-            </form>
-
-            {/* List of Enrolled Students */}
-            <div className="flex-1 overflow-y-auto min-h-[200px] border border-gray-100 rounded-2xl">
-              {(() => {
-                if (alumnosLoading) {
-                  return (
-                    <div className="flex justify-center items-center h-48">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2c5364]"></div>
-                    </div>
-                  );
-                }
-                if (alumnosMatriculados.length === 0) {
-                  return (
-                    <div className="text-center py-12 text-gray-400">
-                      <p className="font-semibold text-gray-500">No hay alumnos matriculados</p>
-                      <p className="text-xs mt-1">Utiliza el selector superior para inscribir al primero.</p>
-                    </div>
-                  );
-                }
-                return (
-                <table className="w-full border-collapse text-left text-sm text-gray-500">
-                  <thead className="bg-gray-50 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
-                    <tr>
-                      <th scope="col" className="px-6 py-3">Nombre</th>
-                      <th scope="col" className="px-6 py-3">Email</th>
-                      <th scope="col" className="px-6 py-3">F. Inscripción</th>
-                      <th scope="col" className="px-6 py-3 text-right">Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {alumnosMatriculados.map((alumno) => (
-                      <tr key={alumno.idUsuario} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="px-6 py-4 font-semibold text-gray-900">{alumno.nombreCompleto}</td>
-                        <td className="px-6 py-4">{alumno.email}</td>
-                        <td className="px-6 py-4 text-xs font-medium text-gray-400">
-                          {alumno.pivot?.fechaInscripcion 
-                            ? new Date(alumno.pivot.fechaInscripcion).toLocaleDateString('es-ES', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })
-                            : 'Fecha no registrada'}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <button
-                            onClick={() => handleDesmatricularEstudianteManual(alumno.idUsuario)}
-                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Desmatricular Alumno"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                );
-              })()}
-            </div>
-
-            <div className="mt-6 flex justify-end">
+            {/* Modal Tabs Header */}
+            <div className="flex border-b border-gray-200 mb-6">
               <button
                 type="button"
-                onClick={() => setIsAlumnosModalOpen(false)}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-5 py-2.5 rounded-xl font-semibold transition-colors text-sm"
+                onClick={() => setModalActiveTab('matriculados')}
+                className={`py-2.5 px-4 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
+                  modalActiveTab === 'matriculados'
+                    ? 'border-[#2c5364] text-[#2c5364]'
+                    : 'border-transparent text-gray-400 hover:text-gray-600'
+                }`}
               >
-                Cerrar
+                <Users size={16} />
+                <span>Alumnos Matriculados ({alumnosMatriculados.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalActiveTab('matricular')}
+                className={`py-2.5 px-4 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
+                  modalActiveTab === 'matricular'
+                    ? 'border-[#2c5364] text-[#2c5364]'
+                    : 'border-transparent text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                <UserPlus size={16} />
+                <span>Matricular Alumnos</span>
               </button>
             </div>
+
+            {modalActiveTab === 'matriculados' ? (
+              <div className="flex flex-col flex-1 min-h-0">
+                {/* Search and Sort for Enrolled */}
+                <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                  <input
+                    type="text"
+                    placeholder="Buscar estudiante matriculado..."
+                    value={searchEnrolled}
+                    onChange={(e) => setSearchEnrolled(e.target.value)}
+                    className="flex-1 p-2.5 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white shadow-sm transition-all"
+                  />
+                  <select
+                    value={sortEnrolled}
+                    onChange={(e) => setSortEnrolled(e.target.value)}
+                    className="p-2.5 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white cursor-pointer shadow-sm transition-all"
+                  >
+                    <option value="asc">Nombre: A - Z</option>
+                    <option value="desc">Nombre: Z - A</option>
+                  </select>
+                </div>
+
+                {/* List of Enrolled */}
+                <div className="flex-1 overflow-y-auto border border-gray-150 rounded-2xl max-h-[35vh]">
+                  {(() => {
+                    if (alumnosLoading) {
+                      return (
+                        <div className="flex justify-center items-center h-48">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2c5364]"></div>
+                        </div>
+                      );
+                    }
+                    const enrolledFiltered = getFilteredAndSortedEnrolled();
+                    if (enrolledFiltered.length === 0) {
+                      return (
+                        <div className="text-center py-12 text-gray-400">
+                          <p className="font-semibold text-gray-500">No hay alumnos matriculados</p>
+                        </div>
+                      );
+                    }
+                    return (
+                      <table className="w-full border-collapse text-left text-sm text-gray-500">
+                        <thead className="bg-gray-50 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 sticky top-0 z-10">
+                          <tr>
+                            <th scope="col" className="px-6 py-3">Nombre</th>
+                            <th scope="col" className="px-6 py-3">Email</th>
+                            <th scope="col" className="px-6 py-3 text-right">Acción</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {enrolledFiltered.map((alumno) => (
+                            <tr key={alumno.idUsuario} className="hover:bg-gray-50/50 transition-colors">
+                              <td className="px-6 py-4 font-semibold text-gray-900">{alumno.nombreCompleto}</td>
+                              <td className="px-6 py-4">{alumno.email}</td>
+                              <td className="px-6 py-4 text-right">
+                                <button
+                                  onClick={() => handleDesmatricularEstudianteManual(alumno.idUsuario)}
+                                  className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Desmatricular Alumno"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    );
+                  })()}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col flex-1 min-h-0">
+                {/* Search and Sort for Available */}
+                <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                  <input
+                    type="text"
+                    placeholder="Buscar estudiante en el sistema..."
+                    value={searchAvailable}
+                    onChange={(e) => setSearchAvailable(e.target.value)}
+                    className="flex-1 p-2.5 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white shadow-sm transition-all"
+                  />
+                  <select
+                    value={sortAvailable}
+                    onChange={(e) => setSortAvailable(e.target.value)}
+                    className="p-2.5 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white cursor-pointer shadow-sm transition-all"
+                  >
+                    <option value="asc">Nombre: A - Z</option>
+                    <option value="desc">Nombre: Z - A</option>
+                  </select>
+                </div>
+
+                {/* List of Available */}
+                <div className="flex-1 overflow-y-auto border border-gray-150 rounded-2xl max-h-[35vh]">
+                  {(() => {
+                    if (alumnosLoading) {
+                      return (
+                        <div className="flex justify-center items-center h-48">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2c5364]"></div>
+                        </div>
+                      );
+                    }
+                    const availableFiltered = getFilteredAndSortedAvailable();
+                    if (availableFiltered.length === 0) {
+                      return (
+                        <div className="text-center py-12 text-gray-400">
+                          <p className="font-semibold text-gray-500">No hay más estudiantes disponibles</p>
+                        </div>
+                      );
+                    }
+                    return (
+                      <table className="w-full border-collapse text-left text-sm text-gray-500">
+                        <thead className="bg-gray-50 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 sticky top-0 z-10">
+                          <tr>
+                            <th scope="col" className="px-6 py-3">Nombre</th>
+                            <th scope="col" className="px-6 py-3">Email</th>
+                            <th scope="col" className="px-6 py-3 text-right">Acción</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {availableFiltered.map((est) => (
+                            <tr key={est.idUsuario} className="hover:bg-gray-50/50 transition-colors">
+                              <td className="px-6 py-4 font-semibold text-gray-900">{est.nombreCompleto}</td>
+                              <td className="px-6 py-4">{est.email}</td>
+                              <td className="px-6 py-4 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => handleMatricularDirect(est)}
+                                  className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-all text-xs flex items-center gap-1.5 ml-auto shadow-sm"
+                                >
+                                  <UserPlus size={14} />
+                                  <span>Matricular</span>
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -1,6 +1,6 @@
 import { storage } from '../utils/crypto';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://127.0.0.1:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
 function parseErrorMessage(data) {
   if (!data) return 'Ocurrió un error inesperado';
@@ -41,6 +41,29 @@ export const authService = {
       }
       const message = data?.error || data?.message || 'ERROR_LOGIN';
       throw new Error(message);
+    }
+
+    return data;
+  },
+
+  register: async (registerData) => {
+    const response = await fetch(`${API_URL}/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(registerData),
+    });
+
+    let data = await response.json();
+
+    if (data?.protected) {
+      data = storage.decryptPayload(data.payload);
+    }
+
+    if (!response.ok || !data) {
+      throw new Error(parseErrorMessage(data));
     }
 
     return data;
