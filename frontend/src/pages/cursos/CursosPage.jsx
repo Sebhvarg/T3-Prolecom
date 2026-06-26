@@ -598,21 +598,10 @@ const CursoCard = ({
 }) => {
   const hasAccess = canManage || curso.esta_matriculado;
 
-  const handleCardClick = (e) => {
-    // Evitar navegación si se hace clic en botones, enlaces o elementos interactivos dentro de la card
-    if (e.target.closest('button') || e.target.closest('a')) {
-      return;
-    }
-    if (hasAccess) {
-      navigate(`/cursos/${curso.idCurso}`);
-    }
-  };
-
   return (
     <div 
-      onClick={handleCardClick}
-      className={`bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group h-full ${
-        hasAccess ? 'cursor-pointer hover:-translate-y-1 transform' : ''
+      className={`relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group h-full ${
+        hasAccess ? 'hover:-translate-y-1 transform' : ''
       }`}
     >
       <div className="p-6 flex-1 flex flex-col justify-between">
@@ -633,7 +622,7 @@ const CursoCard = ({
               <button
                 type="button"
                 onClick={() => navigate(`/cursos/${curso.idCurso}`)}
-                className="text-left font-bold text-gray-900 hover:text-[#2c5364] hover:underline focus:outline-none bg-transparent border-0 p-0 cursor-pointer"
+                className="text-left font-bold text-gray-900 hover:text-[#2c5364] hover:underline focus:outline-none bg-transparent border-0 p-0 cursor-pointer after:absolute after:inset-0 after:z-0"
               >
                 {curso.titulo}
               </button>
@@ -657,7 +646,7 @@ const CursoCard = ({
             <div className="flex gap-2">
               <button
                 onClick={() => handleOpenAlumnosModal(curso)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold rounded-lg transition-colors"
+                className="relative z-10 flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold rounded-lg transition-colors"
                 title="Ver y Gestionar Alumnos"
               >
                 <Users size={14} />
@@ -665,14 +654,14 @@ const CursoCard = ({
               </button>
               <button
                 onClick={() => handleOpenEditModal(curso)}
-                className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                className="relative z-10 p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
                 title="Editar Curso"
               >
                 <Edit2 size={16} />
               </button>
               <button
                 onClick={() => handleDelete(curso.idCurso)}
-                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                className="relative z-10 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                 title="Eliminar Curso"
               >
                 <Trash2 size={16} />
@@ -689,14 +678,14 @@ const CursoCard = ({
                   <div className="flex items-center gap-2 w-full sm:w-auto">
                     <button
                       onClick={() => navigate(`/cursos/${curso.idCurso}`)}
-                      className="px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-xs"
+                      className="relative z-10 px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-xs"
                     >
                       <BookOpen size={14} />
                       Ver contenido
                     </button>
                     <button
                       onClick={() => handleDesmatricular(curso.idCurso)}
-                      className="px-3 py-1.5 border border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-all"
+                      className="relative z-10 px-3 py-1.5 border border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-all"
                       title="Darse de baja de este curso"
                     >
                       Darse de baja
@@ -708,7 +697,7 @@ const CursoCard = ({
                 return (
                   <button
                     onClick={() => handleInscribir(curso.idCurso)}
-                    className="w-full sm:w-auto bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2 rounded-lg font-semibold shadow-sm transition-all hover:shadow-md"
+                    className="relative z-10 w-full sm:w-auto bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2 rounded-lg font-semibold shadow-sm transition-all hover:shadow-md"
                   >
                     Matricularme
                   </button>

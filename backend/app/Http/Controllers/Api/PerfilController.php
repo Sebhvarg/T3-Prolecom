@@ -48,23 +48,23 @@ class PerfilController extends Controller
 
     private function verifyPasswordChange($user, string $actual, string $nueva): ?array
     {
+        $error = null;
+
         if (! Hash::check($actual, $user->password)) {
-            return ['message' => 'La contraseña actual es incorrecta.', 'status' => 401];
+            $error = ['message' => 'La contraseña actual es incorrecta.', 'status' => 401];
+        } else {
+            $criterioError = $this->validarCriterios($nueva);
+            if ($criterioError) {
+                $error = ['message' => $criterioError, 'status' => 422];
+            } elseif ($this->checkPasswordHistory($user->idUsuario, $nueva)) {
+                $error = [
+                    'message' => 'La nueva contraseña no puede ser igual a las últimas '.self::HISTORY_LIMIT.' contraseñas utilizadas.',
+                    'status' => 422,
+                ];
+            }
         }
 
-        $criterioError = $this->validarCriterios($nueva);
-        if ($criterioError) {
-            return ['message' => $criterioError, 'status' => 422];
-        }
-
-        if ($this->checkPasswordHistory($user->idUsuario, $nueva)) {
-            return [
-                'message' => 'La nueva contraseña no puede ser igual a las últimas '.self::HISTORY_LIMIT.' contraseñas utilizadas.',
-                'status' => 422,
-            ];
-        }
-
-        return null;
+        return $error;
     }
 
     private function checkPasswordHistory($idUsuario, string $nueva): bool
