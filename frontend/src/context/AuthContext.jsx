@@ -58,13 +58,24 @@ export const AuthProvider = ({ children }) => {
     return data.user;
   };
 
+  const register = async (registerData) => {
+    const data = await authService.register(registerData);
+    storage.set('token', data.token);
+    storage.set('user', data.user);
+    if (data.user.rutas) {
+      storage.set('rutas', data.user.rutas);
+    }
+    setUser(data.user);
+    return data.user;
+  };
+
   const logout = () => {
     authService.logout();
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
       {children}
       <AlertModal 
         isOpen={showTamperModal} 
