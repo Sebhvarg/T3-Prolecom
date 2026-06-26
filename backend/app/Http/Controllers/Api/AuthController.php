@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Services\AuthService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -83,20 +87,20 @@ class AuthController extends Controller
         try {
             $idRol = $request->rol === 'Profesor' ? 3 : 6;
 
-            $usuario = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $idRol) {
+            $usuario = DB::transaction(function () use ($request, $idRol) {
                 // Crear el usuario
-                $user = \App\Models\User::create([
+                $user = User::create([
                     'nombreCompleto' => $request->nombreCompleto,
                     'usuario' => $request->usuario,
                     'email' => $request->email,
-                    'password' => \Illuminate\Support\Facades\Hash::make($request->password),
+                    'password' => Hash::make($request->password),
                     'fechaDeNacimiento' => $request->fechaDeNacimiento,
                     'idEstado' => 1, // Activo
                     'xp' => 0,
                 ]);
 
                 // Asignar el rol
-                \Illuminate\Support\Facades\DB::table('rolUsuario')->insert([
+                DB::table('rolUsuario')->insert([
                     'idUsuario' => $user->idUsuario,
                     'idRol' => $idRol,
                 ]);
@@ -108,7 +112,7 @@ class AuthController extends Controller
             $token = $usuario->createToken('auth_token')->plainTextToken;
 
             // Obtener las rutas
-            $usuarioConRoles = \App\Models\User::with('roles.rutas')->findOrFail($usuario->idUsuario);
+            $usuarioConRoles = User::with('roles.rutas')->findOrFail($usuario->idUsuario);
             $rutas = $usuarioConRoles->roles->flatMap(function ($rol) {
                 return $rol->rutas->pluck('ruta');
             })->unique()->implode(';');
@@ -124,11 +128,12 @@ class AuthController extends Controller
                     'rol' => $request->rol,
                     'id_rol' => $idRol,
                     'rutas' => $rutas ? explode(';', $rutas) : [],
-                ]
+                ],
             ], 201);
 
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Error registrando usuario: " . $e->getMessage());
+            Log::error('Error registrando usuario: '.$e->getMessage());
+
             return response()->json(['message' => 'Error al registrar el usuario en el servidor.'], 500);
         }
     }

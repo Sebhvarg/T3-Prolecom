@@ -18,6 +18,14 @@ class AuthAndRBACTest extends TestCase
 
     private const API_CURSOS_ROUTE = '/api/cursos';
 
+    private const API_REGISTER_ROUTE = '/api/register';
+
+    private const ESTUDIANTE_EMAIL = 'estud_test@gmail.com';
+
+    private const PASSWORD_VALIDO = 'SecurePass123!';
+
+    private const ESTUDIANTE_NOMBRE = 'Estudiante Prueba';
+
     protected $adminRol;
 
     protected $profesorRol;
@@ -164,13 +172,13 @@ class AuthAndRBACTest extends TestCase
 
     public function test_user_can_register_as_professor()
     {
-        $response = $this->postJson('/api/register', [
+        $response = $this->postJson(self::API_REGISTER_ROUTE, [
             'nombreCompleto' => 'Profesor de Prueba',
             'usuario' => 'ProfeTest',
             'email' => 'profe_test@gmail.com',
-            'password' => 'SecurePass123!',
+            'password' => self::PASSWORD_VALIDO,
             'fechaDeNacimiento' => '1980-05-15',
-            'rol' => 'Profesor'
+            'rol' => 'Profesor',
         ]);
 
         $response->assertStatus(201);
@@ -184,8 +192,8 @@ class AuthAndRBACTest extends TestCase
                 'email',
                 'rol',
                 'id_rol',
-                'rutas'
-            ]
+                'rutas',
+            ],
         ]);
 
         $this->assertDatabaseHas('usuarios', [
@@ -203,13 +211,13 @@ class AuthAndRBACTest extends TestCase
 
     public function test_user_can_register_as_student()
     {
-        $response = $this->postJson('/api/register', [
+        $response = $this->postJson(self::API_REGISTER_ROUTE, [
             'nombreCompleto' => 'Estudiante de Prueba',
             'usuario' => 'EstudTest',
-            'email' => 'estud_test@gmail.com',
-            'password' => 'SecurePass123!',
+            'email' => self::ESTUDIANTE_EMAIL,
+            'password' => self::PASSWORD_VALIDO,
             'fechaDeNacimiento' => '2005-10-20',
-            'rol' => 'Estudiante'
+            'rol' => 'Estudiante',
         ]);
 
         $response->assertStatus(201);
@@ -223,13 +231,13 @@ class AuthAndRBACTest extends TestCase
                 'email',
                 'rol',
                 'id_rol',
-                'rutas'
-            ]
+                'rutas',
+            ],
         ]);
 
         $this->assertDatabaseHas('usuarios', [
             'usuario' => 'EstudTest',
-            'email' => 'estud_test@gmail.com',
+            'email' => self::ESTUDIANTE_EMAIL,
         ]);
 
         // Verificar que el rol asignado sea el idRol 6 (Estudiante)
@@ -242,7 +250,7 @@ class AuthAndRBACTest extends TestCase
 
     public function test_registration_validation_fails_with_missing_fields()
     {
-        $response = $this->postJson('/api/register', []);
+        $response = $this->postJson(self::API_REGISTER_ROUTE, []);
         $response->assertStatus(400);
         $response->assertJsonStructure([
             'errors' => [
@@ -250,19 +258,19 @@ class AuthAndRBACTest extends TestCase
                 'usuario',
                 'email',
                 'password',
-                'rol'
-            ]
+                'rol',
+            ],
         ]);
     }
 
     public function test_registration_fails_if_username_does_not_start_with_uppercase()
     {
-        $response = $this->postJson('/api/register', [
-            'nombreCompleto' => 'Estudiante Prueba',
+        $response = $this->postJson(self::API_REGISTER_ROUTE, [
+            'nombreCompleto' => self::ESTUDIANTE_NOMBRE,
             'usuario' => 'estudTest',
-            'email' => 'estud_test@gmail.com',
-            'password' => 'SecurePass123!',
-            'rol' => 'Estudiante'
+            'email' => self::ESTUDIANTE_EMAIL,
+            'password' => self::PASSWORD_VALIDO,
+            'rol' => 'Estudiante',
         ]);
 
         $response->assertStatus(400);
@@ -271,12 +279,12 @@ class AuthAndRBACTest extends TestCase
 
     public function test_registration_fails_if_username_contains_spaces()
     {
-        $response = $this->postJson('/api/register', [
-            'nombreCompleto' => 'Estudiante Prueba',
+        $response = $this->postJson(self::API_REGISTER_ROUTE, [
+            'nombreCompleto' => self::ESTUDIANTE_NOMBRE,
             'usuario' => 'Estud Test',
-            'email' => 'estud_test@gmail.com',
-            'password' => 'SecurePass123!',
-            'rol' => 'Estudiante'
+            'email' => self::ESTUDIANTE_EMAIL,
+            'password' => self::PASSWORD_VALIDO,
+            'rol' => 'Estudiante',
         ]);
 
         $response->assertStatus(400);
@@ -285,12 +293,12 @@ class AuthAndRBACTest extends TestCase
 
     public function test_registration_fails_if_username_exceeds_length_limit()
     {
-        $response = $this->postJson('/api/register', [
-            'nombreCompleto' => 'Estudiante Prueba',
+        $response = $this->postJson(self::API_REGISTER_ROUTE, [
+            'nombreCompleto' => self::ESTUDIANTE_NOMBRE,
             'usuario' => 'Estudtestverylongusernamemorethan20chars',
-            'email' => 'estud_test@gmail.com',
-            'password' => 'SecurePass123!',
-            'rol' => 'Estudiante'
+            'email' => self::ESTUDIANTE_EMAIL,
+            'password' => self::PASSWORD_VALIDO,
+            'rol' => 'Estudiante',
         ]);
 
         $response->assertStatus(400);
@@ -299,16 +307,15 @@ class AuthAndRBACTest extends TestCase
 
     public function test_registration_fails_if_password_is_weak()
     {
-        $response = $this->postJson('/api/register', [
-            'nombreCompleto' => 'Estudiante Prueba',
+        $response = $this->postJson(self::API_REGISTER_ROUTE, [
+            'nombreCompleto' => self::ESTUDIANTE_NOMBRE,
             'usuario' => 'Estudtest',
-            'email' => 'estud_test@gmail.com',
+            'email' => self::ESTUDIANTE_EMAIL,
             'password' => 'weakpass',
-            'rol' => 'Estudiante'
+            'rol' => 'Estudiante',
         ]);
 
         $response->assertStatus(400);
         $response->assertJsonValidationErrors(['password']);
     }
 }
-
