@@ -161,4 +161,154 @@ class AuthAndRBACTest extends TestCase
             'titulo' => 'Curso Editado por Admin',
         ]);
     }
+
+    public function test_user_can_register_as_professor()
+    {
+        $response = $this->postJson('/api/register', [
+            'nombreCompleto' => 'Profesor de Prueba',
+            'usuario' => 'ProfeTest',
+            'email' => 'profe_test@gmail.com',
+            'password' => 'SecurePass123!',
+            'fechaDeNacimiento' => '1980-05-15',
+            'rol' => 'Profesor'
+        ]);
+
+        $response->assertStatus(201);
+        $response->assertJsonStructure([
+            'message',
+            'token',
+            'user' => [
+                'idUsuario',
+                'nombreCompleto',
+                'usuario',
+                'email',
+                'rol',
+                'id_rol',
+                'rutas'
+            ]
+        ]);
+
+        $this->assertDatabaseHas('usuarios', [
+            'usuario' => 'ProfeTest',
+            'email' => 'profe_test@gmail.com',
+        ]);
+
+        // Verificar que el rol asignado sea el idRol 3 (Profesor)
+        $userId = $response->json('user.idUsuario');
+        $this->assertDatabaseHas('rolUsuario', [
+            'idUsuario' => $userId,
+            'idRol' => 3,
+        ]);
+    }
+
+    public function test_user_can_register_as_student()
+    {
+        $response = $this->postJson('/api/register', [
+            'nombreCompleto' => 'Estudiante de Prueba',
+            'usuario' => 'EstudTest',
+            'email' => 'estud_test@gmail.com',
+            'password' => 'SecurePass123!',
+            'fechaDeNacimiento' => '2005-10-20',
+            'rol' => 'Estudiante'
+        ]);
+
+        $response->assertStatus(201);
+        $response->assertJsonStructure([
+            'message',
+            'token',
+            'user' => [
+                'idUsuario',
+                'nombreCompleto',
+                'usuario',
+                'email',
+                'rol',
+                'id_rol',
+                'rutas'
+            ]
+        ]);
+
+        $this->assertDatabaseHas('usuarios', [
+            'usuario' => 'EstudTest',
+            'email' => 'estud_test@gmail.com',
+        ]);
+
+        // Verificar que el rol asignado sea el idRol 6 (Estudiante)
+        $userId = $response->json('user.idUsuario');
+        $this->assertDatabaseHas('rolUsuario', [
+            'idUsuario' => $userId,
+            'idRol' => 6,
+        ]);
+    }
+
+    public function test_registration_validation_fails_with_missing_fields()
+    {
+        $response = $this->postJson('/api/register', []);
+        $response->assertStatus(400);
+        $response->assertJsonStructure([
+            'errors' => [
+                'nombreCompleto',
+                'usuario',
+                'email',
+                'password',
+                'rol'
+            ]
+        ]);
+    }
+
+    public function test_registration_fails_if_username_does_not_start_with_uppercase()
+    {
+        $response = $this->postJson('/api/register', [
+            'nombreCompleto' => 'Estudiante Prueba',
+            'usuario' => 'estudTest',
+            'email' => 'estud_test@gmail.com',
+            'password' => 'SecurePass123!',
+            'rol' => 'Estudiante'
+        ]);
+
+        $response->assertStatus(400);
+        $response->assertJsonValidationErrors(['usuario']);
+    }
+
+    public function test_registration_fails_if_username_contains_spaces()
+    {
+        $response = $this->postJson('/api/register', [
+            'nombreCompleto' => 'Estudiante Prueba',
+            'usuario' => 'Estud Test',
+            'email' => 'estud_test@gmail.com',
+            'password' => 'SecurePass123!',
+            'rol' => 'Estudiante'
+        ]);
+
+        $response->assertStatus(400);
+        $response->assertJsonValidationErrors(['usuario']);
+    }
+
+    public function test_registration_fails_if_username_exceeds_length_limit()
+    {
+        $response = $this->postJson('/api/register', [
+            'nombreCompleto' => 'Estudiante Prueba',
+            'usuario' => 'Estudtestverylongusernamemorethan20chars',
+            'email' => 'estud_test@gmail.com',
+            'password' => 'SecurePass123!',
+            'rol' => 'Estudiante'
+        ]);
+
+        $response->assertStatus(400);
+        $response->assertJsonValidationErrors(['usuario']);
+    }
+
+    public function test_registration_fails_if_password_is_weak()
+    {
+        $response = $this->postJson('/api/register', [
+            'nombreCompleto' => 'Estudiante Prueba',
+            'usuario' => 'Estudtest',
+            'email' => 'estud_test@gmail.com',
+            'password' => 'weakpass',
+            'rol' => 'Estudiante'
+        ]);
+
+        $response->assertStatus(400);
+        $response->assertJsonValidationErrors(['password']);
+    }
 }
+
