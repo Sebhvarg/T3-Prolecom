@@ -10,7 +10,7 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    protected $authService;
+    protected AuthService $authService;
 
     public function __construct(AuthService $authService)
     {
@@ -33,7 +33,24 @@ class AuthController extends Controller
 
             return response()->json($data);
         } catch (ValidationException $e) {
-            return response()->json($e->errors(), $e->status);
+            $errors = $e->errors();
+            $status = $e->status;
+
+            // Respuesta limpia para el frontend (sin arrays anidados de Laravel)
+            $payload = [
+                'error' => is_array($errors['error'] ?? null)
+                    ? $errors['error'][0]
+                    : ($errors['error'] ?? 'Error de autenticación'),
+            ];
+
+            // Incluir retry_after solo en el caso de bloqueo por intentos (429)
+            if ($status === 429 && isset($errors['retry_after'])) {
+                $payload['retry_after'] = is_array($errors['retry_after'])
+                    ? (int) $errors['retry_after'][0]
+                    : (int) $errors['retry_after'];
+            }
+
+            return response()->json($payload, $status);
         }
     }
 

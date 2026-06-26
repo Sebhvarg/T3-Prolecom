@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CursoController;
 use App\Http\Controllers\Api\DesafioController;
 use App\Http\Controllers\Api\MaterialController;
+use App\Http\Controllers\Api\PerfilController;
 use App\Http\Controllers\Api\TemaController;
 use App\Http\Controllers\Api\UserController;
 use App\Models\LenguajeProgramacion;
@@ -21,6 +22,7 @@ if (! defined('ROUTE_DESAFIO_ID')) {
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::put('/perfil/password', [PerfilController::class, 'cambiarPassword']);
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
@@ -35,7 +37,6 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Rutas de Cursos e Inscripciones
-    $cursoRoute = '/cursos/{id}';
     Route::get('/cursos', [CursoController::class, 'index']);
     Route::get('/cursos/total', [CursoController::class, 'cursosTotal']);
     Route::get(ROUTE_CURSO_ID, [CursoController::class, 'show']);
