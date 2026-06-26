@@ -1,4 +1,5 @@
 import { createContext, useState, useContext, useEffect, useMemo, useCallback } from 'react';
+import PropTypes from 'prop-types';
 import { authService } from '../api/authService';
 import { storage } from '../utils/crypto';
 import AlertModal from '../components/ui/AlertModal';
@@ -37,14 +38,16 @@ export const AuthProvider = ({ children }) => {
 
     checkIntegrity();
 
-    // Escuchar cambios en localStorage desde otras pestañas
-    window.addEventListener('storage', (e) => {
+    const handleStorageChange = (e) => {
       if (['user', 'token', 'rutas'].includes(e.key)) {
         checkIntegrity();
       }
-    });
+    };
 
-    return () => window.removeEventListener('storage', () => {});
+    // Escuchar cambios en localStorage desde otras pestañas
+    globalThis.addEventListener('storage', handleStorageChange);
+
+    return () => globalThis.removeEventListener('storage', handleStorageChange);
   }, [handleTamper]);
 
   const login = useCallback(async (username, password) => {
@@ -92,6 +95,10 @@ export const AuthProvider = ({ children }) => {
       />
     </AuthContext.Provider>
   );
+};
+
+AuthProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };
 
 // eslint-disable-next-line react-refresh/only-export-components
