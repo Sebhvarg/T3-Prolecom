@@ -65,7 +65,7 @@ export const authService = {
     
     if (token === 'TAMPERED') {
       // Si el token fue alterado, forzamos cierre de sesión
-      window.dispatchEvent(new Event('storage')); // Esto disparará el checkIntegrity en AuthContext
+      globalThis.dispatchEvent(new Event('storage')); // Esto disparará el checkIntegrity en AuthContext
       throw new Error('SESSION_TAMPERED');
     }
 
@@ -89,14 +89,14 @@ export const authService = {
 
     if (response.status === 401) {
       authService.logout();
-      window.location.href = '/login';
+      globalThis.location.href = '/login';
       throw new Error('SESSION_EXPIRED');
     }
 
     let data;
     try {
       data = await response.json();
-      if (data && data.protected) {
+      if (data?.protected) {
         data = storage.decryptPayload(data.payload);
       }
     } catch (e) {

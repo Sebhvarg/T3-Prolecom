@@ -21,8 +21,6 @@ class PerfilController extends Controller
     public function cambiarPassword(Request $request)
     {
         $user = $request->user();
-        $error = null;
-        $status = 400;
 
         $validator = Validator::make($request->all(), [
             'password_actual' => 'required|string',
@@ -33,65 +31,81 @@ class PerfilController extends Controller
         ]);
 
         if ($validator->fails()) {
-            $error = $validator->errors()->first();
-            $status = 400;
-        } elseif (! Hash::check($request->password_actual, $user->password)) {
-            $error = 'La contraseña actual es incorrecta.';
-            $status = 401;
-        } else {
-            $nueva = $request->password_nuevo;
-            $criterioError = $this->validarCriterios($nueva);
-            if ($criterioError) {
-                $error = $criterioError;
-                $status = 422;
-            } else {
-                $historial = DB::table('password_history')
-                    ->where('idUsuario', $user->idUsuario)
-                    ->orderByDesc('created_at')
-                    ->limit(self::HISTORY_LIMIT)
-                    ->pluck('password_hash');
-
-                foreach ($historial as $hashAnterior) {
-                    if (Hash::check($nueva, $hashAnterior)) {
-                        $error = 'La nueva contraseña no puede ser igual a las últimas '.self::HISTORY_LIMIT.' contraseñas utilizadas.';
-                        $status = 422;
-                        break;
-                    }
-                }
-
-                if (! $error) {
-                    // Guardar contraseña anterior en historial
-                    DB::table('password_history')->insert([
-                        'idUsuario' => $user->idUsuario,
-                        'password_hash' => $user->password,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-
-                    // Mantener solo los últimos N registros por usuario
-                    $idsAEliminar = DB::table('password_history')
-                        ->where('idUsuario', $user->idUsuario)
-                        ->orderByDesc('created_at')
-                        ->skip(self::HISTORY_LIMIT)
-                        ->pluck('id');
-
-                    if ($idsAEliminar->isNotEmpty()) {
-                        DB::table('password_history')->whereIn('id', $idsAEliminar)->delete();
-                    }
-
-                    // Actualizar la contraseña
-                    $user->update(['password' => Hash::make($nueva)]);
-                }
-            }
+            return response()->json(['error' => $validator->errors()->first()], 400);
         }
 
-        if ($error !== null) {
-            return response()->json(['error' => $error], $status);
+        $error = $this->verifyPasswordChange($user, $request->password_actual, $request->password_nuevo);
+        if ($error) {
+            return response()->json(['error' => $error['message']], $error['status']);
         }
+
+        $this->updatePasswordAndHistory($user, $request->password_nuevo);
 
         return response()->json([
             'message' => '¡Contraseña actualizada correctamente!',
         ]);
+    }
+
+    private function verifyPasswordChange($user, string $actual, string $nueva): ?array
+    {
+        if (! Hash::check($actual, $user->password)) {
+            return ['message' => 'La contraseña actual es incorrecta.', 'status' => 401];
+        }
+
+        $criterioError = $this->validarCriterios($nueva);
+        if ($criterioError) {
+            return ['message' => $criterioError, 'status' => 422];
+        }
+
+        if ($this->checkPasswordHistory($user->idUsuario, $nueva)) {
+            return [
+                'message' => 'La nueva contraseña no puede ser igual a las últimas '.self::HISTORY_LIMIT.' contraseñas utilizadas.',
+                'status' => 422,
+            ];
+        }
+
+        return null;
+    }
+
+    private function checkPasswordHistory($idUsuario, string $nueva): bool
+    {
+        $historial = DB::table('password_history')
+            ->where('idUsuario', $idUsuario)
+            ->orderByDesc('created_at')
+            ->limit(self::HISTORY_LIMIT)
+            ->pluck('password_hash');
+
+        foreach ($historial as $hashAnterior) {
+            if (Hash::check($nueva, $hashAnterior)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function updatePasswordAndHistory($user, string $nueva): void
+    {
+        // Guardar contraseña anterior en historial
+        DB::table('password_history')->insert([
+            'idUsuario' => $user->idUsuario,
+            'password_hash' => $user->password,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Mantener solo los últimos N registros por usuario
+        $idsAEliminar = DB::table('password_history')
+            ->where('idUsuario', $user->idUsuario)
+            ->orderByDesc('created_at')
+            ->skip(self::HISTORY_LIMIT)
+            ->pluck('id');
+
+        if ($idsAEliminar->isNotEmpty()) {
+            DB::table('password_history')->whereIn('id', $idsAEliminar)->delete();
+        }
+
+        $user->update(['password' => Hash::make($nueva)]);
     }
 
     private function validarCriterios(string $password): ?string
