@@ -10,7 +10,7 @@ use Illuminate\Validation\ValidationException;
 
 class AuthService
 {
-    protected $authRepository;
+    protected AuthRepositoryInterface $authRepository;
 
     const MAX_ATTEMPTS = 5;
 

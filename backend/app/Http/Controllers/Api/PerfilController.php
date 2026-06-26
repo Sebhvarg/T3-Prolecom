@@ -21,6 +21,8 @@ class PerfilController extends Controller
     public function cambiarPassword(Request $request)
     {
         $user = $request->user();
+        $error = null;
+        $status = 400;
 
         $validator = Validator::make($request->all(), [
             'password_actual' => 'required|string',
@@ -31,105 +33,106 @@ class PerfilController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'error' => $validator->errors()->first(),
-            ], 400);
-        }
+            $error = $validator->errors()->first();
+            $status = 400;
+        } elseif (! Hash::check($request->password_actual, $user->password)) {
+            $error = 'La contraseña actual es incorrecta.';
+            $status = 401;
+        } else {
+            $nueva = $request->password_nuevo;
+            $criterioError = $this->validarCriterios($nueva);
+            if ($criterioError) {
+                $error = $criterioError;
+                $status = 422;
+            } else {
+                $historial = DB::table('password_history')
+                    ->where('idUsuario', $user->idUsuario)
+                    ->orderByDesc('created_at')
+                    ->limit(self::HISTORY_LIMIT)
+                    ->pluck('password_hash');
 
-        // 1. Verificar contraseña actual
-        if (! Hash::check($request->password_actual, $user->password)) {
-            return response()->json([
-                'error' => 'La contraseña actual es incorrecta.',
-            ], 401);
-        }
+                foreach ($historial as $hashAnterior) {
+                    if (Hash::check($nueva, $hashAnterior)) {
+                        $error = 'La nueva contraseña no puede ser igual a las últimas '.self::HISTORY_LIMIT.' contraseñas utilizadas.';
+                        $status = 422;
+                        break;
+                    }
+                }
 
-        $nueva = $request->password_nuevo;
+                if (! $error) {
+                    // Guardar contraseña anterior en historial
+                    DB::table('password_history')->insert([
+                        'idUsuario' => $user->idUsuario,
+                        'password_hash' => $user->password,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
 
-        // 2. Validar criterios de seguridad
-        $criterioError = $this->validarCriterios($nueva, $user);
-        if ($criterioError) {
-            return response()->json(['error' => $criterioError], 422);
-        }
+                    // Mantener solo los últimos N registros por usuario
+                    $idsAEliminar = DB::table('password_history')
+                        ->where('idUsuario', $user->idUsuario)
+                        ->orderByDesc('created_at')
+                        ->skip(self::HISTORY_LIMIT)
+                        ->pluck('id');
 
-        // 3. Verificar que no sea igual a las últimas N contraseñas
-        $historial = DB::table('password_history')
-            ->where('idUsuario', $user->idUsuario)
-            ->orderByDesc('created_at')
-            ->limit(self::HISTORY_LIMIT)
-            ->pluck('password_hash');
+                    if ($idsAEliminar->isNotEmpty()) {
+                        DB::table('password_history')->whereIn('id', $idsAEliminar)->delete();
+                    }
 
-        foreach ($historial as $hashAnterior) {
-            if (Hash::check($nueva, $hashAnterior)) {
-                return response()->json([
-                    'error' => 'La nueva contraseña no puede ser igual a las últimas '.self::HISTORY_LIMIT.' contraseñas utilizadas.',
-                ], 422);
+                    // Actualizar la contraseña
+                    $user->update(['password' => Hash::make($nueva)]);
+                }
             }
         }
 
-        // 4. Guardar contraseña anterior en historial
-        DB::table('password_history')->insert([
-            'idUsuario' => $user->idUsuario,
-            'password_hash' => $user->password, // hash actual antes de cambiar
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        // Mantener solo los últimos N registros por usuario
-        $idsAEliminar = DB::table('password_history')
-            ->where('idUsuario', $user->idUsuario)
-            ->orderByDesc('created_at')
-            ->skip(self::HISTORY_LIMIT)
-            ->pluck('id');
-
-        if ($idsAEliminar->isNotEmpty()) {
-            DB::table('password_history')->whereIn('id', $idsAEliminar)->delete();
+        if ($error !== null) {
+            return response()->json(['error' => $error], $status);
         }
-
-        // 5. Actualizar la contraseña
-        $user->update(['password' => Hash::make($nueva)]);
 
         return response()->json([
             'message' => '¡Contraseña actualizada correctamente!',
         ]);
     }
 
-    private function validarCriterios(string $password, $user): ?string
+    private function validarCriterios(string $password): ?string
     {
-        // Sin espacios
-        if ($password !== trim($password) || str_contains($password, ' ')) {
-            return 'La contraseña no debe contener espacios en blanco.';
+        $reglas = [
+            [
+                'cumple' => $password === trim($password) && ! str_contains($password, ' '),
+                'error' => 'La contraseña no debe contener espacios en blanco.',
+            ],
+            [
+                'cumple' => strlen($password) >= 8,
+                'error' => 'La contraseña debe tener al menos 8 caracteres.',
+            ],
+            [
+                'cumple' => preg_match('/[A-Z]/', $password),
+                'error' => 'La contraseña debe contener al menos una letra mayúscula.',
+            ],
+            [
+                'cumple' => preg_match('/[a-z]/', $password),
+                'error' => 'La contraseña debe contener al menos una letra minúscula.',
+            ],
+            [
+                'cumple' => preg_match('/\d/', $password),
+                'error' => 'La contraseña debe contener al menos un número.',
+            ],
+            [
+                'cumple' => preg_match('/[$@!#%*_~^&+\-\/\\\\]/', $password),
+                'error' => 'La contraseña debe contener al menos un carácter especial ($@!#%*_~^&).',
+            ],
+            [
+                'cumple' => ! preg_match(self::COMMON_SEQUENCES_RE, $password),
+                'error' => 'La contraseña no debe contener secuencias comunes (123456, qwerty, password…)..',
+            ],
+        ];
+
+        foreach ($reglas as $regla) {
+            if (! $regla['cumple']) {
+                return $regla['error'];
+            }
         }
 
-        // Longitud mínima
-        if (strlen($password) < 8) {
-            return 'La contraseña debe tener al menos 8 caracteres.';
-        }
-
-        // Mayúscula
-        if (! preg_match('/[A-Z]/', $password)) {
-            return 'La contraseña debe contener al menos una letra mayúscula.';
-        }
-
-        // Minúscula
-        if (! preg_match('/[a-z]/', $password)) {
-            return 'La contraseña debe contener al menos una letra minúscula.';
-        }
-
-        // Número
-        if (! preg_match('/[0-9]/', $password)) {
-            return 'La contraseña debe contener al menos un número.';
-        }
-
-        // Carácter especial
-        if (! preg_match('/[$@!#%*_~^&+\-\/\\\\]/', $password)) {
-            return 'La contraseña debe contener al menos un carácter especial ($@!#%*_~^&).';
-        }
-
-        // Secuencias comunes — un solo pase con regex en lugar de foreach
-        if (preg_match(self::COMMON_SEQUENCES_RE, $password)) {
-            return 'La contraseña no debe contener secuencias comunes (123456, qwerty, password…).';
-        }
-
-        return null; // Todo OK
+        return null; // Válido
     }
 }
