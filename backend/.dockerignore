@@ -2,6 +2,7 @@ vendor
 .git
 .env
 storage/**
+public/storage
 node_modules
 npm-debug.log
 yarn-error.log
