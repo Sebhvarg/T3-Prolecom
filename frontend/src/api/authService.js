@@ -58,7 +58,7 @@ export const authService = {
 
     let data = await response.json();
 
-    if (data && data.protected) {
+    if (data?.protected) {
       data = storage.decryptPayload(data.payload);
     }
 

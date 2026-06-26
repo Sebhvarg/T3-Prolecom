@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useEffect } from 'react';
+import { createContext, useState, useContext, useEffect, useMemo, useCallback } from 'react';
 import { authService } from '../api/authService';
 import { storage } from '../utils/crypto';
 import AlertModal from '../components/ui/AlertModal';
@@ -10,12 +10,12 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [showTamperModal, setShowTamperModal] = useState(false);
 
-  const handleTamper = () => {
+  const handleTamper = useCallback(() => {
     authService.logout();
     setUser(null);
     setShowTamperModal(true);
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     const checkIntegrity = () => {
@@ -45,9 +45,9 @@ export const AuthProvider = ({ children }) => {
     });
 
     return () => window.removeEventListener('storage', () => {});
-  }, []);
+  }, [handleTamper]);
 
-  const login = async (username, password) => {
+  const login = useCallback(async (username, password) => {
     const data = await authService.login(username, password);
     storage.set('token', data.token);
     storage.set('user', data.user);
@@ -56,9 +56,9 @@ export const AuthProvider = ({ children }) => {
     }
     setUser(data.user);
     return data.user;
-  };
+  }, []);
 
-  const register = async (registerData) => {
+  const register = useCallback(async (registerData) => {
     const data = await authService.register(registerData);
     storage.set('token', data.token);
     storage.set('user', data.user);
@@ -67,15 +67,23 @@ export const AuthProvider = ({ children }) => {
     }
     setUser(data.user);
     return data.user;
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     authService.logout();
     setUser(null);
-  };
+  }, []);
+
+  const contextValue = useMemo(() => ({
+    user,
+    login,
+    register,
+    logout,
+    loading
+  }), [user, login, register, logout, loading]);
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
       <AlertModal 
         isOpen={showTamperModal} 
