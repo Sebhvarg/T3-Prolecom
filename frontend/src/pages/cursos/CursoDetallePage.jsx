@@ -10,7 +10,7 @@ import {
   X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code 
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://172.19.139.35:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
 let testCaseIdCounter = 0;
 const generateTestCaseId = () => {
