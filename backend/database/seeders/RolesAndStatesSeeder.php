@@ -12,7 +12,7 @@ class RolesAndStatesSeeder extends Seeder
      */
     public function run(): void
     {
-        DB::table('roles')->insert([
+        DB::table('roles')->insertOrIgnore([
             ['idRol' => 1, 'rol' => 'Administrador'],
             ['idRol' => 2, 'rol' => 'Moderador'],
             ['idRol' => 3, 'rol' => 'Profesor'],
@@ -21,14 +21,14 @@ class RolesAndStatesSeeder extends Seeder
             ['idRol' => 6, 'rol' => 'Estudiante'],
         ]);
 
-        DB::table('estadosCuenta')->insert([
+        DB::table('estadosCuenta')->insertOrIgnore([
             ['idEstado' => 1, 'estado' => 'Activo'],
             ['idEstado' => 2, 'estado' => 'Inactivo'],
             ['idEstado' => 3, 'estado' => 'Suspendido'],
             ['idEstado' => 4, 'estado' => 'Baneado'],
         ]);
 
-        DB::table('rutas')->insert([
+        DB::table('rutas')->insertOrIgnore([
             ['idRol' => 1, 'ruta' => '/admin'],
             ['idRol' => 1, 'ruta' => '/administrar-cursos'],
             ['idRol' => 6, 'ruta' => '/dashboard'],

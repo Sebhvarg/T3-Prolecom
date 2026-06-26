@@ -42,9 +42,16 @@ const Sidebar = () => {
       </nav>
 
       <div className="p-4 border-t border-gray-800 space-y-2">
-        <div className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors text-gray-400 hover:bg-gray-800 hover:text-white leading-none">
+        <div
+          className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors leading-none ${
+            location.pathname === '/perfil'
+              ? 'bg-[#2c5364] text-white'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+          onClick={() => navigate('/perfil')}
+        >
           <Settings size={20} />
-          <span className="font-medium">Configuración</span>
+          <span className="font-medium">Mi Perfil</span>
         </div>
         <div 
           className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors text-gray-400 hover:bg-red-900/30 hover:text-red-400 leading-none" 
@@ -59,4 +66,3 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
-
