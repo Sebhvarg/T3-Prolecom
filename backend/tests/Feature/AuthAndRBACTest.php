@@ -59,12 +59,25 @@ class AuthAndRBACTest extends TestCase
         $response->assertStatus(401);
     }
 
+    private function createUserWithRole(Rol $role): User
+    {
+        $user = User::factory()->create();
+        $user->roles()->attach($role->idRol);
+
+        return $user;
+    }
+
+    private function actAsUserWithRole(Rol $role): User
+    {
+        $user = $this->createUserWithRole($role);
+        Sanctum::actingAs($user);
+
+        return $user;
+    }
+
     public function test_student_cannot_create_course()
     {
-        $student = User::factory()->create();
-        $student->roles()->attach($this->estudianteRol->idRol);
-
-        Sanctum::actingAs($student);
+        $this->actAsUserWithRole($this->estudianteRol);
 
         $response = $this->postJson(self::API_CURSOS_ROUTE, [
             'titulo' => 'Curso de Prueba',
@@ -78,10 +91,7 @@ class AuthAndRBACTest extends TestCase
 
     public function test_professor_can_create_course()
     {
-        $professor = User::factory()->create();
-        $professor->roles()->attach($this->profesorRol->idRol);
-
-        Sanctum::actingAs($professor);
+        $professor = $this->actAsUserWithRole($this->profesorRol);
 
         $response = $this->postJson(self::API_CURSOS_ROUTE, [
             'titulo' => 'Curso de Python',
@@ -99,10 +109,7 @@ class AuthAndRBACTest extends TestCase
 
     public function test_admin_can_create_course()
     {
-        $admin = User::factory()->create();
-        $admin->roles()->attach($this->adminRol->idRol);
-
-        Sanctum::actingAs($admin);
+        $this->actAsUserWithRole($this->adminRol);
 
         $response = $this->postJson(self::API_CURSOS_ROUTE, [
             'titulo' => 'Curso de Admin',
@@ -116,11 +123,8 @@ class AuthAndRBACTest extends TestCase
 
     public function test_non_owner_professor_cannot_edit_course()
     {
-        $professorA = User::factory()->create();
-        $professorA->roles()->attach($this->profesorRol->idRol);
-
-        $professorB = User::factory()->create();
-        $professorB->roles()->attach($this->profesorRol->idRol);
+        $professorA = $this->createUserWithRole($this->profesorRol);
+        $professorB = $this->actAsUserWithRole($this->profesorRol);
 
         $course = Curso::create([
             'titulo' => 'Curso de A',
@@ -129,8 +133,6 @@ class AuthAndRBACTest extends TestCase
             'tipo' => self::TIPO_PUBLICO,
             'idProfeCreador' => $professorA->idUsuario,
         ]);
-
-        Sanctum::actingAs($professorB);
 
         $response = $this->putJson("/api/cursos/{$course->idCurso}", [
             'titulo' => 'Curso Editado por B',
@@ -141,11 +143,8 @@ class AuthAndRBACTest extends TestCase
 
     public function test_admin_can_edit_any_course()
     {
-        $professor = User::factory()->create();
-        $professor->roles()->attach($this->profesorRol->idRol);
-
-        $admin = User::factory()->create();
-        $admin->roles()->attach($this->adminRol->idRol);
+        $professor = $this->createUserWithRole($this->profesorRol);
+        $admin = $this->actAsUserWithRole($this->adminRol);
 
         $course = Curso::create([
             'titulo' => 'Curso de Profesor',
@@ -154,8 +153,6 @@ class AuthAndRBACTest extends TestCase
             'tipo' => self::TIPO_PUBLICO,
             'idProfeCreador' => $professor->idUsuario,
         ]);
-
-        Sanctum::actingAs($admin);
 
         $response = $this->putJson("/api/cursos/{$course->idCurso}", [
             'titulo' => 'Curso Editado por Admin',
