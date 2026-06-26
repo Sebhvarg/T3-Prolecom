@@ -124,7 +124,7 @@ class AuthAndRBACTest extends TestCase
     public function test_non_owner_professor_cannot_edit_course()
     {
         $professorA = $this->createUserWithRole($this->profesorRol);
-        $professorB = $this->actAsUserWithRole($this->profesorRol);
+        $this->actAsUserWithRole($this->profesorRol);
 
         $course = Curso::create([
             'titulo' => 'Curso de A',
@@ -144,7 +144,7 @@ class AuthAndRBACTest extends TestCase
     public function test_admin_can_edit_any_course()
     {
         $professor = $this->createUserWithRole($this->profesorRol);
-        $admin = $this->actAsUserWithRole($this->adminRol);
+        $this->actAsUserWithRole($this->adminRol);
 
         $course = Curso::create([
             'titulo' => 'Curso de Profesor',
