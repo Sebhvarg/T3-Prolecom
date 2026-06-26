@@ -100,7 +100,7 @@ const PasswordValidator = ({ password = '', userData = {}, onChange, onValid }) 
 
   useEffect(() => {
     onValid?.(allRequiredPass);
-  }, [allRequiredPass]);
+  }, [allRequiredPass, onValid]);
 
   return (
     <div className="flex flex-col gap-1.5">

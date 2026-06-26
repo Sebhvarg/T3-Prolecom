@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 class PerfilController extends Controller
@@ -23,8 +23,8 @@ class PerfilController extends Controller
         $user = $request->user();
 
         $validator = Validator::make($request->all(), [
-            'password_actual'     => 'required|string',
-            'password_nuevo'      => 'required|string',
+            'password_actual' => 'required|string',
+            'password_nuevo' => 'required|string',
             'password_confirmado' => 'required|string|same:password_nuevo',
         ], [
             'password_confirmado.same' => 'La confirmación no coincide con la nueva contraseña.',
@@ -37,7 +37,7 @@ class PerfilController extends Controller
         }
 
         // 1. Verificar contraseña actual
-        if (!Hash::check($request->password_actual, $user->password)) {
+        if (! Hash::check($request->password_actual, $user->password)) {
             return response()->json([
                 'error' => 'La contraseña actual es incorrecta.',
             ], 401);
@@ -61,17 +61,17 @@ class PerfilController extends Controller
         foreach ($historial as $hashAnterior) {
             if (Hash::check($nueva, $hashAnterior)) {
                 return response()->json([
-                    'error' => "La nueva contraseña no puede ser igual a las últimas " . self::HISTORY_LIMIT . " contraseñas utilizadas.",
+                    'error' => 'La nueva contraseña no puede ser igual a las últimas '.self::HISTORY_LIMIT.' contraseñas utilizadas.',
                 ], 422);
             }
         }
 
         // 4. Guardar contraseña anterior en historial
         DB::table('password_history')->insert([
-            'idUsuario'     => $user->idUsuario,
+            'idUsuario' => $user->idUsuario,
             'password_hash' => $user->password, // hash actual antes de cambiar
-            'created_at'    => now(),
-            'updated_at'    => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         // Mantener solo los últimos N registros por usuario
@@ -106,22 +106,22 @@ class PerfilController extends Controller
         }
 
         // Mayúscula
-        if (!preg_match('/[A-Z]/', $password)) {
+        if (! preg_match('/[A-Z]/', $password)) {
             return 'La contraseña debe contener al menos una letra mayúscula.';
         }
 
         // Minúscula
-        if (!preg_match('/[a-z]/', $password)) {
+        if (! preg_match('/[a-z]/', $password)) {
             return 'La contraseña debe contener al menos una letra minúscula.';
         }
 
         // Número
-        if (!preg_match('/[0-9]/', $password)) {
+        if (! preg_match('/[0-9]/', $password)) {
             return 'La contraseña debe contener al menos un número.';
         }
 
         // Carácter especial
-        if (!preg_match('/[$@!#%*_~^&+\-\/\\\\]/', $password)) {
+        if (! preg_match('/[$@!#%*_~^&+\-\/\\\\]/', $password)) {
             return 'La contraseña debe contener al menos un carácter especial ($@!#%*_~^&).';
         }
 

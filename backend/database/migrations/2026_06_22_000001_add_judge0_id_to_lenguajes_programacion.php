@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('lenguajes_programacion', function (Blueprint $table) {
-            if (!Schema::hasColumn('lenguajes_programacion', 'judge0_id')) {
+            if (! Schema::hasColumn('lenguajes_programacion', 'judge0_id')) {
                 $table->integer('judge0_id')->nullable()->after('icono');
             }
         });

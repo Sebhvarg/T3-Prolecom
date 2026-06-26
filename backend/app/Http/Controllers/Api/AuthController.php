@@ -33,8 +33,8 @@ class AuthController extends Controller
 
             return response()->json($data);
         } catch (ValidationException $e) {
-            $errors  = $e->errors();
-            $status  = $e->status;
+            $errors = $e->errors();
+            $status = $e->status;
 
             // Respuesta limpia para el frontend (sin arrays anidados de Laravel)
             $payload = [
