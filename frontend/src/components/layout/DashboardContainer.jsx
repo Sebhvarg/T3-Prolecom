@@ -1,6 +1,7 @@
 import Sidebar from './Sidebar';
 import Breadcrumbs from './Breadcrumbs';
 import { Bell, User } from 'lucide-react';
+import PropTypes from 'prop-types';
 
 const DashboardContainer = ({ title, user, children }) => {
   return (
@@ -32,6 +33,15 @@ const DashboardContainer = ({ title, user, children }) => {
       </main>
     </div>
   );
+};
+
+DashboardContainer.propTypes = {
+  title: PropTypes.string,
+  user: PropTypes.shape({
+    usuario: PropTypes.string,
+    rol: PropTypes.string,
+  }),
+  children: PropTypes.node,
 };
 
 export default DashboardContainer;
