@@ -37,6 +37,29 @@ export const authService = {
     return data;
   },
 
+  register: async (registerData) => {
+    const response = await fetch(`${API_URL}/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(registerData),
+    });
+
+    let data = await response.json();
+
+    if (data && data.protected) {
+      data = storage.decryptPayload(data.payload);
+    }
+
+    if (!response.ok || !data) {
+      throw new Error(parseErrorMessage(data));
+    }
+
+    return data;
+  },
+
   logout: () => {
     storage.remove('token');
     storage.remove('user');
