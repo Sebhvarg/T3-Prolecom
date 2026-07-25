@@ -38,8 +38,6 @@ const ForoSeccion = ({ idCurso, user }) => {
   );
 
   const fetchPreguntas = useCallback(async () => {
-    setLoading(true);
-    setError('');
     try {
       const data = await foroService.getPreguntasCurso(idCurso);
       setPreguntas(data);
@@ -52,8 +50,27 @@ const ForoSeccion = ({ idCurso, user }) => {
   }, [idCurso]);
 
   useEffect(() => {
-    fetchPreguntas();
-  }, [fetchPreguntas]);
+    let isSubscribed = true;
+    const loadData = async () => {
+      try {
+        const data = await foroService.getPreguntasCurso(idCurso);
+        if (!isSubscribed) return;
+        setPreguntas(data);
+      } catch (err) {
+        if (!isSubscribed) return;
+        console.error(err);
+        setError(err.message || 'Error al cargar las preguntas del foro.');
+      } finally {
+        if (isSubscribed) {
+          setLoading(false);
+        }
+      }
+    };
+    loadData();
+    return () => {
+      isSubscribed = false;
+    };
+  }, [idCurso]);
 
   const loadPreguntaDetalle = async (idPregunta) => {
     setSelectedPreguntaId(idPregunta);
@@ -95,9 +112,7 @@ const ForoSeccion = ({ idCurso, user }) => {
     try {
       await foroService.createRespuesta(selectedPreguntaId, { contenido: nuevoContenidoRespuesta });
       setNuevoContenidoRespuesta('');
-      // Recargar el detalle de la pregunta
       await loadPreguntaDetalle(selectedPreguntaId);
-      // Recargar lista global para actualizar contadores
       fetchPreguntas();
     } catch (err) {
       console.error(err);
@@ -125,6 +140,47 @@ const ForoSeccion = ({ idCurso, user }) => {
     });
 
     fetchPreguntas();
+  };
+
+  const renderQuestionStatusBadge = (preg) => {
+    if (preg.tiene_respuesta_validada) {
+      return <OfficialAnswerBadge size="small" validatorRole="Oficial" />;
+    }
+
+    if (preg.estado === 'resuelta') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+          <CheckCircle2 size={12} />
+          Resuelta
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+        Abierta
+      </span>
+    );
+  };
+
+  const renderModalHeaderBadge = () => {
+    const hasValidated = preguntaDetalle?.respuestas?.some(r => r.validada);
+    if (hasValidated) {
+      return <OfficialAnswerBadge size="small" />;
+    }
+
+    return (
+      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+        Pregunta Abierta
+      </span>
+    );
+  };
+
+  const getAnswerCardClasses = (isValidated) => {
+    if (isValidated) {
+      return 'p-5 rounded-2xl transition-all border bg-gradient-to-br from-emerald-50/90 via-teal-50/50 to-white dark:from-emerald-950/30 dark:via-slate-900 dark:to-slate-900 border-emerald-500/40 shadow-md ring-1 ring-emerald-500/20';
+    }
+    return 'p-5 rounded-2xl transition-all border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700';
   };
 
   // Filtrado de preguntas
@@ -160,6 +216,7 @@ const ForoSeccion = ({ idCurso, user }) => {
           </div>
 
           <button
+            type="button"
             onClick={() => setIsModalNuevaOpen(true)}
             className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold px-5 py-3 rounded-2xl shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
           >
@@ -171,7 +228,6 @@ const ForoSeccion = ({ idCurso, user }) => {
 
       {/* Barra de Filtros y Búsqueda */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
-        {/* Buscador */}
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
@@ -183,9 +239,9 @@ const ForoSeccion = ({ idCurso, user }) => {
           />
         </div>
 
-        {/* Pestañas de Filtro */}
         <div className="flex items-center gap-1.5 w-full sm:w-auto bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
           <button
+            type="button"
             onClick={() => setFiltro('todas')}
             className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               filtro === 'todas'
@@ -196,6 +252,7 @@ const ForoSeccion = ({ idCurso, user }) => {
             Todas ({preguntas.length})
           </button>
           <button
+            type="button"
             onClick={() => setFiltro('oficial')}
             className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               filtro === 'oficial'
@@ -206,6 +263,7 @@ const ForoSeccion = ({ idCurso, user }) => {
             Con Respuesta Oficial
           </button>
           <button
+            type="button"
             onClick={() => setFiltro('abiertas')}
             className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               filtro === 'abiertas'
@@ -218,7 +276,6 @@ const ForoSeccion = ({ idCurso, user }) => {
         </div>
       </div>
 
-      {/* Error state */}
       {error && (
         <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-2xl flex items-center gap-3">
           <AlertCircle className="w-5 h-5 shrink-0" />
@@ -226,7 +283,6 @@ const ForoSeccion = ({ idCurso, user }) => {
         </div>
       )}
 
-      {/* Loading list */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3">
           <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
@@ -238,6 +294,7 @@ const ForoSeccion = ({ idCurso, user }) => {
           <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">No hay preguntas disponibles</h3>
           <p className="text-slate-500 text-sm mt-1">Sé el primero en realizar una consulta sobre el contenido de este curso.</p>
           <button
+            type="button"
             onClick={() => setIsModalNuevaOpen(true)}
             className="mt-4 inline-flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-indigo-700 transition"
           >
@@ -249,26 +306,16 @@ const ForoSeccion = ({ idCurso, user }) => {
         /* Lista de Preguntas */
         <div className="space-y-4">
           {preguntasFiltradas.map((preg) => (
-            <div
+            <button
               key={preg.idPregunta}
+              type="button"
               onClick={() => loadPreguntaDetalle(preg.idPregunta)}
-              className="group bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer relative overflow-hidden"
+              className="w-full text-left group bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer relative overflow-hidden"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    {preg.tiene_respuesta_validada ? (
-                      <OfficialAnswerBadge size="small" validatorRole="Oficial" />
-                    ) : preg.estado === 'resuelta' ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                        <CheckCircle2 size={12} />
-                        Resuelta
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                        Abierta
-                      </span>
-                    )}
+                    {renderQuestionStatusBadge(preg)}
 
                     <span className="text-xs text-slate-400 font-medium">
                       Publicado por <strong className="text-slate-700 dark:text-slate-300">{preg.creador?.nombreCompleto || 'Usuario'}</strong>
@@ -289,7 +336,7 @@ const ForoSeccion = ({ idCurso, user }) => {
                   <span>{preg.respuestas_count ?? 0}</span>
                 </div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}
@@ -301,6 +348,7 @@ const ForoSeccion = ({ idCurso, user }) => {
             <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700">
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">Publicar Nueva Pregunta</h3>
               <button
+                type="button"
                 onClick={() => setIsModalNuevaOpen(false)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               >
@@ -310,10 +358,11 @@ const ForoSeccion = ({ idCurso, user }) => {
 
             <form onSubmit={handleCreatePregunta} className="mt-4 space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="pregunta-titulo" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Título de la consulta *
                 </label>
                 <input
+                  id="pregunta-titulo"
                   type="text"
                   required
                   placeholder="Ej: ¿Cómo implementar el algoritmo de búsqueda?"
@@ -324,10 +373,11 @@ const ForoSeccion = ({ idCurso, user }) => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="pregunta-descripcion" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Descripción o código *
                 </label>
                 <textarea
+                  id="pregunta-descripcion"
                   required
                   rows={5}
                   placeholder="Explica en detalle tu pregunta..."
@@ -373,13 +423,7 @@ const ForoSeccion = ({ idCurso, user }) => {
               ) : (
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    {preguntaDetalle.respuestas?.some(r => r.validada) ? (
-                      <OfficialAnswerBadge size="small" />
-                    ) : (
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                        Pregunta Abierta
-                      </span>
-                    )}
+                    {renderModalHeaderBadge()}
                   </div>
                   <h3 className="text-xl font-bold leading-tight">{preguntaDetalle.titulo}</h3>
                   <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
@@ -390,6 +434,7 @@ const ForoSeccion = ({ idCurso, user }) => {
               )}
 
               <button
+                type="button"
                 onClick={() => { setSelectedPreguntaId(null); setPreguntaDetalle(null); }}
                 className="text-slate-400 hover:text-white p-1 rounded-lg transition"
               >
@@ -401,7 +446,6 @@ const ForoSeccion = ({ idCurso, user }) => {
             <div className="p-6 overflow-y-auto flex-1 space-y-6">
               {preguntaDetalle && (
                 <>
-                  {/* Cuerpo de la pregunta */}
                   <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700">
                     <p className="text-slate-800 dark:text-slate-200 text-sm whitespace-pre-wrap leading-relaxed">
                       {preguntaDetalle.descripcion}
@@ -410,7 +454,6 @@ const ForoSeccion = ({ idCurso, user }) => {
 
                   <hr className="border-slate-200 dark:border-slate-800" />
 
-                  {/* Lista de Respuestas */}
                   <div>
                     <h4 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                       <MessageSquare className="w-4 h-4 text-indigo-500" />
@@ -429,11 +472,7 @@ const ForoSeccion = ({ idCurso, user }) => {
                           return (
                             <div
                               key={resp.idRespuesta}
-                              className={`p-5 rounded-2xl transition-all border ${
-                                resp.validada
-                                  ? 'bg-gradient-to-br from-emerald-50/90 via-teal-50/50 to-white dark:from-emerald-950/30 dark:via-slate-900 dark:to-slate-900 border-emerald-500/40 shadow-md ring-1 ring-emerald-500/20'
-                                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
-                              }`}
+                              className={getAnswerCardClasses(Boolean(resp.validada))}
                             >
                               <div className="flex items-start justify-between gap-4 mb-3">
                                 <div className="flex items-center gap-2.5">
@@ -452,13 +491,11 @@ const ForoSeccion = ({ idCurso, user }) => {
                                   </div>
                                 </div>
 
-                                {/* PB16 Badges & Validation Button */}
                                 <div className="flex items-center gap-2">
                                   {resp.validada && (
                                     <OfficialAnswerBadge validatorRole={authorRole} size="small" />
                                   )}
 
-                                  {/* Botón de validación de respuesta (visible solo a roles autorizados) */}
                                   <ValidationButton
                                     respuestaId={resp.idRespuesta}
                                     isValidated={Boolean(resp.validada)}
@@ -481,7 +518,6 @@ const ForoSeccion = ({ idCurso, user }) => {
               )}
             </div>
 
-            {/* Formulario de nueva respuesta */}
             <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-700">
               <form onSubmit={handleCreateRespuesta} className="flex gap-2">
                 <input

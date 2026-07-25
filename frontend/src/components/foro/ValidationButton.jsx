@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import { useState } from 'react';
-import { Award, Check, Loader2, X } from 'lucide-react';
+import { Award, Loader2, X } from 'lucide-react';
 import { foroService } from '../../api/foroService';
 
 /**
@@ -28,8 +28,31 @@ const ValidationButton = ({ respuestaId, isValidated, isAuthorized, onStatusChan
     }
   };
 
+  const renderContent = () => {
+    if (loading) {
+      return <Loader2 className="w-3.5 h-3.5 animate-spin" />;
+    }
+
+    if (isValidated) {
+      return (
+        <>
+          <X className="w-3.5 h-3.5 text-amber-600" />
+          <span>Remover Validación</span>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <Award className="w-3.5 h-3.5" />
+        <span>Validar como Oficial</span>
+      </>
+    );
+  };
+
   return (
     <button
+      type="button"
       onClick={handleToggleValidation}
       disabled={loading}
       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold text-xs transition-all duration-200 shadow-sm ${
@@ -39,19 +62,7 @@ const ValidationButton = ({ respuestaId, isValidated, isAuthorized, onStatusChan
       }`}
       title={isValidated ? 'Quitar validación oficial' : 'Validar como respuesta oficial'}
     >
-      {loading ? (
-        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-      ) : isValidated ? (
-        <>
-          <X className="w-3.5 h-3.5 text-amber-600" />
-          <span>Remover Validación</span>
-        </>
-      ) : (
-        <>
-          <Award className="w-3.5 h-3.5" />
-          <span>Validar como Oficial</span>
-        </>
-      )}
+      {renderContent()}
     </button>
   );
 };

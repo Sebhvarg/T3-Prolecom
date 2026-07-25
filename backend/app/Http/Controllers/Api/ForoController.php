@@ -14,7 +14,7 @@ class ForoController extends Controller
     /**
      * Listar todas las preguntas de un curso.
      */
-    public function indexPreguntas(Request $request, $idCurso)
+    public function indexPreguntas($idCurso)
     {
         Curso::findOrFail($idCurso);
 
@@ -71,7 +71,7 @@ class ForoController extends Controller
     /**
      * Obtener el detalle de una pregunta con sus respuestas.
      */
-    public function showPregunta(Request $request, $idPregunta)
+    public function showPregunta($idPregunta)
     {
         $pregunta = Pregunta::with([
             'creador:idUsuario,nombreCompleto,usuario,avatar_path',
@@ -89,7 +89,7 @@ class ForoController extends Controller
      */
     public function storeRespuesta(Request $request, $idPregunta)
     {
-        $pregunta = Pregunta::findOrFail($idPregunta);
+        Pregunta::findOrFail($idPregunta);
 
         $validator = Validator::make($request->all(), [
             'contenido' => 'required|string',
