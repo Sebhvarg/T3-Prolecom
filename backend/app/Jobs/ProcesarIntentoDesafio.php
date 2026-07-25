@@ -57,7 +57,7 @@ class ProcesarIntentoDesafio implements ShouldQueue
         }
 
         $lenguaje = LenguajeProgramacion::find($solucion->idLenguaje);
-        $languageId = $lenguaje?->judge0_id ?? ($solucion->idLenguaje == 2 ? 63 : 71);
+        $languageId = $lenguaje->judge0_id ?? ($solucion->idLenguaje == 2 ? 63 : 71);
 
         $res = $this->procesarCasosDePrueba($judge0, $languageId, $solucion->codigoFuente, $testCases);
 
