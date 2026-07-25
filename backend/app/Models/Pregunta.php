@@ -30,4 +30,9 @@ class Pregunta extends Model
     {
         return $this->belongsTo(Curso::class, 'idCurso', 'idCurso');
     }
+
+    public function respuestas()
+    {
+        return $this->hasMany(Respuesta::class, 'idPregunta', 'idPregunta');
+    }
 }

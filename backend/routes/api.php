@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CursoController;
 use App\Http\Controllers\Api\DesafioController;
+use App\Http\Controllers\Api\ForoController;
 use App\Http\Controllers\Api\MaterialController;
 use App\Http\Controllers\Api\PerfilController;
 use App\Http\Controllers\Api\TemaController;
@@ -61,10 +62,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post(ROUTE_DESAFIO_ID.'/soluciones', [DesafioController::class, 'enviarSolucion']);
     Route::get(ROUTE_DESAFIO_ID.'/soluciones', [DesafioController::class, 'listarIntentos']);
 
+    // Rutas de Foro / Preguntas y Respuestas (PB16)
+    Route::get('/cursos/{idCurso}/preguntas', [ForoController::class, 'indexPreguntas']);
+    Route::post('/cursos/{idCurso}/preguntas', [ForoController::class, 'storePregunta']);
+    Route::get('/preguntas/{idPregunta}', [ForoController::class, 'showPregunta']);
+    Route::post('/preguntas/{idPregunta}/respuestas', [ForoController::class, 'storeRespuesta']);
+
     Route::middleware('role:Administrador,Profesor,Ayudante')->group(function () {
         Route::post('/temas/{idTema}/desafios', [DesafioController::class, 'store']);
         Route::put(ROUTE_DESAFIO_ID, [DesafioController::class, 'update']);
         Route::delete(ROUTE_DESAFIO_ID, [DesafioController::class, 'destroy']);
+
+        // Validación de respuestas por Instructores / Ayudantes (PB16)
+        Route::put('/respuestas/{idRespuesta}/validar', [ForoController::class, 'toggleValidarRespuesta']);
     });
 
     Route::middleware('role:Administrador,Profesor')->group(function () {
