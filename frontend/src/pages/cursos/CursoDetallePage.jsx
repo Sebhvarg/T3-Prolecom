@@ -464,6 +464,7 @@ const CursoDetallePage = () => {
       {/* Navegación por Pestañas */}
       <div className="flex border-b border-slate-200 dark:border-slate-800 mb-8">
         <button
+          type="button"
           onClick={() => setActiveTab('temas')}
           className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all ${
             activeTab === 'temas'
@@ -475,6 +476,7 @@ const CursoDetallePage = () => {
           <span>Temas y Módulos ({curso.temas?.length || 0})</span>
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab('foro')}
           className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all ${
             activeTab === 'foro'
