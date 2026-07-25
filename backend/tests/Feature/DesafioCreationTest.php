@@ -27,15 +27,7 @@ class DesafioCreationTest extends TestCase
     {
         parent::setUp();
 
-        DB::table('estadosCuenta')->insertOrIgnore([
-            'idEstado' => 1,
-            'estado' => 'Activo',
-        ]);
-
-        DB::table('roles')->insertOrIgnore([
-            ['idRol' => 3, 'rol' => 'Profesor'],
-            ['idRol' => 6, 'rol' => 'Estudiante'],
-        ]);
+        $this->seedBasicTestData();
 
         DB::table('lenguajes_programacion')->insertOrIgnore([
             'idLenguaje' => 1,
