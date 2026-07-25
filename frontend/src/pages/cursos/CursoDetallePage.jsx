@@ -230,7 +230,11 @@ const CursoDetallePage = () => {
     try {
       let parsedCases = desafioResource.testCases;
       if (typeof parsedCases === 'string') {
-        try { parsedCases = JSON.parse(parsedCases); } catch (err) { parsedCases = []; }
+        try { 
+          parsedCases = JSON.parse(parsedCases); 
+        } catch { 
+          parsedCases = []; 
+        }
       }
       if (!Array.isArray(parsedCases)) {
         parsedCases = [];
@@ -669,7 +673,7 @@ const CursoDetallePage = () => {
                       }
 
                       if (isDesafio) {
-                        return renderDesafioItem(item, resource, id, navigate, canManage, handleDeleteDesafio, handleOpenEditDesafioModal, handleResetDesafio);
+                        return renderDesafioItem({ item, resource, id, navigate, canManage, handleDeleteDesafio, handleOpenEditDesafioModal, handleResetDesafio });
                       }
 
                       return null;
@@ -1112,7 +1116,7 @@ const renderMaterialItem = (item, resource, canManage, handleViewSecure, handleD
   );
 };
 
-const renderDesafioItem = (item, resource, id, navigate, canManage, handleDeleteDesafio, handleOpenEditDesafioModal, handleResetDesafio) => {
+const renderDesafioItem = ({ item, resource, id, navigate, canManage, handleDeleteDesafio, handleOpenEditDesafioModal, handleResetDesafio }) => {
   const getDificultadBadgeClass = (dificultad) => {
     if (dificultad === 'Easy') return 'bg-emerald-50 text-emerald-700 border-emerald-200/60';
     if (dificultad === 'Medium') return 'bg-amber-50 text-amber-700 border-amber-200/60';
@@ -1176,6 +1180,7 @@ const renderDesafioItem = (item, resource, id, navigate, canManage, handleDelete
 
       <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
         <button
+          type="button"
           onClick={() => navigate(`/cursos/${id}/desafios/${resource.idDesafio}`)}
           className={`inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all shadow-xs hover:shadow-md cursor-pointer active:scale-98 text-white ${
             isCompleted
@@ -1189,6 +1194,7 @@ const renderDesafioItem = (item, resource, id, navigate, canManage, handleDelete
 
         {isCompleted && (
           <button
+            type="button"
             onClick={(e) => handleResetDesafio(resource.idDesafio, e)}
             className="p-2 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-xl border border-slate-200 transition-all cursor-pointer shadow-xs"
             title={`Reiniciar Desafío (-${resource.puntos || 10} XP)`}
@@ -1200,6 +1206,7 @@ const renderDesafioItem = (item, resource, id, navigate, canManage, handleDelete
         {canManage && (
           <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 rounded-xl p-1">
             <button
+              type="button"
               onClick={(e) => handleOpenEditDesafioModal(resource, e)}
               className="p-2 text-slate-600 hover:text-blue-600 hover:bg-white rounded-lg transition-all cursor-pointer shadow-xs hover:shadow-xs"
               title="Editar Desafío"
@@ -1207,6 +1214,7 @@ const renderDesafioItem = (item, resource, id, navigate, canManage, handleDelete
               <Pencil size={15} />
             </button>
             <button
+              type="button"
               onClick={() => handleDeleteDesafio(resource.idDesafio)}
               className="p-2 text-slate-600 hover:text-rose-600 hover:bg-white rounded-lg transition-all cursor-pointer shadow-xs hover:shadow-xs"
               title="Eliminar Desafío"
