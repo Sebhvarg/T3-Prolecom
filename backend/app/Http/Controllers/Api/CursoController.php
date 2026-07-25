@@ -79,21 +79,12 @@ class CursoController extends Controller
 
         foreach ($curso->temas as $tema) {
             foreach ($tema->items as $item) {
-                if ($item->itemable && method_exists($item->itemable, 'creador')) {
-                    $item->itemable->load('creador:idUsuario,nombreCompleto');
-                }
-
-                if ($item->itemable_type && str_contains($item->itemable_type, 'Desafio') && $item->itemable) {
-                    $desafio = $item->itemable;
-                    $puntos = $desafio->puntos ?? 10;
-                    $totalXPCurso += $puntos;
+                $res = $this->procesarItemTema($item, $idsDesafiosResueltos);
+                if ($res['es_desafio']) {
+                    $totalXPCurso += $res['puntos'];
                     $desafiosTotales++;
-
-                    $isCompleted = in_array($desafio->idDesafio, $idsDesafiosResueltos);
-                    $desafio->completado = $isCompleted;
-
-                    if ($isCompleted) {
-                        $xpGanadoCurso += $puntos;
+                    if ($res['completado']) {
+                        $xpGanadoCurso += $res['puntos'];
                         $desafiosResueltosCount++;
                     }
                 }
@@ -270,5 +261,28 @@ class CursoController extends Controller
     public function cursosTotal()
     {
         return response()->json(['count' => Curso::count()]);
+    }
+
+    private function procesarItemTema($item, array $idsDesafiosResueltos): array
+    {
+        if ($item->itemable && method_exists($item->itemable, 'creador')) {
+            $item->itemable->load('creador:idUsuario,nombreCompleto');
+        }
+
+        $isDesafio = $item->itemable_type && str_contains($item->itemable_type, 'Desafio') && $item->itemable;
+        if (! $isDesafio) {
+            return ['es_desafio' => false, 'puntos' => 0, 'completado' => false];
+        }
+
+        $desafio = $item->itemable;
+        $puntos = $desafio->puntos ?? 10;
+        $isCompleted = in_array($desafio->idDesafio, $idsDesafiosResueltos);
+        $desafio->completado = $isCompleted;
+
+        return [
+            'es_desafio' => true,
+            'puntos' => $puntos,
+            'completado' => $isCompleted,
+        ];
     }
 }

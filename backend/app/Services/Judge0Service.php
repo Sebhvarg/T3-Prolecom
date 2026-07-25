@@ -94,30 +94,25 @@ class Judge0Service
      */
     private function prepararComandoLocal(int $languageId, string $sourceCode, string $tmpDir, string $id): array
     {
+        $result = [];
+
         if ($languageId === 63) { // JavaScript
             $srcFile = "{$tmpDir}/{$id}.js";
             file_put_contents($srcFile, $sourceCode);
-
-            return ['cmd' => 'node '.escapeshellarg($srcFile), 'cleanFiles' => [$srcFile], 'err' => null];
+            $result = ['cmd' => 'node '.escapeshellarg($srcFile), 'cleanFiles' => [$srcFile], 'err' => null];
+        } elseif (in_array($languageId, [48, 49, 50, 75])) { // C
+            $result = $this->compilarCCpp('gcc', 'c', $sourceCode, $tmpDir, $id);
+        } elseif (in_array($languageId, [52, 53, 54, 76])) { // C++
+            $result = $this->compilarCCpp('g++', 'cpp', $sourceCode, $tmpDir, $id);
+        } elseif ($languageId === 62) { // Java
+            $result = $this->compilarJava($sourceCode, $tmpDir);
+        } else { // Default Python (71, 70, etc.)
+            $srcFile = "{$tmpDir}/{$id}.py";
+            file_put_contents($srcFile, $sourceCode);
+            $result = ['cmd' => 'python3 '.escapeshellarg($srcFile), 'cleanFiles' => [$srcFile], 'err' => null];
         }
 
-        if (in_array($languageId, [48, 49, 50, 75])) { // C
-            return $this->compilarCCpp('gcc', 'c', $sourceCode, $tmpDir, $id);
-        }
-
-        if (in_array($languageId, [52, 53, 54, 76])) { // C++
-            return $this->compilarCCpp('g++', 'cpp', $sourceCode, $tmpDir, $id);
-        }
-
-        if ($languageId === 62) { // Java
-            return $this->compilarJava($sourceCode, $tmpDir);
-        }
-
-        // Default Python (71, 70, etc.)
-        $srcFile = "{$tmpDir}/{$id}.py";
-        file_put_contents($srcFile, $sourceCode);
-
-        return ['cmd' => 'python3 '.escapeshellarg($srcFile), 'cleanFiles' => [$srcFile], 'err' => null];
+        return $result;
     }
 
     private function compilarJava(string $sourceCode, string $tmpDir): array
