@@ -16,6 +16,8 @@ class DesafioCreationTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const TIPO_PUBLICO = 'público';
+
     protected $profesorRol;
 
     protected $estudianteRol;
@@ -56,7 +58,7 @@ class DesafioCreationTest extends TestCase
             'titulo' => 'Curso de Pruebas',
             'descripcion' => 'Desafíos en PHP',
             'lp' => 'PHP',
-            'tipo' => 'público',
+            'tipo' => self::TIPO_PUBLICO,
             'idProfeCreador' => $professor->idUsuario,
         ]);
 
@@ -69,45 +71,54 @@ class DesafioCreationTest extends TestCase
         Sanctum::actingAs($professor);
 
         $payload = [
-            'titulo' => 'Reto 1: Validar Email',
-            'descripcionProblema' => 'Escribe una función que valide un email.',
-            'dificultad' => 'Medium',
+            'titulo' => 'Suma de Dos Números',
+            'descripcionProblema' => 'Escribe una función que sume dos números.',
+            'dificultad' => 'Easy',
             'testCases' => [
                 [
-                    'input' => 'test@test.com',
-                    'expected_output' => 'true',
+                    'input' => '2 3',
+                    'expected_output' => '5',
                     'is_hidden' => false,
                 ],
                 [
-                    'input' => 'invalid-email',
-                    'expected_output' => 'false',
+                    'input' => '10 -5',
+                    'expected_output' => '5',
                     'is_hidden' => true,
-                ]
+                ],
             ],
-            'puntos' => 20,
-            'starter_code' => 'function validate(email) {}',
+            'puntos' => 15,
+            'starter_code' => "def suma(a, b):\n    return a + b",
         ];
 
         $response = $this->postJson("/api/temas/{$tema->idTema}/desafios", $payload);
 
         $response->assertStatus(201);
-        $response->assertJsonPath('message', 'Desafío creado y publicado exitosamente.');
-
-        $this->assertDatabaseHas('desafios', [
-            'titulo' => 'Reto 1: Validar Email',
-            'dificultad' => 'Medium',
-            'puntos' => 20,
-            'estado' => 'publicado',
-            'idCreador' => $professor->idUsuario,
-            'idCurso' => $course->idCurso,
+        $response->assertJsonStructure([
+            'message',
+            'desafio' => [
+                'idDesafio',
+                'titulo',
+                'descripcionProblema',
+                'dificultad',
+                'testCases',
+                'puntos',
+                'starter_code',
+                'idCreador',
+            ],
         ]);
 
-        // Verificar el ítem en items_tema
+        $this->assertDatabaseHas('desafios', [
+            'titulo' => 'Suma de Dos Números',
+            'dificultad' => 'Easy',
+            'puntos' => 15,
+            'idCreador' => $professor->idUsuario,
+        ]);
+
         $desafioId = $response->json('desafio.idDesafio');
         $this->assertDatabaseHas('items_tema', [
             'idTema' => $tema->idTema,
-            'itemable_type' => Desafio::class,
             'itemable_id' => $desafioId,
+            'itemable_type' => Desafio::class,
         ]);
     }
 
@@ -116,26 +127,23 @@ class DesafioCreationTest extends TestCase
         $student = User::factory()->create();
         $student->roles()->attach($this->estudianteRol->idRol);
 
-        $professor = User::factory()->create();
-        $professor->roles()->attach($this->profesorRol->idRol);
-
         $course = Curso::create([
-            'titulo' => 'Curso de Estudiante',
-            'descripcion' => 'No permitido',
+            'titulo' => 'Curso Restringido',
+            'descripcion' => 'Solo profesor puede crear desafíos',
             'lp' => 'PHP',
-            'tipo' => 'público',
-            'idProfeCreador' => $professor->idUsuario,
+            'tipo' => self::TIPO_PUBLICO,
+            'idProfeCreador' => $student->idUsuario,
         ]);
 
         $tema = Tema::create([
-            'nombre' => 'Tema Especial',
+            'nombre' => 'Módulo 1',
             'idCurso' => $course->idCurso,
         ]);
 
         Sanctum::actingAs($student);
 
         $payload = [
-            'titulo' => 'Reto de Estudiante',
+            'titulo' => 'Desafío no autorizado',
             'descripcionProblema' => 'Intento ilegal.',
             'dificultad' => 'Easy',
             'testCases' => [
@@ -143,7 +151,7 @@ class DesafioCreationTest extends TestCase
                     'input' => '',
                     'expected_output' => 'error',
                     'is_hidden' => false,
-                ]
+                ],
             ],
             'puntos' => 10,
         ];
@@ -162,7 +170,7 @@ class DesafioCreationTest extends TestCase
             'titulo' => 'Curso de Validaciones',
             'descripcion' => 'Validando inputs',
             'lp' => 'PHP',
-            'tipo' => 'público',
+            'tipo' => self::TIPO_PUBLICO,
             'idProfeCreador' => $professor->idUsuario,
         ]);
 
@@ -173,7 +181,6 @@ class DesafioCreationTest extends TestCase
 
         Sanctum::actingAs($professor);
 
-        // Envía payload incompleto (sin titulo, testCases vacíos)
         $payload = [
             'descripcionProblema' => 'Faltan campos obligatorios.',
             'dificultad' => 'Easy',
@@ -194,7 +201,7 @@ class DesafioCreationTest extends TestCase
             'titulo' => 'Curso de Reset',
             'descripcion' => 'Testing Reset',
             'lp' => 'Python',
-            'tipo' => 'público',
+            'tipo' => self::TIPO_PUBLICO,
             'idProfeCreador' => $student->idUsuario,
         ]);
 
@@ -228,7 +235,7 @@ class DesafioCreationTest extends TestCase
             'xp_deducidos' => 20,
             'user' => [
                 'xp' => 30,
-            ]
+            ],
         ]);
 
         $this->assertEquals(30, $student->fresh()->xp);

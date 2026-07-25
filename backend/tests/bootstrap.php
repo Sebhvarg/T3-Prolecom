@@ -9,4 +9,4 @@ putenv('DB_DATABASE=:memory:');
 $_ENV['DB_DATABASE'] = ':memory:';
 $_SERVER['DB_DATABASE'] = ':memory:';
 
-require __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';

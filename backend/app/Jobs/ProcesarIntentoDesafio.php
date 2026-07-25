@@ -52,47 +52,31 @@ class ProcesarIntentoDesafio implements ShouldQueue
             $total = 1;
             $hasNoTestCases = true;
         } else {
-            $hasNoTestCases = false;
-        }
-
-        $passed = 0;
-        $estado = 'aprobado';
-        $stdout = '';
-        $stderr = '';
-        $execTime = 0;
-        $execMemory = 0;
-
         $lenguaje = \App\Models\LenguajeProgramacion::find($solucion->idLenguaje);
         $languageId = $lenguaje?->judge0_id ?? ($solucion->idLenguaje == 2 ? 63 : 71);
 
+        $res = $this->procesarCasosDePrueba($judge0, $languageId, $solucion->codigoFuente, $testCases);
 
-        foreach ($testCases as $testCase) {
-            $eval = $this->evaluarCasoDePrueba($judge0, $languageId, $solucion->codigoFuente, $testCase);
-
-            $execTime += $eval['time'];
-            $execMemory += $eval['memory'];
-            $stdout .= $eval['stdout'];
-
-            if (! $eval['success']) {
-                $estado = 'rechazado';
-                $stderr = $eval['stderr'];
-                break;
-            }
-
-            $passed++;
-        }
+        $passed = $res['passed'];
+        $estado = $res['estado'];
+        $stdout = $res['stdout'];
+        $stderr = $res['stderr'];
+        $execTime = $res['execTime'];
+        $execMemory = $res['execMemory'];
 
         if ($passed < $total && $estado === 'aprobado') {
             $estado = 'rechazado';
         }
 
-        $puntosOtorgados = 0;
-        if ($estado === 'aprobado') {
-            $puntosOtorgados = $desafio->puntos;
-        }
+        $puntosOtorgados = $estado === 'aprobado' ? $desafio->puntos : 0;
 
-        $displayPassed = $hasNoTestCases ? ($estado === 'aprobado' ? 1 : 0) : $passed;
-        $displayTotal = $hasNoTestCases ? 1 : $total;
+        if ($hasNoTestCases) {
+            $displayPassed = $estado === 'aprobado' ? 1 : 0;
+            $displayTotal = 1;
+        } else {
+            $displayPassed = $passed;
+            $displayTotal = $total;
+        }
 
         // Transacción para actualizar solución y otorgar XP
         DB::transaction(function () use ($solucion, $estado, $displayPassed, $displayTotal, $puntosOtorgados, $execTime, $execMemory, $stdout, $stderr, $desafio) {
@@ -138,6 +122,41 @@ class ProcesarIntentoDesafio implements ShouldQueue
                 Log::info("Otorgado {$puntos} XP al estudiante {$idEstudiante} por el desafío {$idDesafio}");
             }
         }
+    }
+
+    private function procesarCasosDePrueba(Judge0Service $judge0, int $languageId, string $codigoFuente, array $testCases): array
+    {
+        $passed = 0;
+        $estado = 'aprobado';
+        $stdout = '';
+        $stderr = '';
+        $execTime = 0;
+        $execMemory = 0;
+
+        foreach ($testCases as $testCase) {
+            $eval = $this->evaluarCasoDePrueba($judge0, $languageId, $codigoFuente, $testCase);
+
+            $execTime += $eval['time'];
+            $execMemory += $eval['memory'];
+            $stdout .= $eval['stdout'];
+
+            if (! $eval['success']) {
+                $estado = 'rechazado';
+                $stderr = $eval['stderr'];
+                break;
+            }
+
+            $passed++;
+        }
+
+        return [
+            'passed' => $passed,
+            'estado' => $estado,
+            'stdout' => $stdout,
+            'stderr' => $stderr,
+            'execTime' => $execTime,
+            'execMemory' => $execMemory,
+        ];
     }
 
     /**

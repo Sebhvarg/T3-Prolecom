@@ -9,13 +9,13 @@ COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr
 
 # Instalar dependencias del sistema y extensiones de PHP necesarias
 RUN apt-get update && apt-get install -y \
-    git \
-    unzip \
-    python3 \
-    nodejs \
-    gcc \
-    g++ \
     default-jdk-headless \
+    g++ \
+    gcc \
+    git \
+    nodejs \
+    python3 \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Extensiones de PHP requeridas por Laravel

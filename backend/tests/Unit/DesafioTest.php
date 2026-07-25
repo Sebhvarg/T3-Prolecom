@@ -14,6 +14,12 @@ class DesafioTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const TITULO_CURSO = 'Curso de Python';
+
+    private const DESCRIPCION_CURSO = 'Aprende Python';
+
+    private const TIPO_PUBLICO = 'público';
+
     protected $profesorRol;
 
     protected function setUp(): void
@@ -38,10 +44,10 @@ class DesafioTest extends TestCase
         $professor->roles()->attach($this->profesorRol->idRol);
 
         $curso = Curso::create([
-            'titulo' => 'Curso de Python',
-            'descripcion' => 'Aprende Python',
+            'titulo' => self::TITULO_CURSO,
+            'descripcion' => self::DESCRIPCION_CURSO,
             'lp' => 'Python',
-            'tipo' => 'público',
+            'tipo' => self::TIPO_PUBLICO,
             'idProfeCreador' => $professor->idUsuario,
         ]);
 
@@ -50,7 +56,7 @@ class DesafioTest extends TestCase
             'descripcionProblema' => 'Suma A y B.',
             'dificultad' => 'Easy',
             'testCases' => [
-                ['input' => '1 2', 'expected_output' => '3', 'is_hidden' => false]
+                ['input' => '1 2', 'expected_output' => '3', 'is_hidden' => false],
             ],
             'salidaEsperada' => 'OK',
             'estado' => 'publicado',
@@ -70,10 +76,10 @@ class DesafioTest extends TestCase
         $professor->roles()->attach($this->profesorRol->idRol);
 
         $curso = Curso::create([
-            'titulo' => 'Curso de Python',
-            'descripcion' => 'Aprende Python',
+            'titulo' => self::TITULO_CURSO,
+            'descripcion' => self::DESCRIPCION_CURSO,
             'lp' => 'Python',
-            'tipo' => 'público',
+            'tipo' => self::TIPO_PUBLICO,
             'idProfeCreador' => $professor->idUsuario,
         ]);
 
@@ -82,7 +88,7 @@ class DesafioTest extends TestCase
             'descripcionProblema' => 'Resta A y B.',
             'dificultad' => 'Easy',
             'testCases' => [
-                ['input' => '5 2', 'expected_output' => '3', 'is_hidden' => false]
+                ['input' => '5 2', 'expected_output' => '3', 'is_hidden' => false],
             ],
             'salidaEsperada' => 'OK',
             'estado' => 'publicado',
@@ -102,16 +108,16 @@ class DesafioTest extends TestCase
         $professor->roles()->attach($this->profesorRol->idRol);
 
         $curso = Curso::create([
-            'titulo' => 'Curso de Python',
-            'descripcion' => 'Aprende Python',
+            'titulo' => self::TITULO_CURSO,
+            'descripcion' => self::DESCRIPCION_CURSO,
             'lp' => 'Python',
-            'tipo' => 'público',
+            'tipo' => self::TIPO_PUBLICO,
             'idProfeCreador' => $professor->idUsuario,
         ]);
 
         $testCasesArray = [
             ['input' => '10', 'expected_output' => '20', 'is_hidden' => false],
-            ['input' => '30', 'expected_output' => '60', 'is_hidden' => true]
+            ['input' => '30', 'expected_output' => '60', 'is_hidden' => true],
         ];
 
         $desafio = Desafio::create([

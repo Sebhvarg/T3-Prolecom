@@ -77,8 +77,8 @@ class CursoController extends Controller
         $desafiosTotales = 0;
         $desafiosResueltosCount = 0;
 
-        $curso->temas->each(function ($tema) use ($idsDesafiosResueltos, &$totalXPCurso, &$xpGanadoCurso, &$desafiosTotales, &$desafiosResueltosCount) {
-            $tema->items->each(function ($item) use ($idsDesafiosResueltos, &$totalXPCurso, &$xpGanadoCurso, &$desafiosTotales, &$desafiosResueltosCount) {
+        foreach ($curso->temas as $tema) {
+            foreach ($tema->items as $item) {
                 if ($item->itemable && method_exists($item->itemable, 'creador')) {
                     $item->itemable->load('creador:idUsuario,nombreCompleto');
                 }
@@ -97,8 +97,8 @@ class CursoController extends Controller
                         $desafiosResueltosCount++;
                     }
                 }
-            });
-        });
+            }
+        }
 
         $curso->progreso_estudiante = [
             'xp_ganado' => $xpGanadoCurso,

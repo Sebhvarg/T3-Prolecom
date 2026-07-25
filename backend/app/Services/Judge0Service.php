@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\Log;
 
 class Judge0Service
 {
+    private const REDIRECT_STDERR = ' 2>&1';
+
+    private const COMPILATION_ERROR = 'Compilation Error';
+
     protected $baseUrl;
 
     protected $token;
@@ -26,7 +30,6 @@ class Judge0Service
      */
     public function submitCode(int $languageId, string $sourceCode, ?string $expectedOutput = null, ?string $stdin = null)
     {
-        // Si no está configurada la URL de Judge0, ejecutamos el código localmente de forma inteligente
         if (empty($this->baseUrl)) {
             Log::info('Judge0Service: Corriendo en modo Simulación Inteligente.');
 
@@ -53,7 +56,6 @@ class Judge0Service
         try {
             $request = Http::withHeaders($this->getHeaders());
 
-            // Petición síncrona con wait=true
             $response = $request->post($this->baseUrl.'/submissions?base64_encoded=false&wait=true', $payload);
 
             if ($response->successful()) {
@@ -80,13 +82,77 @@ class Judge0Service
         if (str_contains($this->baseUrl, 'rapidapi.com')) {
             $headers['X-RapidAPI-Key'] = $this->token;
             $headers['X-RapidAPI-Host'] = $this->host;
-        } else {
-            if (! empty($this->token)) {
-                $headers['X-Auth-Token'] = $this->token;
-            }
+        } elseif (! empty($this->token)) {
+            $headers['X-Auth-Token'] = $this->token;
         }
 
         return $headers;
+    }
+
+    /**
+     * Prepara y compila el código fuente para ejecución local.
+     */
+    private function prepararComandoLocal(int $languageId, string $sourceCode, string $tmpDir, string $id): array
+    {
+        if ($languageId === 63) { // JavaScript
+            $srcFile = "{$tmpDir}/{$id}.js";
+            file_put_contents($srcFile, $sourceCode);
+
+            return ['cmd' => 'node '.escapeshellarg($srcFile), 'cleanFiles' => [$srcFile], 'err' => null];
+        }
+
+        if (in_array($languageId, [48, 49, 50, 75])) { // C
+            return $this->compilarCCpp('gcc', 'c', $sourceCode, $tmpDir, $id);
+        }
+
+        if (in_array($languageId, [52, 53, 54, 76])) { // C++
+            return $this->compilarCCpp('g++', 'cpp', $sourceCode, $tmpDir, $id);
+        }
+
+        if ($languageId === 62) { // Java
+            $srcFile = "{$tmpDir}/Main.java";
+            file_put_contents($srcFile, $sourceCode);
+            exec('javac '.escapeshellarg($srcFile).self::REDIRECT_STDERR, $compileErr, $compileRes);
+            if ($compileRes !== 0) {
+                @unlink($srcFile);
+
+                return ['cmd' => '', 'cleanFiles' => [], 'err' => $this->buildCompileErrorResult($compileErr)];
+            }
+
+            return ['cmd' => 'java -cp '.escapeshellarg($tmpDir).' Main', 'cleanFiles' => [$srcFile, "{$tmpDir}/Main.class"], 'err' => null];
+        }
+
+        // Default Python (71, 70, etc.)
+        $srcFile = "{$tmpDir}/{$id}.py";
+        file_put_contents($srcFile, $sourceCode);
+
+        return ['cmd' => 'python3 '.escapeshellarg($srcFile), 'cleanFiles' => [$srcFile], 'err' => null];
+    }
+
+    private function compilarCCpp(string $compiler, string $ext, string $sourceCode, string $tmpDir, string $id): array
+    {
+        $srcFile = "{$tmpDir}/{$id}.{$ext}";
+        $binFile = "{$tmpDir}/{$id}.out";
+        file_put_contents($srcFile, $sourceCode);
+        exec("{$compiler} -O2 ".escapeshellarg($srcFile).' -o '.escapeshellarg($binFile).self::REDIRECT_STDERR, $compileErr, $compileRes);
+        if ($compileRes !== 0) {
+            @unlink($srcFile);
+
+            return ['cmd' => '', 'cleanFiles' => [], 'err' => $this->buildCompileErrorResult($compileErr)];
+        }
+
+        return ['cmd' => escapeshellarg($binFile), 'cleanFiles' => [$srcFile, $binFile], 'err' => null];
+    }
+
+    private function buildCompileErrorResult(array $compileErr): array
+    {
+        return [
+            'status' => ['id' => 6, 'description' => self::COMPILATION_ERROR],
+            'time' => '0.0',
+            'memory' => 0,
+            'stdout' => '',
+            'stderr' => implode("\n", $compileErr),
+        ];
     }
 
     /**
@@ -97,62 +163,13 @@ class Judge0Service
         $tmpDir = sys_get_temp_dir();
         $id = uniqid('code_');
 
-        // Determinar lenguaje y comando
-        if ($languageId === 63) { // JavaScript
-            $srcFile = "{$tmpDir}/{$id}.js";
-            file_put_contents($srcFile, $sourceCode);
-            $cmd = 'node ' . escapeshellarg($srcFile);
-            $cleanFiles = [$srcFile];
-        } elseif (in_array($languageId, [48, 49, 50, 75])) { // C
-            $srcFile = "{$tmpDir}/{$id}.c";
-            $binFile = "{$tmpDir}/{$id}.out";
-            file_put_contents($srcFile, $sourceCode);
-            exec("gcc -O2 " . escapeshellarg($srcFile) . " -o " . escapeshellarg($binFile) . " 2>&1", $compileErr, $compileRes);
-            if ($compileRes !== 0) {
-                @unlink($srcFile);
-                return [
-                    'status' => ['id' => 6, 'description' => 'Compilation Error'],
-                    'time' => '0.0', 'memory' => 0, 'stdout' => '',
-                    'stderr' => implode("\n", $compileErr),
-                ];
-            }
-            $cmd = escapeshellarg($binFile);
-            $cleanFiles = [$srcFile, $binFile];
-        } elseif (in_array($languageId, [52, 53, 54, 76])) { // C++
-            $srcFile = "{$tmpDir}/{$id}.cpp";
-            $binFile = "{$tmpDir}/{$id}.out";
-            file_put_contents($srcFile, $sourceCode);
-            exec("g++ -O2 " . escapeshellarg($srcFile) . " -o " . escapeshellarg($binFile) . " 2>&1", $compileErr, $compileRes);
-            if ($compileRes !== 0) {
-                @unlink($srcFile);
-                return [
-                    'status' => ['id' => 6, 'description' => 'Compilation Error'],
-                    'time' => '0.0', 'memory' => 0, 'stdout' => '',
-                    'stderr' => implode("\n", $compileErr),
-                ];
-            }
-            $cmd = escapeshellarg($binFile);
-            $cleanFiles = [$srcFile, $binFile];
-        } elseif ($languageId === 62) { // Java
-            $srcFile = "{$tmpDir}/Main.java";
-            file_put_contents($srcFile, $sourceCode);
-            exec("javac " . escapeshellarg($srcFile) . " 2>&1", $compileErr, $compileRes);
-            if ($compileRes !== 0) {
-                @unlink($srcFile);
-                return [
-                    'status' => ['id' => 6, 'description' => 'Compilation Error'],
-                    'time' => '0.0', 'memory' => 0, 'stdout' => '',
-                    'stderr' => implode("\n", $compileErr),
-                ];
-            }
-            $cmd = 'java -cp ' . escapeshellarg($tmpDir) . ' Main';
-            $cleanFiles = [$srcFile, "{$tmpDir}/Main.class"];
-        } else { // Default Python (71, 70, etc.)
-            $srcFile = "{$tmpDir}/{$id}.py";
-            file_put_contents($srcFile, $sourceCode);
-            $cmd = 'python3 ' . escapeshellarg($srcFile);
-            $cleanFiles = [$srcFile];
+        $prepared = $this->prepararComandoLocal($languageId, $sourceCode, $tmpDir, $id);
+        if ($prepared['err'] !== null) {
+            return $prepared['err'];
         }
+
+        $cmd = $prepared['cmd'];
+        $cleanFiles = $prepared['cleanFiles'];
 
         $descriptors = [
             0 => ['pipe', 'r'],
@@ -162,6 +179,12 @@ class Judge0Service
 
         $startTime = microtime(true);
         $process = proc_open($cmd, $descriptors, $pipes);
+
+        $result = [
+            'status' => ['id' => 13, 'description' => 'Internal Error'],
+            'stdout' => null,
+            'stderr' => 'No se pudo iniciar el proceso de ejecución local.',
+        ];
 
         if (is_resource($process)) {
             if ($stdin !== null) {
@@ -182,13 +205,13 @@ class Judge0Service
                 @unlink($f);
             }
 
-            if ($returnCode !== 0 || !empty($stderr)) {
+            if ($returnCode !== 0 || ! empty($stderr)) {
                 return [
                     'status' => [
-                        'id' => 11, // Error de Ejecución
+                        'id' => 11,
                         'description' => 'Runtime Error',
                     ],
-                    'time' => (string)$executionTime,
+                    'time' => (string) $executionTime,
                     'memory' => 1024,
                     'stdout' => $stdout,
                     'stderr' => $stderr ?: "Error de ejecución con código de salida $returnCode",
@@ -196,17 +219,17 @@ class Judge0Service
             }
 
             $trimOutput = function ($str) {
-                return implode("\n", array_map('rtrim', explode("\n", trim((string)$str))));
+                return implode("\n", array_map('rtrim', explode("\n", trim((string) $str))));
             };
 
             $passed = ($expectedOutput === null) || ($trimOutput($stdout) === $trimOutput($expectedOutput));
 
             return [
                 'status' => [
-                    'id' => $passed ? 3 : 4, // 3 = Accepted, 4 = Wrong Answer
+                    'id' => $passed ? 3 : 4,
                     'description' => $passed ? 'Accepted' : 'Wrong Answer',
                 ],
-                'time' => (string)$executionTime,
+                'time' => (string) $executionTime,
                 'memory' => 1024,
                 'stdout' => $stdout,
                 'stderr' => null,
@@ -217,11 +240,6 @@ class Judge0Service
             @unlink($f);
         }
 
-        return [
-            'status' => ['id' => 13, 'description' => 'Internal Error'],
-            'stdout' => null,
-            'stderr' => 'No se pudo iniciar el proceso de ejecución local.',
-        ];
+        return $result;
     }
 }
-
