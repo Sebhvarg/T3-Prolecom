@@ -304,7 +304,7 @@ class DesafioController extends Controller
                 'username' => $userFresh->username,
                 'email' => $userFresh->email,
                 'xp' => $userFresh->xp,
-            ]
+            ],
         ]);
     }
 }

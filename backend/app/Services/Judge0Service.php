@@ -110,16 +110,7 @@ class Judge0Service
         }
 
         if ($languageId === 62) { // Java
-            $srcFile = "{$tmpDir}/Main.java";
-            file_put_contents($srcFile, $sourceCode);
-            exec('javac '.escapeshellarg($srcFile).self::REDIRECT_STDERR, $compileErr, $compileRes);
-            if ($compileRes !== 0) {
-                @unlink($srcFile);
-
-                return ['cmd' => '', 'cleanFiles' => [], 'err' => $this->buildCompileErrorResult($compileErr)];
-            }
-
-            return ['cmd' => 'java -cp '.escapeshellarg($tmpDir).' Main', 'cleanFiles' => [$srcFile, "{$tmpDir}/Main.class"], 'err' => null];
+            return $this->compilarJava($sourceCode, $tmpDir);
         }
 
         // Default Python (71, 70, etc.)
@@ -127,6 +118,20 @@ class Judge0Service
         file_put_contents($srcFile, $sourceCode);
 
         return ['cmd' => 'python3 '.escapeshellarg($srcFile), 'cleanFiles' => [$srcFile], 'err' => null];
+    }
+
+    private function compilarJava(string $sourceCode, string $tmpDir): array
+    {
+        $srcFile = "{$tmpDir}/Main.java";
+        file_put_contents($srcFile, $sourceCode);
+        exec('javac '.escapeshellarg($srcFile).self::REDIRECT_STDERR, $compileErr, $compileRes);
+        if ($compileRes !== 0) {
+            @unlink($srcFile);
+
+            return ['cmd' => '', 'cleanFiles' => [], 'err' => $this->buildCompileErrorResult($compileErr)];
+        }
+
+        return ['cmd' => 'java -cp '.escapeshellarg($tmpDir).' Main', 'cleanFiles' => [$srcFile, "{$tmpDir}/Main.class"], 'err' => null];
     }
 
     private function compilarCCpp(string $compiler, string $ext, string $sourceCode, string $tmpDir, string $id): array
@@ -168,9 +173,17 @@ class Judge0Service
             return $prepared['err'];
         }
 
-        $cmd = $prepared['cmd'];
-        $cleanFiles = $prepared['cleanFiles'];
+        $result = $this->ejecutarProcesoComando($prepared['cmd'], $expectedOutput, $stdin);
 
+        foreach ($prepared['cleanFiles'] as $f) {
+            @unlink($f);
+        }
+
+        return $result;
+    }
+
+    private function ejecutarProcesoComando(string $cmd, ?string $expectedOutput, ?string $stdin): array
+    {
         $descriptors = [
             0 => ['pipe', 'r'],
             1 => ['pipe', 'w'],
@@ -180,66 +193,56 @@ class Judge0Service
         $startTime = microtime(true);
         $process = proc_open($cmd, $descriptors, $pipes);
 
-        $result = [
-            'status' => ['id' => 13, 'description' => 'Internal Error'],
-            'stdout' => null,
-            'stderr' => 'No se pudo iniciar el proceso de ejecución local.',
-        ];
+        if (! is_resource($process)) {
+            return [
+                'status' => ['id' => 13, 'description' => 'Internal Error'],
+                'stdout' => null,
+                'stderr' => 'No se pudo iniciar el proceso de ejecución local.',
+            ];
+        }
 
-        if (is_resource($process)) {
-            if ($stdin !== null) {
-                fwrite($pipes[0], $stdin);
-            }
-            fclose($pipes[0]);
+        if ($stdin !== null) {
+            fwrite($pipes[0], $stdin);
+        }
+        fclose($pipes[0]);
 
-            $stdout = stream_get_contents($pipes[1]);
-            fclose($pipes[1]);
+        $stdout = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
 
-            $stderr = stream_get_contents($pipes[2]);
-            fclose($pipes[2]);
+        $stderr = stream_get_contents($pipes[2]);
+        fclose($pipes[2]);
 
-            $returnCode = proc_close($process);
-            $executionTime = round(microtime(true) - $startTime, 2);
+        $returnCode = proc_close($process);
+        $executionTime = round(microtime(true) - $startTime, 2);
 
-            foreach ($cleanFiles as $f) {
-                @unlink($f);
-            }
-
-            if ($returnCode !== 0 || ! empty($stderr)) {
-                return [
-                    'status' => [
-                        'id' => 11,
-                        'description' => 'Runtime Error',
-                    ],
-                    'time' => (string) $executionTime,
-                    'memory' => 1024,
-                    'stdout' => $stdout,
-                    'stderr' => $stderr ?: "Error de ejecución con código de salida $returnCode",
-                ];
-            }
-
-            $trimOutput = function ($str) {
-                return implode("\n", array_map('rtrim', explode("\n", trim((string) $str))));
-            };
-
-            $passed = ($expectedOutput === null) || ($trimOutput($stdout) === $trimOutput($expectedOutput));
-
+        if ($returnCode !== 0 || ! empty($stderr)) {
             return [
                 'status' => [
-                    'id' => $passed ? 3 : 4,
-                    'description' => $passed ? 'Accepted' : 'Wrong Answer',
+                    'id' => 11,
+                    'description' => 'Runtime Error',
                 ],
                 'time' => (string) $executionTime,
                 'memory' => 1024,
                 'stdout' => $stdout,
-                'stderr' => null,
+                'stderr' => $stderr ?: "Error de ejecución con código de salida $returnCode",
             ];
         }
 
-        foreach ($cleanFiles as $f) {
-            @unlink($f);
-        }
+        $trimOutput = function ($str) {
+            return implode("\n", array_map('rtrim', explode("\n", trim((string) $str))));
+        };
 
-        return $result;
+        $passed = ($expectedOutput === null) || ($trimOutput($stdout) === $trimOutput($expectedOutput));
+
+        return [
+            'status' => [
+                'id' => $passed ? 3 : 4,
+                'description' => $passed ? 'Accepted' : 'Wrong Answer',
+            ],
+            'time' => (string) $executionTime,
+            'memory' => 1024,
+            'stdout' => $stdout,
+            'stderr' => null,
+        ];
     }
 }
