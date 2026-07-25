@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Curso;
 use App\Models\Desafio;
 use App\Models\Rol;
+use App\Models\Solucion;
 use App\Models\Tema;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -217,7 +218,7 @@ class DesafioCreationTest extends TestCase
             'idCreador' => $student->idUsuario,
         ]);
 
-        \App\Models\Solucion::create([
+        Solucion::create([
             'idDesafio' => $desafio->idDesafio,
             'idEstudiante' => $student->idUsuario,
             'idLenguaje' => 1,

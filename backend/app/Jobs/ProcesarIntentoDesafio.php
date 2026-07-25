@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Events\SolucionEvaluada;
+use App\Models\LenguajeProgramacion;
 use App\Models\Solucion;
 use App\Models\User;
 use App\Services\Judge0Service;
@@ -52,7 +53,10 @@ class ProcesarIntentoDesafio implements ShouldQueue
             $total = 1;
             $hasNoTestCases = true;
         } else {
-        $lenguaje = \App\Models\LenguajeProgramacion::find($solucion->idLenguaje);
+            $hasNoTestCases = false;
+        }
+
+        $lenguaje = LenguajeProgramacion::find($solucion->idLenguaje);
         $languageId = $lenguaje?->judge0_id ?? ($solucion->idLenguaje == 2 ? 63 : 71);
 
         $res = $this->procesarCasosDePrueba($judge0, $languageId, $solucion->codigoFuente, $testCases);
