@@ -263,4 +263,48 @@ class DesafioController extends Controller
             return response()->json(['message' => 'Error al eliminar el desafío.'], 500);
         }
     }
+
+    /**
+     * Reiniciar reto (Estudiante vuelve a intentar un reto completado y se le deducen los XP previamente ganados)
+     */
+    public function reset(Request $request, $id)
+    {
+        $desafio = Desafio::findOrFail($id);
+        $user = $request->user();
+
+        $solucionesAprobadas = Solucion::where('idEstudiante', $user->idUsuario)
+            ->where('idDesafio', $desafio->idDesafio)
+            ->where('estado', 'aprobado')
+            ->get();
+
+        $puntosARestar = 0;
+        if ($solucionesAprobadas->isNotEmpty()) {
+            $puntosARestar = $desafio->puntos;
+        }
+
+        DB::transaction(function () use ($user, $desafio, $puntosARestar) {
+            Solucion::where('idEstudiante', $user->idUsuario)
+                ->where('idDesafio', $desafio->idDesafio)
+                ->delete();
+
+            if ($puntosARestar > 0) {
+                $user->xp = max(0, $user->xp - $puntosARestar);
+                $user->save();
+            }
+        });
+
+        $userFresh = $user->fresh();
+
+        return response()->json([
+            'message' => "Desafío reiniciado correctamente. Se dedujeron {$puntosARestar} XP.",
+            'xp_deducidos' => $puntosARestar,
+            'user' => [
+                'idUsuario' => $userFresh->idUsuario,
+                'nombreCompleto' => $userFresh->nombreCompleto,
+                'username' => $userFresh->username,
+                'email' => $userFresh->email,
+                'xp' => $userFresh->xp,
+            ]
+        ]);
+    }
 }

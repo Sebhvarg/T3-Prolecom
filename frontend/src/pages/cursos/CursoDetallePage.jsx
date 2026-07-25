@@ -7,7 +7,7 @@ import { desafiosService } from '../../api/desafiosService';
 import { storage } from '../../utils/crypto';
 import { 
   ArrowLeft, Plus, Trash2, FileText, Video, Play, Download, Eye, 
-  X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code 
+  X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code, Pencil, User, Sparkles, RotateCcw, CheckCircle, Trophy 
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
@@ -21,7 +21,7 @@ const generateTestCaseId = () => {
 const CursoDetallePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   
   const [curso, setCurso] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -36,6 +36,7 @@ const CursoDetallePage = () => {
 
   // Desafio Modal States
   const [isDesafioModalOpen, setIsDesafioModalOpen] = useState(false);
+  const [editingDesafioId, setEditingDesafioId] = useState(null);
   const [desafioForm, setDesafioForm] = useState({
     titulo: '',
     descripcionProblema: '',
@@ -209,6 +210,7 @@ const CursoDetallePage = () => {
   // --- DESAFIOS LOGIC ---
   const handleOpenDesafioModal = (temaId) => {
     setActiveTemaId(temaId);
+    setEditingDesafioId(null);
     setDesafioForm({
       titulo: '',
       descripcionProblema: '',
@@ -218,6 +220,43 @@ const CursoDetallePage = () => {
       testCases: [{ id: generateTestCaseId(), input: '', expected_output: '', is_hidden: false }]
     });
     setIsDesafioModalOpen(true);
+  };
+
+  const handleOpenEditDesafioModal = (desafioResource, e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    try {
+      let parsedCases = desafioResource.testCases;
+      if (typeof parsedCases === 'string') {
+        try { parsedCases = JSON.parse(parsedCases); } catch (err) { parsedCases = []; }
+      }
+      if (!Array.isArray(parsedCases)) {
+        parsedCases = [];
+      }
+
+      setEditingDesafioId(desafioResource.idDesafio);
+      setActiveTemaId(desafioResource.idTema || null);
+      setDesafioForm({
+        titulo: desafioResource.titulo || '',
+        descripcionProblema: desafioResource.descripcionProblema || '',
+        dificultad: desafioResource.dificultad || 'Easy',
+        puntos: desafioResource.puntos || 10,
+        starter_code: desafioResource.starter_code || '',
+        testCases: parsedCases.length > 0
+          ? parsedCases.map(tc => ({
+              id: generateTestCaseId(),
+              input: tc.input || '',
+              expected_output: tc.expected_output || tc.output || '',
+              is_hidden: Boolean(tc.is_hidden)
+            }))
+          : [{ id: generateTestCaseId(), input: '', expected_output: '', is_hidden: false }]
+      });
+      setIsDesafioModalOpen(true);
+    } catch (err) {
+      console.error('Error al abrir modal de edición:', err);
+    }
   };
 
   const handleAddTestCase = () => {
@@ -255,13 +294,20 @@ const CursoDetallePage = () => {
           return copy;
         })
       };
-      await desafiosService.createDesafio(activeTemaId, cleanedDesafioForm);
-      setSuccess('Desafío creado exitosamente.');
+
+      if (editingDesafioId) {
+        await desafiosService.updateDesafio(editingDesafioId, cleanedDesafioForm);
+        setSuccess('Desafío actualizado exitosamente.');
+      } else {
+        await desafiosService.createDesafio(activeTemaId, cleanedDesafioForm);
+        setSuccess('Desafío creado exitosamente.');
+      }
+
       setIsDesafioModalOpen(false);
       fetchCurso();
     } catch (err) {
       console.error(err);
-      setError(err.message || 'Error al crear el desafío.');
+      setError(err.message || 'Error al guardar el desafío.');
     } finally {
       setActionLoading(false);
     }
@@ -290,6 +336,31 @@ const CursoDetallePage = () => {
     } catch (err) {
       console.error(err);
       setError(err.message || 'Error al eliminar el desafío.');
+    }
+  };
+
+  const handleResetDesafio = async (desafioId, e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    if (!globalThis.confirm('¿Estás seguro de reiniciar este desafío? Se deducirán los XP ganados de tu cuenta y podrás volver a resolverlo.')) {
+      return;
+    }
+    setError('');
+    setActionLoading(true);
+    try {
+      const res = await desafiosService.resetDesafio(desafioId);
+      if (res.user && updateUser) {
+        updateUser({ xp: res.user.xp });
+      }
+      setSuccess(res.message || 'Desafío reiniciado correctamente.');
+      fetchCurso();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Error al reiniciar el desafío.');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -458,6 +529,42 @@ const CursoDetallePage = () => {
         </div>
       )}
 
+      {/* Tarjeta de Progreso de XP del Curso */}
+      {curso?.progreso_estudiante && (
+        <div className="bg-gradient-to-r from-slate-900 via-[#2c5364] to-[#203a43] rounded-3xl p-6 md:p-8 text-white shadow-lg mb-8 relative overflow-hidden">
+          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+            <div>
+              <div className="flex items-center gap-2.5 mb-2">
+                <span className="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-400/30 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <Trophy size={14} className="text-amber-400" />
+                  <span>Tu Progreso en el Curso</span>
+                </span>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+                {curso.progreso_estudiante.xp_ganado} / {curso.progreso_estudiante.xp_total} XP Ganados
+              </h2>
+              <p className="text-slate-300 text-sm mt-1">
+                Has completado {curso.progreso_estudiante.desafios_resueltos} de {curso.progreso_estudiante.desafios_totales} desafíos de este curso.
+              </p>
+            </div>
+
+            <div className="flex flex-col items-start md:items-end min-w-[220px]">
+              <div className="flex items-baseline gap-1.5 mb-2">
+                <span className="text-3xl font-black text-amber-400">{curso.progreso_estudiante.porcentaje}%</span>
+                <span className="text-xs font-semibold text-slate-300 uppercase">Completado</span>
+              </div>
+              <div className="w-full bg-slate-700/60 rounded-full h-3 overflow-hidden border border-white/10 p-0.5">
+                <div 
+                  className="bg-gradient-to-r from-amber-400 to-orange-500 h-full rounded-full transition-all duration-500 shadow-sm" 
+                  style={{ width: `${curso.progreso_estudiante.porcentaje}%` }} 
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Secciones de Contenido */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Temas del Curso</h2>
@@ -562,7 +669,7 @@ const CursoDetallePage = () => {
                       }
 
                       if (isDesafio) {
-                        return renderDesafioItem(item, resource, id, navigate, canManage, handleDeleteDesafio);
+                        return renderDesafioItem(item, resource, id, navigate, canManage, handleDeleteDesafio, handleOpenEditDesafioModal, handleResetDesafio);
                       }
 
                       return null;
@@ -725,8 +832,8 @@ const CursoDetallePage = () => {
             >
               <X size={18} />
             </button>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Crear Nuevo Desafío de Programación</h3>
-            <p className="text-gray-500 text-sm mb-6">Agrega un reto de código al banco de ejercicios para este tema.</p>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">{editingDesafioId ? 'Editar Desafío de Programación' : 'Crear Nuevo Desafío de Programación'}</h3>
+            <p className="text-gray-500 text-sm mb-6">{editingDesafioId ? 'Modifica los parámetros, casos de prueba o enunciado de este reto.' : 'Agrega un reto de código al banco de ejercicios para este tema.'}</p>
             <form onSubmit={handleDesafioSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -865,7 +972,7 @@ const CursoDetallePage = () => {
                   disabled={actionLoading}
                 >
                   {actionLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>Publicar Desafío</span>
+                  <span>{editingDesafioId ? 'Guardar Cambios' : 'Publicar Desafío'}</span>
                 </button>
               </div>
             </form>
@@ -1005,50 +1112,108 @@ const renderMaterialItem = (item, resource, canManage, handleViewSecure, handleD
   );
 };
 
-const renderDesafioItem = (item, resource, id, navigate, canManage, handleDeleteDesafio) => {
+const renderDesafioItem = (item, resource, id, navigate, canManage, handleDeleteDesafio, handleOpenEditDesafioModal, handleResetDesafio) => {
   const getDificultadBadgeClass = (dificultad) => {
-    if (dificultad === 'Easy') return 'bg-green-50 text-green-700';
-    if (dificultad === 'Medium') return 'bg-amber-50 text-amber-700';
-    return 'bg-red-50 text-red-700';
+    if (dificultad === 'Easy') return 'bg-emerald-50 text-emerald-700 border-emerald-200/60';
+    if (dificultad === 'Medium') return 'bg-amber-50 text-amber-700 border-amber-200/60';
+    return 'bg-rose-50 text-rose-700 border-rose-200/60';
   };
 
+  const isCompleted = Boolean(resource.completado);
+
   return (
-    <div key={item.idItemTema} className="flex justify-between items-center bg-white border border-gray-100 p-4 rounded-xl shadow-xs hover:shadow-md transition-shadow w-full">
-      <div className="flex items-center gap-4.5">
-        <div className="p-2.5 bg-amber-50 text-amber-700 rounded-xl">
-          <Code size={20} />
+    <div 
+      key={item.idItemTema} 
+      className={`group relative flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 md:p-5 rounded-2xl border transition-all duration-200 gap-4 w-full shadow-xs hover:shadow-md ${
+        isCompleted 
+          ? 'bg-emerald-50/20 border-emerald-200 hover:border-emerald-300' 
+          : 'bg-white border-slate-100 hover:border-amber-200/70'
+      }`}
+    >
+      <div className="flex items-start gap-4 flex-1">
+        <div className={`p-3 border rounded-2xl shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${
+          isCompleted 
+            ? 'bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-emerald-500/20 text-emerald-600' 
+            : 'bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/20 text-amber-600'
+        }`}>
+          {isCompleted ? <CheckCircle size={20} /> : <Code size={20} />}
         </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <h4 className="font-bold text-gray-900 text-sm md:text-base leading-snug">{resource.titulo}</h4>
-            <span className={`px-2 py-0.5 text-xxs font-bold rounded-md uppercase tracking-wider ${getDificultadBadgeClass(resource.dificultad)}`}>
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h4 className="font-bold text-slate-900 text-sm md:text-base leading-snug group-hover:text-amber-700 transition-colors">
+              {resource.titulo}
+            </h4>
+            <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${getDificultadBadgeClass(resource.dificultad)}`}>
               {resource.dificultad}
             </span>
           </div>
-          <p className="text-gray-500 text-xs mt-0.5 line-clamp-1">{resource.descripcionProblema}</p>
-          <div className="flex items-center gap-3 mt-1.5 text-xxs text-gray-400 font-semibold uppercase tracking-wider">
-            <span>Desafío de programación • Creado por {resource.creador?.nombreCompleto || 'Profesor'}</span>
+
+          <p className="text-slate-500 text-xs mt-1 leading-relaxed line-clamp-2">
+            {resource.descripcionProblema}
+          </p>
+
+          {/* Chips de Metadatos Modernos */}
+          <div className="flex flex-wrap items-center gap-2.5 mt-3 text-xs">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 text-slate-600 font-medium">
+              <User size={13} className="text-slate-400" />
+              <span>{resource.creador?.nombreCompleto || 'Profesor'}</span>
+            </span>
+
+            {isCompleted ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-100/80 border border-emerald-200 text-emerald-800 font-bold">
+                <CheckCircle size={13} className="text-emerald-600" />
+                <span>Completado (+{resource.puntos || 10} XP)</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50/80 border border-amber-100 text-amber-800 font-semibold">
+                <Sparkles size={13} className="text-amber-500" />
+                <span>+{resource.puntos || 10} XP</span>
+              </span>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
         <button
           onClick={() => navigate(`/cursos/${id}/desafios/${resource.idDesafio}`)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#d97706] hover:bg-[#b45309] text-white text-xs font-bold rounded-lg transition-colors shadow-xs"
+          className={`inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all shadow-xs hover:shadow-md cursor-pointer active:scale-98 text-white ${
+            isCompleted
+              ? 'bg-emerald-600 hover:bg-emerald-700'
+              : 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700'
+          }`}
         >
-          <Play size={14} />
-          <span>Resolver</span>
+          <Play size={14} fill="currentColor" />
+          <span>{isCompleted ? 'Volver a Intentar' : 'Resolver'}</span>
         </button>
 
-        {canManage && (
+        {isCompleted && (
           <button
-            onClick={() => handleDeleteDesafio(resource.idDesafio)}
-            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-            title="Eliminar Desafío"
+            onClick={(e) => handleResetDesafio(resource.idDesafio, e)}
+            className="p-2 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-xl border border-slate-200 transition-all cursor-pointer shadow-xs"
+            title={`Reiniciar Desafío (-${resource.puntos || 10} XP)`}
           >
-            <Trash2 size={14} />
+            <RotateCcw size={15} />
           </button>
+        )}
+
+        {canManage && (
+          <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 rounded-xl p-1">
+            <button
+              onClick={(e) => handleOpenEditDesafioModal(resource, e)}
+              className="p-2 text-slate-600 hover:text-blue-600 hover:bg-white rounded-lg transition-all cursor-pointer shadow-xs hover:shadow-xs"
+              title="Editar Desafío"
+            >
+              <Pencil size={15} />
+            </button>
+            <button
+              onClick={() => handleDeleteDesafio(resource.idDesafio)}
+              className="p-2 text-slate-600 hover:text-rose-600 hover:bg-white rounded-lg transition-all cursor-pointer shadow-xs hover:shadow-xs"
+              title="Eliminar Desafío"
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
         )}
       </div>
     </div>

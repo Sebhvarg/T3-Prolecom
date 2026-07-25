@@ -77,13 +77,23 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   }, []);
 
+  const updateUser = useCallback((updatedUserData) => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const newUser = typeof updatedUserData === 'function' ? updatedUserData(prev) : { ...prev, ...updatedUserData };
+      storage.set('user', newUser);
+      return newUser;
+    });
+  }, []);
+
   const contextValue = useMemo(() => ({
     user,
     login,
     register,
     logout,
+    updateUser,
     loading
-  }), [user, login, register, logout, loading]);
+  }), [user, login, register, logout, updateUser, loading]);
 
   return (
     <AuthContext.Provider value={contextValue}>

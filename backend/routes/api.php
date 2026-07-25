@@ -60,6 +60,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get(ROUTE_DESAFIO_ID, [DesafioController::class, 'show']);
     Route::post(ROUTE_DESAFIO_ID.'/soluciones', [DesafioController::class, 'enviarSolucion']);
     Route::get(ROUTE_DESAFIO_ID.'/soluciones', [DesafioController::class, 'listarIntentos']);
+    Route::post(ROUTE_DESAFIO_ID.'/reset', [DesafioController::class, 'reset']);
 
     Route::middleware('role:Administrador,Profesor,Ayudante')->group(function () {
         Route::post('/temas/{idTema}/desafios', [DesafioController::class, 'store']);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Curso;
+use App\Models\Solucion;
 use App\Models\User;
 use App\Strategies\CourseTemplate\CursoTemplateFactory;
 use Illuminate\Http\Request;
@@ -53,20 +54,59 @@ class CursoController extends Controller
         return response()->json($cursos);
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        $user = $request->user('sanctum') ?? auth()->user();
+
         $curso = Curso::with([
             'creador:idUsuario,nombreCompleto',
             'temas.items.itemable',
         ])->findOrFail($id);
 
-        $curso->temas->each(function ($tema) {
-            $tema->items->each(function ($item) {
+        $idsDesafiosResueltos = [];
+        if ($user) {
+            $idsDesafiosResueltos = Solucion::where('idEstudiante', $user->idUsuario)
+                ->where('estado', 'aprobado')
+                ->pluck('idDesafio')
+                ->unique()
+                ->toArray();
+        }
+
+        $totalXPCurso = 0;
+        $xpGanadoCurso = 0;
+        $desafiosTotales = 0;
+        $desafiosResueltosCount = 0;
+
+        $curso->temas->each(function ($tema) use ($idsDesafiosResueltos, &$totalXPCurso, &$xpGanadoCurso, &$desafiosTotales, &$desafiosResueltosCount) {
+            $tema->items->each(function ($item) use ($idsDesafiosResueltos, &$totalXPCurso, &$xpGanadoCurso, &$desafiosTotales, &$desafiosResueltosCount) {
                 if ($item->itemable && method_exists($item->itemable, 'creador')) {
                     $item->itemable->load('creador:idUsuario,nombreCompleto');
                 }
+
+                if ($item->itemable_type && str_contains($item->itemable_type, 'Desafio') && $item->itemable) {
+                    $desafio = $item->itemable;
+                    $puntos = $desafio->puntos ?? 10;
+                    $totalXPCurso += $puntos;
+                    $desafiosTotales++;
+
+                    $isCompleted = in_array($desafio->idDesafio, $idsDesafiosResueltos);
+                    $desafio->completado = $isCompleted;
+
+                    if ($isCompleted) {
+                        $xpGanadoCurso += $puntos;
+                        $desafiosResueltosCount++;
+                    }
+                }
             });
         });
+
+        $curso->progreso_estudiante = [
+            'xp_ganado' => $xpGanadoCurso,
+            'xp_total' => $totalXPCurso,
+            'desafios_resueltos' => $desafiosResueltosCount,
+            'desafios_totales' => $desafiosTotales,
+            'porcentaje' => $desafiosTotales > 0 ? round(($desafiosResueltosCount / $desafiosTotales) * 100) : 0,
+        ];
 
         return response()->json($curso);
     }
