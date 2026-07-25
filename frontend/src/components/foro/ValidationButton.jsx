@@ -5,6 +5,7 @@ import { foroService } from '../../api/foroService';
 
 /**
  * Validation button visible ONLY to authorized roles (TAs / Instructors / Admins) (PB16 RBAC)
+ * Styled in alignment with the application's design system.
  */
 const ValidationButton = ({ respuestaId, isValidated, isAuthorized, onStatusChange }) => {
   const [loading, setLoading] = useState(false);
@@ -30,13 +31,13 @@ const ValidationButton = ({ respuestaId, isValidated, isAuthorized, onStatusChan
 
   const renderContent = () => {
     if (loading) {
-      return <Loader2 className="w-3.5 h-3.5 animate-spin" />;
+      return <Loader2 size={14} className="animate-spin" />;
     }
 
     if (isValidated) {
       return (
         <>
-          <X className="w-3.5 h-3.5 text-amber-600" />
+          <X size={14} className="text-amber-700" />
           <span>Remover Validación</span>
         </>
       );
@@ -44,7 +45,7 @@ const ValidationButton = ({ respuestaId, isValidated, isAuthorized, onStatusChan
 
     return (
       <>
-        <Award className="w-3.5 h-3.5" />
+        <Award size={14} />
         <span>Validar como Oficial</span>
       </>
     );
@@ -55,10 +56,10 @@ const ValidationButton = ({ respuestaId, isValidated, isAuthorized, onStatusChan
       type="button"
       onClick={handleToggleValidation}
       disabled={loading}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold text-xs transition-all duration-200 shadow-sm ${
+      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-semibold text-xs transition-colors shadow-xs ${
         isValidated
-          ? 'bg-amber-500/10 text-amber-700 border border-amber-300 hover:bg-amber-500/20 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700'
-          : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20 active:scale-95'
+          ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200'
+          : 'bg-[#2c5364] hover:bg-[#203a43] text-white'
       }`}
       title={isValidated ? 'Quitar validación oficial' : 'Validar como respuesta oficial'}
     >

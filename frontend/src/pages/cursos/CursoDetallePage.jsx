@@ -462,14 +462,14 @@ const CursoDetallePage = () => {
       )}
 
       {/* Navegación por Pestañas */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 mb-8">
+      <div className="flex border-b border-gray-200 mb-8">
         <button
           type="button"
           onClick={() => setActiveTab('temas')}
           className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all ${
             activeTab === 'temas'
-              ? 'border-[#2c5364] text-[#2c5364] dark:border-indigo-400 dark:text-indigo-400'
-              : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400'
+              ? 'border-[#2c5364] text-[#2c5364]'
+              : 'border-transparent text-gray-500 hover:text-gray-900'
           }`}
         >
           <BookOpen size={18} />
@@ -480,12 +480,12 @@ const CursoDetallePage = () => {
           onClick={() => setActiveTab('foro')}
           className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all ${
             activeTab === 'foro'
-              ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
-              : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400'
+              ? 'border-[#2c5364] text-[#2c5364]'
+              : 'border-transparent text-gray-500 hover:text-gray-900'
           }`}
         >
           <MessageSquare size={18} />
-          <span>Foro & Q&A Oficial (PB16)</span>
+          <span>Foro de Preguntas & Q&A</span>
         </button>
       </div>
 

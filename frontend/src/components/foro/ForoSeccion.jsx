@@ -13,7 +13,7 @@ const ForoSeccion = ({ idCurso, user }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [filtro, setFiltro] = useState('todas'); // 'todas', 'oficial', 'abiertas'
+  const [filtro, setFiltro] = useState('todas');
 
   // Modal Nueva Pregunta
   const [isModalNuevaOpen, setIsModalNuevaOpen] = useState(false);
@@ -149,7 +149,7 @@ const ForoSeccion = ({ idCurso, user }) => {
 
     if (preg.estado === 'resuelta') {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
           <CheckCircle2 size={12} />
           Resuelta
         </span>
@@ -157,7 +157,7 @@ const ForoSeccion = ({ idCurso, user }) => {
     }
 
     return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
         Abierta
       </span>
     );
@@ -178,9 +178,9 @@ const ForoSeccion = ({ idCurso, user }) => {
 
   const getAnswerCardClasses = (isValidated) => {
     if (isValidated) {
-      return 'p-5 rounded-2xl transition-all border bg-gradient-to-br from-emerald-50/90 via-teal-50/50 to-white dark:from-emerald-950/30 dark:via-slate-900 dark:to-slate-900 border-emerald-500/40 shadow-md ring-1 ring-emerald-500/20';
+      return 'p-5 rounded-2xl border border-emerald-200 bg-emerald-50/40 shadow-xs transition-all';
     }
-    return 'p-5 rounded-2xl transition-all border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700';
+    return 'p-5 rounded-2xl border border-gray-100 bg-white shadow-xs transition-all';
   };
 
   // Filtrado de preguntas
@@ -196,29 +196,29 @@ const ForoSeccion = ({ idCurso, user }) => {
 
   return (
     <div className="space-y-6">
-      {/* Banner Superior Foro */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 text-white shadow-xl border border-indigo-500/20 relative overflow-hidden">
-        <div className="absolute -right-6 -bottom-6 opacity-10">
-          <MessageSquare size={180} />
+      {/* Banner Superior Foro (Alineado con el estilo de cabecera del curso) */}
+      <div className="bg-gradient-to-r from-[#0f2027] via-[#203a43] to-[#2c5364] rounded-3xl p-8 text-white shadow-lg relative overflow-hidden">
+        <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-10 translate-y-10">
+          <MessageSquare size={240} />
         </div>
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="bg-indigo-500/20 text-indigo-300 text-xs font-bold px-3 py-1 rounded-full border border-indigo-400/30 uppercase tracking-wider flex items-center gap-1.5">
-                <ShieldCheck size={14} className="text-indigo-400" />
-                Foro Validado PB16
+            <div className="flex items-center gap-2 mb-3">
+              <span className="px-3 py-1 bg-white/20 backdrop-blur-md text-white text-xs font-bold rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                <ShieldCheck size={14} className="text-emerald-300" />
+                Foro Validado (PB16)
               </span>
             </div>
-            <h2 className="text-2xl font-bold tracking-tight">Foro de Consultas y Preguntas</h2>
-            <p className="text-slate-300 text-sm mt-1 max-w-xl">
-              Resuelve tus dudas académicas. Las respuestas oficializadas por profesores y ayudantes destacan con el distintivo de <span className="text-emerald-400 font-semibold">Respuesta Oficial</span>.
+            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">Foro de Consultas y Preguntas</h2>
+            <p className="text-white/80 text-sm mt-2 max-w-xl leading-relaxed">
+              Resuelve tus dudas académicas. Las respuestas convalidadas por profesores y ayudantes quedan destacadas como <strong className="text-white">Respuesta Oficial</strong>.
             </p>
           </div>
 
           <button
             type="button"
             onClick={() => setIsModalNuevaOpen(true)}
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold px-5 py-3 rounded-2xl shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+            className="flex items-center justify-center gap-2 bg-white text-[#203a43] hover:bg-gray-100 font-bold px-5 py-3 rounded-xl shadow-md transition-all shrink-0"
           >
             <Plus size={18} />
             <span>Hacer una Pregunta</span>
@@ -227,26 +227,26 @@ const ForoSeccion = ({ idCurso, user }) => {
       </div>
 
       {/* Barra de Filtros y Búsqueda */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
             placeholder="Buscar en las preguntas..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
           />
         </div>
 
-        <div className="flex items-center gap-1.5 w-full sm:w-auto bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
+        <div className="flex items-center gap-1.5 w-full sm:w-auto">
           <button
             type="button"
             onClick={() => setFiltro('todas')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
               filtro === 'todas'
-                ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                ? 'bg-[#2c5364] text-white shadow-xs'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             Todas ({preguntas.length})
@@ -254,10 +254,10 @@ const ForoSeccion = ({ idCurso, user }) => {
           <button
             type="button"
             onClick={() => setFiltro('oficial')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
               filtro === 'oficial'
-                ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                ? 'bg-[#2c5364] text-white shadow-xs'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             Con Respuesta Oficial
@@ -265,10 +265,10 @@ const ForoSeccion = ({ idCurso, user }) => {
           <button
             type="button"
             onClick={() => setFiltro('abiertas')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
               filtro === 'abiertas'
-                ? 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                ? 'bg-[#2c5364] text-white shadow-xs'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             Sin Resolver
@@ -277,26 +277,26 @@ const ForoSeccion = ({ idCurso, user }) => {
       </div>
 
       {error && (
-        <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-2xl flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 shrink-0" />
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-3">
+          <AlertCircle size={20} className="shrink-0" />
           <p className="text-sm font-medium">{error}</p>
         </div>
       )}
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
-          <p className="text-sm font-medium text-slate-500">Cargando preguntas del foro...</p>
+          <Loader2 className="w-10 h-10 text-[#2c5364] animate-spin" />
+          <p className="text-sm font-semibold text-gray-500">Cargando preguntas del foro...</p>
         </div>
       ) : preguntasFiltradas.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-8">
-          <HelpCircle className="w-14 h-14 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">No hay preguntas disponibles</h3>
-          <p className="text-slate-500 text-sm mt-1">Sé el primero en realizar una consulta sobre el contenido de este curso.</p>
+        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+          <HelpCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <h3 className="text-lg font-bold text-gray-900">No hay preguntas disponibles</h3>
+          <p className="text-gray-500 text-sm mt-1">Sé el primero en realizar una consulta sobre el contenido de este curso.</p>
           <button
             type="button"
             onClick={() => setIsModalNuevaOpen(true)}
-            className="mt-4 inline-flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-indigo-700 transition"
+            className="mt-4 inline-flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all"
           >
             <Plus size={16} />
             <span>Crear Pregunta</span>
@@ -310,29 +310,29 @@ const ForoSeccion = ({ idCurso, user }) => {
               key={preg.idPregunta}
               type="button"
               onClick={() => loadPreguntaDetalle(preg.idPregunta)}
-              className="w-full text-left group bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer relative overflow-hidden"
+              className="w-full text-left bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all cursor-pointer relative overflow-hidden"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
                     {renderQuestionStatusBadge(preg)}
 
-                    <span className="text-xs text-slate-400 font-medium">
-                      Publicado por <strong className="text-slate-700 dark:text-slate-300">{preg.creador?.nombreCompleto || 'Usuario'}</strong>
+                    <span className="text-xs text-gray-400 font-medium">
+                      Publicado por <strong className="text-gray-700">{preg.creador?.nombreCompleto || 'Usuario'}</strong>
                     </span>
                   </div>
 
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 transition-colors">
+                  <h3 className="text-lg font-bold text-gray-900 group-hover:text-[#2c5364] transition-colors">
                     {preg.titulo}
                   </h3>
 
-                  <p className="text-slate-600 dark:text-slate-400 text-sm mt-1 line-clamp-2">
+                  <p className="text-gray-600 text-sm mt-1 line-clamp-2">
                     {preg.descripcion}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-xl shrink-0">
-                  <MessageSquare size={14} className="text-indigo-500" />
+                <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-xl shrink-0">
+                  <MessageSquare size={14} className="text-[#2c5364]" />
                   <span>{preg.respuestas_count ?? 0}</span>
                 </div>
               </div>
@@ -343,14 +343,14 @@ const ForoSeccion = ({ idCurso, user }) => {
 
       {/* Modal para Crear Pregunta */}
       {isModalNuevaOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Publicar Nueva Pregunta</h3>
+        <div className="fixed inset-0 bg-black/55 backdrop-blur-xs flex justify-center items-center z-50 p-4">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl relative">
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+              <h3 className="text-xl font-bold text-gray-900">Publicar Nueva Pregunta</h3>
               <button
                 type="button"
                 onClick={() => setIsModalNuevaOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
               >
                 <X size={20} />
               </button>
@@ -358,8 +358,8 @@ const ForoSeccion = ({ idCurso, user }) => {
 
             <form onSubmit={handleCreatePregunta} className="mt-4 space-y-4">
               <div>
-                <label htmlFor="pregunta-titulo" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Título de la consulta *
+                <label htmlFor="pregunta-titulo" className="block text-sm font-bold text-gray-700 mb-1.5">
+                  Título de la consulta <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="pregunta-titulo"
@@ -368,13 +368,13 @@ const ForoSeccion = ({ idCurso, user }) => {
                   placeholder="Ej: ¿Cómo implementar el algoritmo de búsqueda?"
                   value={formPregunta.titulo}
                   onChange={(e) => setFormPregunta({ ...formPregunta, titulo: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364] text-sm"
                 />
               </div>
 
               <div>
-                <label htmlFor="pregunta-descripcion" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Descripción o código *
+                <label htmlFor="pregunta-descripcion" className="block text-sm font-bold text-gray-700 mb-1.5">
+                  Descripción o código <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   id="pregunta-descripcion"
@@ -383,22 +383,22 @@ const ForoSeccion = ({ idCurso, user }) => {
                   placeholder="Explica en detalle tu pregunta..."
                   value={formPregunta.descripcion}
                   onChange={(e) => setFormPregunta({ ...formPregunta, descripcion: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364] text-sm resize-none"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex gap-3 justify-end pt-4 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setIsModalNuevaOpen(false)}
-                  className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
+                  className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold hover:bg-gray-50 text-gray-700"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={submittingPregunta}
-                  className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm px-5 py-2 rounded-xl transition"
+                  className="inline-flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow-sm transition-all"
                 >
                   {submittingPregunta && <Loader2 size={16} className="animate-spin" />}
                   <span>Publicar Pregunta</span>
@@ -411,24 +411,24 @@ const ForoSeccion = ({ idCurso, user }) => {
 
       {/* Modal / Overlay Detalle de Pregunta y Respuestas */}
       {selectedPreguntaId && (
-        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-            {/* Header del modal */}
-            <div className="p-6 bg-slate-900 text-white flex items-start justify-between gap-4 border-b border-slate-800">
+        <div className="fixed inset-0 bg-black/55 backdrop-blur-xs flex justify-center items-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-100 overflow-hidden">
+            {/* Header del modal con el degradado del curso */}
+            <div className="p-6 bg-gradient-to-r from-[#0f2027] via-[#203a43] to-[#2c5364] text-white flex items-start justify-between gap-4">
               {loadingDetalle || !preguntaDetalle ? (
                 <div className="flex items-center gap-3">
-                  <Loader2 className="w-6 h-6 animate-spin text-indigo-400" />
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-200" />
                   <span className="font-semibold text-sm">Cargando conversación...</span>
                 </div>
               ) : (
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-2">
                     {renderModalHeaderBadge()}
                   </div>
                   <h3 className="text-xl font-bold leading-tight">{preguntaDetalle.titulo}</h3>
-                  <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
-                    <User size={12} />
-                    <span>Preguntado por {preguntaDetalle.creador?.nombreCompleto || 'Usuario'}</span>
+                  <div className="flex items-center gap-2 text-xs text-white/70 mt-1">
+                    <User size={14} />
+                    <span>Preguntado por <strong>{preguntaDetalle.creador?.nombreCompleto || 'Usuario'}</strong></span>
                   </div>
                 </div>
               )}
@@ -436,32 +436,30 @@ const ForoSeccion = ({ idCurso, user }) => {
               <button
                 type="button"
                 onClick={() => { setSelectedPreguntaId(null); setPreguntaDetalle(null); }}
-                className="text-slate-400 hover:text-white p-1 rounded-lg transition"
+                className="text-white/70 hover:text-white p-1 rounded-lg transition"
               >
                 <X size={22} />
               </button>
             </div>
 
             {/* Contenido scrolleable */}
-            <div className="p-6 overflow-y-auto flex-1 space-y-6">
+            <div className="p-6 overflow-y-auto flex-1 space-y-6 bg-gray-50/50">
               {preguntaDetalle && (
                 <>
-                  <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700">
-                    <p className="text-slate-800 dark:text-slate-200 text-sm whitespace-pre-wrap leading-relaxed">
+                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs">
+                    <p className="text-gray-800 text-sm whitespace-pre-wrap leading-relaxed">
                       {preguntaDetalle.descripcion}
                     </p>
                   </div>
 
-                  <hr className="border-slate-200 dark:border-slate-800" />
-
                   <div>
-                    <h4 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4 text-indigo-500" />
+                    <h4 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-[#2c5364]" />
                       <span>Respuestas ({preguntaDetalle.respuestas?.length || 0})</span>
                     </h4>
 
                     {preguntaDetalle.respuestas?.length === 0 ? (
-                      <div className="text-center py-8 text-slate-500 text-sm">
+                      <div className="text-center py-8 text-gray-400 text-sm bg-white rounded-2xl border border-gray-100">
                         Todavía no hay respuestas. ¡Sé el primero en responder!
                       </div>
                     ) : (
@@ -476,15 +474,15 @@ const ForoSeccion = ({ idCurso, user }) => {
                             >
                               <div className="flex items-start justify-between gap-4 mb-3">
                                 <div className="flex items-center gap-2.5">
-                                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-xs shadow">
+                                  <div className="w-8 h-8 rounded-xl bg-[#2c5364] text-white flex items-center justify-center font-bold text-xs shadow-xs">
                                     {resp.usuario?.nombreCompleto?.charAt(0) || 'U'}
                                   </div>
                                   <div>
                                     <div className="flex items-center gap-2">
-                                      <span className="font-bold text-sm text-slate-900 dark:text-slate-100">
+                                      <span className="font-bold text-sm text-gray-900">
                                         {resp.usuario?.nombreCompleto || 'Usuario'}
                                       </span>
-                                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                                      <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-gray-100 text-gray-600 uppercase tracking-wider">
                                         {authorRole}
                                       </span>
                                     </div>
@@ -505,7 +503,7 @@ const ForoSeccion = ({ idCurso, user }) => {
                                 </div>
                               </div>
 
-                              <p className="text-slate-700 dark:text-slate-300 text-sm whitespace-pre-wrap leading-relaxed pl-10">
+                              <p className="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed pl-10">
                                 {resp.contenido}
                               </p>
                             </div>
@@ -518,19 +516,19 @@ const ForoSeccion = ({ idCurso, user }) => {
               )}
             </div>
 
-            <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-700">
+            <div className="p-4 bg-white border-t border-gray-100">
               <form onSubmit={handleCreateRespuesta} className="flex gap-2">
                 <input
                   type="text"
                   placeholder="Escribe una respuesta académica..."
                   value={nuevoContenidoRespuesta}
                   onChange={(e) => setNuevoContenidoRespuesta(e.target.value)}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500"
+                  className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
                 />
                 <button
                   type="submit"
                   disabled={submittingRespuesta || !nuevoContenidoRespuesta.trim()}
-                  className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition shadow-md"
+                  className="inline-flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] disabled:opacity-50 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition shadow-xs"
                 >
                   {submittingRespuesta ? (
                     <Loader2 size={16} className="animate-spin" />
