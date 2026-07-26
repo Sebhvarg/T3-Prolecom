@@ -31,7 +31,7 @@ export function parseContentWithCode(text) {
     const language = (match[1] || 'plaintext').trim().toLowerCase();
     const rawCode = match[2];
 
-    let highlightedHtml = '';
+    let highlightedHtml;
     try {
       if (language && hljs.getLanguage(language)) {
         highlightedHtml = hljs.highlight(rawCode, { language }).value;

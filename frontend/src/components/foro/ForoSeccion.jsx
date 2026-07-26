@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import {
-  MessageSquare, Plus, Search, HelpCircle,
+  MessageSquare, Plus, Search,
   Loader2, AlertCircle, ShieldCheck, Lock, Unlock, ArrowLeft
 } from 'lucide-react';
 import { foroService } from '../../api/foroService';
@@ -57,6 +57,17 @@ const ForoSeccion = ({ idForo, user, onBack }) => {
     user?.roles?.some(r => ['Administrador', 'Moderador', 'Profesor'].includes(r.rol || r))
   );
 
+  const loadPreguntaDetalle = useCallback(async (idPregunta) => {
+    setSelectedPreguntaId(idPregunta);
+    try {
+      const data = await foroService.getPreguntaDetalle(idPregunta);
+      setPreguntaDetalle(data);
+    } catch (err) {
+      console.error(err);
+      alert('Error al cargar el detalle de la pregunta.');
+    }
+  }, []);
+
   const fetchForoData = useCallback(async () => {
     try {
       const [foroData, preguntasData] = await Promise.all([
@@ -74,22 +85,16 @@ const ForoSeccion = ({ idForo, user, onBack }) => {
   }, [idForo]);
 
   useEffect(() => {
-    fetchForoData();
-    if (initialPreguntaId) {
-      loadPreguntaDetalle(Number(initialPreguntaId));
+    let ignore = false;
+    async function init() {
+      await fetchForoData();
+      if (initialPreguntaId && !ignore) {
+        await loadPreguntaDetalle(Number(initialPreguntaId));
+      }
     }
-  }, [fetchForoData, initialPreguntaId]);
-
-  const loadPreguntaDetalle = async (idPregunta) => {
-    setSelectedPreguntaId(idPregunta);
-    try {
-      const data = await foroService.getPreguntaDetalle(idPregunta);
-      setPreguntaDetalle(data);
-    } catch (err) {
-      console.error(err);
-      alert('Error al cargar el detalle de la pregunta.');
-    }
-  };
+    init();
+    return () => { ignore = true; };
+  }, [fetchForoData, initialPreguntaId, loadPreguntaDetalle]);
 
   const handleCreatePregunta = async (preguntaData) => {
     setSubmittingPregunta(true);

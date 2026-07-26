@@ -25,11 +25,28 @@ const NotificacionesDropdown = () => {
   }, []);
 
   useEffect(() => {
-    fetchNotificaciones();
-    // Polling ligero cada 30 segundos
-    const interval = setInterval(fetchNotificaciones, 30000);
-    return () => clearInterval(interval);
-  }, [fetchNotificaciones]);
+    let ignore = false;
+    async function load() {
+      try {
+        const res = await notificacionesService.getNotificaciones(1);
+        if (!ignore) {
+          const list = res.data || [];
+          setNotificaciones(list);
+          const unread = list.filter((n) => !n.leida).length;
+          setUnreadCount(unread);
+        }
+      } catch (err) {
+        console.error('Error al cargar notificaciones:', err);
+      }
+    }
+
+    load();
+    const interval = setInterval(load, 30000);
+    return () => {
+      ignore = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Cerrar al hacer clic afuera
   useEffect(() => {

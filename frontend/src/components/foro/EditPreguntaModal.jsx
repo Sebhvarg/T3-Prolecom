@@ -1,18 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { X, Loader2, Edit3 } from 'lucide-react';
+import { X, Loader2, Edit } from 'lucide-react';
 
 const EditPreguntaModal = ({ isOpen, onClose, onSubmit, pregunta, submitting }) => {
+  const [prevPregunta, setPrevPregunta] = useState(null);
   const [form, setForm] = useState({ titulo: '', descripcion: '' });
 
-  useEffect(() => {
-    if (pregunta) {
-      setForm({
-        titulo: pregunta.titulo || '',
-        descripcion: pregunta.descripcion || '',
-      });
-    }
-  }, [pregunta]);
+  if (pregunta && pregunta !== prevPregunta) {
+    setPrevPregunta(pregunta);
+    setForm({
+      titulo: pregunta.titulo || '',
+      descripcion: pregunta.descripcion || '',
+    });
+  }
 
   if (!isOpen || !pregunta) return null;
 
@@ -27,18 +27,18 @@ const EditPreguntaModal = ({ isOpen, onClose, onSubmit, pregunta, submitting }) 
       <div className="bg-white rounded-3xl p-6 md:p-8 max-w-xl w-full shadow-2xl relative border border-gray-100">
         <div className="flex items-center justify-between pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-purple-50 text-purple-700 rounded-2xl">
-              <Edit3 size={22} />
+            <div className="p-2.5 bg-amber-50 text-amber-700 rounded-2xl">
+              <Edit size={22} />
             </div>
             <div>
               <h3 className="text-xl font-bold text-gray-900">Editar Pregunta</h3>
-              <p className="text-xs text-gray-500">Modifica el título o descripción de tu pregunta.</p>
+              <p className="text-xs text-gray-500">Actualiza el contenido o el título de tu consulta.</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 p-1.5 rounded-xl hover:bg-gray-100 transition"
+            className="text-gray-400 hover:text-gray-600 p-1.5 rounded-xl hover:bg-gray-100 transition cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -77,14 +77,14 @@ const EditPreguntaModal = ({ isOpen, onClose, onSubmit, pregunta, submitting }) 
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold hover:bg-gray-50 text-gray-700"
+              className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold hover:bg-gray-50 text-gray-700 cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={submitting || !form.titulo.trim() || !form.descripcion.trim()}
-              className="inline-flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] disabled:opacity-50 text-white font-semibold text-sm px-6 py-2.5 rounded-xl shadow-md transition-all"
+              className="inline-flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] disabled:opacity-50 text-white font-semibold text-sm px-6 py-2.5 rounded-xl shadow-md transition-all cursor-pointer"
             >
               {submitting && <Loader2 size={16} className="animate-spin" />}
               <span>Guardar Cambios</span>
