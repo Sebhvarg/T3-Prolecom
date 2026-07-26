@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { cursosService } from '../../api/cursosService';
 import { desafiosService } from '../../api/desafiosService';
+import { foroService } from '../../api/foroService';
 import { storage } from '../../utils/crypto';
 import ForoSeccion from '../../components/foro/ForoSeccion';
 import { 
@@ -23,6 +24,8 @@ const generateTestCaseId = () => {
 const CursoDetallePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialForoId = searchParams.get('foroId');
   const { user } = useAuth();
   
   const [curso, setCurso] = useState(null);
@@ -30,12 +33,17 @@ const CursoDetallePage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [expandedTemas, setExpandedTemas] = useState({});
-  const [activeTab, setActiveTab] = useState('temas');
+
 
   // Modales
   const [isTemaModalOpen, setIsTemaModalOpen] = useState(false);
   const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
   const [activeTemaId, setActiveTemaId] = useState(null);
+
+  // Foro Itemable States
+  const [isForoModalOpen, setIsForoModalOpen] = useState(false);
+  const [foroForm, setForoForm] = useState({ titulo: '', descripcion: '' });
+  const [selectedForoId, setSelectedForoId] = useState(initialForoId ? Number(initialForoId) : null);
 
   // Desafio Modal States
   const [isDesafioModalOpen, setIsDesafioModalOpen] = useState(false);
@@ -70,7 +78,13 @@ const CursoDetallePage = () => {
       if (data.temas) {
         data.temas.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { numeric: true }));
         data.temas.forEach(t => {
-          if (t.items) t.items.sort((a, b) => a.titulo.localeCompare(b.titulo, 'es', { numeric: true }));
+          if (t.items) {
+            t.items.sort((a, b) => {
+              const tituloA = a.resource?.titulo || a.itemable?.titulo || '';
+              const tituloB = b.resource?.titulo || b.itemable?.titulo || '';
+              return tituloA.localeCompare(tituloB, 'es', { numeric: true });
+            });
+          }
         });
       }
       setCurso(data);
@@ -90,33 +104,7 @@ const CursoDetallePage = () => {
   };
 
   useEffect(() => {
-    let active = true;
-    const load = async () => {
-      try {
-        const data = await cursosService.getCurso(id);
-        if (!active) return;
-        setCurso(data);
-        
-        // Auto-expandir todos los temas al iniciar
-        const expandMap = {};
-        data.temas?.forEach(t => {
-          expandMap[t.idTema] = true;
-        });
-        setExpandedTemas(expandMap);
-      } catch (err) {
-        if (!active) return;
-        console.error(err);
-        setError('No se pudo cargar la información del curso.');
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    };
-    load();
-    return () => {
-      active = false;
-    };
+    fetchCurso();
   }, [id]);
 
   const toggleTema = (temaId) => {
@@ -243,6 +231,48 @@ const CursoDetallePage = () => {
       updated[index] = { ...updated[index], [field]: value };
       return { ...prev, testCases: updated };
     });
+  };
+
+  // --- FOROS LOGIC ---
+  const handleOpenForoModal = (temaId) => {
+    setActiveTemaId(temaId);
+    setForoForm({ titulo: '', descripcion: '' });
+    setIsForoModalOpen(true);
+  };
+
+  const handleForoSubmit = async (e) => {
+    e.preventDefault();
+    if (!foroForm.titulo.trim()) return;
+    setError('');
+    setActionLoading(true);
+
+    try {
+      await foroService.createForo(activeTemaId, foroForm);
+      setSuccess('Foro creado exitosamente.');
+      setIsForoModalOpen(false);
+      fetchCurso();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Error al crear el foro.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteForo = async (foroId) => {
+    if (!globalThis.confirm('¿Estás seguro de eliminar este foro y todas sus preguntas?')) return;
+    setError('');
+    try {
+      await foroService.deleteForo(foroId);
+      setSuccess('Foro eliminado correctamente.');
+      if (selectedForoId === foroId) {
+        setSelectedForoId(null);
+      }
+      fetchCurso();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Error al eliminar el foro.');
+    }
   };
 
   const handleDesafioSubmit = async (e) => {
@@ -461,36 +491,8 @@ const CursoDetallePage = () => {
         </div>
       )}
 
-      {/* Navegación por Pestañas */}
-      <div className="flex border-b border-gray-200 mb-8">
-        <button
-          type="button"
-          onClick={() => setActiveTab('temas')}
-          className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all ${
-            activeTab === 'temas'
-              ? 'border-[#2c5364] text-[#2c5364]'
-              : 'border-transparent text-gray-500 hover:text-gray-900'
-          }`}
-        >
-          <BookOpen size={18} />
-          <span>Temas y Módulos ({curso.temas?.length || 0})</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('foro')}
-          className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all ${
-            activeTab === 'foro'
-              ? 'border-[#2c5364] text-[#2c5364]'
-              : 'border-transparent text-gray-500 hover:text-gray-900'
-          }`}
-        >
-          <MessageSquare size={18} />
-          <span>Foro de Preguntas & Q&A</span>
-        </button>
-      </div>
-
-      {activeTab === 'foro' ? (
-        <ForoSeccion idCurso={id} user={user} />
+      {selectedForoId ? (
+        <ForoSeccion idForo={selectedForoId} user={user} onBack={() => setSelectedForoId(null)} />
       ) : (
         <>
           {/* Secciones de Contenido */}
@@ -554,6 +556,13 @@ const CursoDetallePage = () => {
                             <span>Crear Desafío</span>
                           </button>
                           <button
+                            onClick={() => handleOpenForoModal(tema.idTema)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-700 text-xs font-bold rounded-lg transition-colors"
+                          >
+                            <Plus size={14} />
+                            <span>Crear Foro</span>
+                          </button>
+                          <button
                             onClick={(e) => handleDeleteTema(tema.idTema, e)}
                             className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Eliminar Tema"
@@ -580,11 +589,12 @@ const CursoDetallePage = () => {
                         <p className="text-gray-400 text-sm italic py-2 text-center">Este tema no contiene materiales o desafíos aún.</p>
                       ) : (
                         tema.items.map((item) => {
-                          const resource = item.resource;
+                          const resource = item.resource || item.itemable;
                           if (!resource) return null;
 
                           const isMaterial = item.itemable_type.includes('MaterialAprendizaje');
                           const isDesafio = item.itemable_type.includes('Desafio');
+                          const isForo = item.itemable_type.includes('Foro');
 
                           if (isMaterial) {
                             return renderMaterialItem(
@@ -599,6 +609,10 @@ const CursoDetallePage = () => {
 
                           if (isDesafio) {
                             return renderDesafioItem(item, resource, id, navigate, canManage, handleDeleteDesafio);
+                          }
+
+                          if (isForo) {
+                            return renderForoItem(item, resource, (foroId) => setSelectedForoId(foroId), canManage, handleDeleteForo);
                           }
 
                           return null;
@@ -911,6 +925,64 @@ const CursoDetallePage = () => {
         </div>
       )}
 
+      {/* --- MODAL CREAR FORO --- */}
+      {isForoModalOpen && (
+        <div className="fixed inset-0 bg-black/55 backdrop-blur-xs flex justify-center items-center z-50 p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative">
+            <button 
+              onClick={() => setIsForoModalOpen(false)}
+              className="absolute right-6 top-6 p-1.5 text-gray-400 hover:bg-gray-50 rounded-lg"
+            >
+              <X size={18} />
+            </button>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Crear Foro de Discusión</h3>
+            <p className="text-gray-500 text-sm mb-6">Agrega un foro Q&amp;A a este tema para que los estudiantes hagan sus consultas.</p>
+            <form onSubmit={handleForoSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="foro-titulo" className="block text-sm font-bold text-gray-700 mb-1.5">Título del Foro <span className="text-red-500">*</span></label>
+                <input 
+                  id="foro-titulo"
+                  type="text" 
+                  required
+                  placeholder="Ej: Dudas sobre Recursión y Casos Base..."
+                  value={foroForm.titulo}
+                  onChange={(e) => setForoForm(prev => ({ ...prev, titulo: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+                />
+              </div>
+              <div>
+                <label htmlFor="foro-descripcion" className="block text-sm font-bold text-gray-700 mb-1.5">Descripción (Opcional)</label>
+                <textarea 
+                  id="foro-descripcion"
+                  placeholder="Instrucciones o temas que se discutirán en este espacio..."
+                  value={foroForm.descripcion}
+                  onChange={(e) => setForoForm(prev => ({ ...prev, descripcion: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364] h-24 resize-none"
+                />
+              </div>
+              <div className="flex gap-3 justify-end pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsForoModalOpen(false)}
+                  className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold hover:bg-gray-50"
+                  disabled={actionLoading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-[#0f766e] hover:bg-[#115e59] text-white rounded-xl text-sm font-semibold shadow flex items-center gap-2"
+                  disabled={actionLoading}
+                >
+                  {actionLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>Publicar Foro</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* --- MODAL VISOR SEGURO (SECURE VIEWER) --- */}
       {activeViewerMaterial && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex justify-center items-center z-50 p-4 animate-fade-in">
@@ -1084,6 +1156,52 @@ const renderDesafioItem = (item, resource, id, navigate, canManage, handleDelete
             onClick={() => handleDeleteDesafio(resource.idDesafio)}
             className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
             title="Eliminar Desafío"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const renderForoItem = (item, resource, handleSelectForo, canManage, handleDeleteForo) => {
+  return (
+    <div key={item.idItemTema} className="flex justify-between items-center bg-white border border-gray-100 p-4 rounded-xl shadow-xs hover:shadow-md transition-shadow w-full">
+      <div className="flex items-center gap-4.5">
+        <div className="p-2.5 bg-teal-50 text-teal-700 rounded-xl">
+          <MessageSquare size={20} />
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <h4 className="font-bold text-gray-900 text-sm md:text-base leading-snug">{resource.titulo}</h4>
+            <span className={`px-2 py-0.5 text-xxs font-bold rounded-md uppercase tracking-wider ${
+              resource.estado === 'cerrado' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'
+            }`}>
+              {resource.estado === 'cerrado' ? 'Cerrado' : 'Abierto'}
+            </span>
+          </div>
+          {resource.descripcion && <p className="text-gray-500 text-xs mt-0.5 line-clamp-1">{resource.descripcion}</p>}
+          <div className="flex items-center gap-3 mt-1.5 text-xxs text-gray-400 font-semibold uppercase tracking-wider">
+            <span>Foro de discusión • Creador: {resource.creador?.nombreCompleto || 'Profesor'}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => handleSelectForo(resource.idForo)}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#0f766e] hover:bg-[#115e59] text-white text-xs font-bold rounded-lg transition-colors shadow-xs"
+        >
+          <MessageSquare size={14} />
+          <span>Abrir Foro</span>
+        </button>
+
+        {canManage && (
+          <button
+            onClick={() => handleDeleteForo(resource.idForo)}
+            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+            title="Eliminar Foro"
           >
             <Trash2 size={14} />
           </button>
