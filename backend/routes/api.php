@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\CursoController;
 use App\Http\Controllers\Api\DesafioController;
 use App\Http\Controllers\Api\ForoController;
 use App\Http\Controllers\Api\MaterialController;
+use App\Http\Controllers\Api\NotificacionController;
 use App\Http\Controllers\Api\PerfilController;
 use App\Http\Controllers\Api\TemaController;
 use App\Http\Controllers\Api\UserController;
@@ -38,42 +39,92 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json(LenguajeProgramacion::where('activo', true)->get());
     });
 
-    // Rutas de Cursos e Inscripciones
+    // ─────────────────────────────────────────────────────────────────
+    // Cursos e Inscripciones
+    // ─────────────────────────────────────────────────────────────────
     Route::get('/cursos', [CursoController::class, 'index']);
     Route::get('/cursos/total', [CursoController::class, 'cursosTotal']);
     Route::get(ROUTE_CURSO_ID, [CursoController::class, 'show']);
     Route::post(ROUTE_CURSO_ID.'/inscribir', [CursoController::class, 'inscribir']);
     Route::delete(ROUTE_CURSO_ID.'/desmatricular', [CursoController::class, 'desmatricular']);
 
-    // Rutas de Temas (Módulos)
+    // ─────────────────────────────────────────────────────────────────
+    // Temas (Módulos)
+    // ─────────────────────────────────────────────────────────────────
     Route::post('/cursos/{id}/temas', [TemaController::class, 'store']);
     Route::put('/temas/{id}', [TemaController::class, 'update']);
     Route::delete('/temas/{id}', [TemaController::class, 'destroy']);
 
-    // Rutas de Materiales de Aprendizaje
+    // ─────────────────────────────────────────────────────────────────
+    // Materiales de Aprendizaje
+    // ─────────────────────────────────────────────────────────────────
     Route::post('/temas/{id}/materiales', [MaterialController::class, 'store']);
     Route::delete('/materiales/{id}', [MaterialController::class, 'destroy']);
     Route::get('/materiales/{id}/stream', [MaterialController::class, 'stream']);
     Route::get('/materiales/{id}/download', [MaterialController::class, 'download']);
 
-    // Rutas de Desafíos y Soluciones
+    // ─────────────────────────────────────────────────────────────────
+    // Desafíos y Soluciones
+    // ─────────────────────────────────────────────────────────────────
     Route::get('/temas/{idTema}/desafios', [DesafioController::class, 'indexByTema']);
     Route::get(ROUTE_DESAFIO_ID, [DesafioController::class, 'show']);
     Route::post(ROUTE_DESAFIO_ID.'/soluciones', [DesafioController::class, 'enviarSolucion']);
     Route::get(ROUTE_DESAFIO_ID.'/soluciones', [DesafioController::class, 'listarIntentos']);
 
-    // Rutas de Foro / Preguntas y Respuestas (PB16)
-    Route::get('/cursos/{idCurso}/preguntas', [ForoController::class, 'indexPreguntas']);
-    Route::post('/cursos/{idCurso}/preguntas', [ForoController::class, 'storePregunta']);
-    Route::get('/preguntas/{idPregunta}', [ForoController::class, 'showPregunta']);
-    Route::post('/preguntas/{idPregunta}/respuestas', [ForoController::class, 'storeRespuesta']);
+    // ─────────────────────────────────────────────────────────────────
+    // FORO ACADÉMICO — PB12
+    // Gestión de Foros (Itemable — creado dentro de un Tema)
+    // ─────────────────────────────────────────────────────────────────
+    Route::get('/foros/{idForo}', [ForoController::class, 'show']);
 
+    // Preguntas del foro (todos los usuarios autenticados)
+    Route::get('/foros/{idForo}/preguntas', [ForoController::class, 'indexPreguntas']);
+    Route::post('/foros/{idForo}/preguntas', [ForoController::class, 'storePregunta']);
+    Route::get('/preguntas/{idPregunta}', [ForoController::class, 'showPregunta']);
+    Route::put('/preguntas/{idPregunta}', [ForoController::class, 'updatePregunta']);
+    Route::delete('/preguntas/{idPregunta}', [ForoController::class, 'destroyPregunta']);
+
+    // Respuestas (todos los usuarios autenticados)
+    Route::post('/preguntas/{idPregunta}/respuestas', [ForoController::class, 'storeRespuesta']);
+    Route::put('/respuestas/{idRespuesta}', [ForoController::class, 'updateRespuesta']);
+    Route::delete('/respuestas/{idRespuesta}', [ForoController::class, 'destroyRespuesta']);
+
+    // Votos — likes/dislikes en respuestas (todos los usuarios autenticados, excepto el autor)
+    Route::post('/respuestas/{idRespuesta}/votar', [ForoController::class, 'votar']);
+
+    // Reportes de contenido (todos los usuarios autenticados)
+    Route::post('/preguntas/{idPregunta}/reportar', [ForoController::class, 'reportarPregunta']);
+    Route::post('/respuestas/{idRespuesta}/reportar', [ForoController::class, 'reportarRespuesta']);
+
+    // ─────────────────────────────────────────────────────────────────
+    // NOTIFICACIONES
+    // ─────────────────────────────────────────────────────────────────
+    Route::get('/notificaciones', [NotificacionController::class, 'index']);
+    Route::patch('/notificaciones/{id}/leer', [NotificacionController::class, 'marcarLeida']);
+    Route::patch('/notificaciones/leer-todas', [NotificacionController::class, 'marcarTodasLeidas']);
+
+    // ─────────────────────────────────────────────────────────────────
+    // Rutas con restricción de roles
+    // ─────────────────────────────────────────────────────────────────
     Route::middleware('role:Administrador,Profesor,Ayudante')->group(function () {
+        // Desafíos — solo staff puede crear/editar/eliminar
         Route::post('/temas/{idTema}/desafios', [DesafioController::class, 'store']);
         Route::put(ROUTE_DESAFIO_ID, [DesafioController::class, 'update']);
         Route::delete(ROUTE_DESAFIO_ID, [DesafioController::class, 'destroy']);
 
-        // Validación de respuestas por Instructores / Ayudantes (PB16)
+        // Foros — crear en un tema (Admin, Profesor, Ayudante)
+        Route::post('/temas/{idTema}/foros', [ForoController::class, 'store']);
+
+        // Foro — editar/eliminar/cambiar estado (la verificación de ownership es interna)
+        Route::put('/foros/{idForo}', [ForoController::class, 'update']);
+        Route::delete('/foros/{idForo}', [ForoController::class, 'destroy']);
+        Route::patch('/foros/{idForo}/estado', [ForoController::class, 'toggleEstado']);
+
+        // Preguntas — fijar/desfijar y ocultar/mostrar
+        Route::patch('/preguntas/{idPregunta}/fijar', [ForoController::class, 'toggleFijar']);
+        Route::patch('/preguntas/{idPregunta}/estado', [ForoController::class, 'toggleEstadoPregunta']);
+
+        // Respuestas — validar como Oficial (PB16 RBAC)
         Route::put('/respuestas/{idRespuesta}/validar', [ForoController::class, 'toggleValidarRespuesta']);
     });
 

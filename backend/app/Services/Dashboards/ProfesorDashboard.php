@@ -58,22 +58,25 @@ class ProfesorDashboard extends BaseDashboard
         $cursosProfe = Curso::where('idProfeCreador', $this->usuario->idUsuario)->pluck('idCurso')->toArray();
 
         // 1. Obtener últimas preguntas
-        $preguntas = Pregunta::whereIn('idCurso', $cursosProfe)
-            ->with(['creador:idUsuario,nombreCompleto', 'curso:idCurso,titulo'])
+        $preguntas = Pregunta::whereHas('foro.itemTema.tema', function ($q) use ($cursosProfe) {
+            $q->whereIn('idCurso', $cursosProfe);
+        })
+            ->with(['creador:idUsuario,nombreCompleto', 'foro.itemTema.tema.curso:idCurso,titulo'])
             ->latest()
             ->take(5)
             ->get()
             ->map(function ($pregunta) {
                 $nombreCompleto = $pregunta->creador->nombreCompleto ?? 'Estudiante';
                 $primerNombre = explode(' ', $nombreCompleto)[0];
+                $curso = $pregunta->foro?->itemTema?->tema?->curso;
 
                 return [
                     'tipo' => 'foro',
                     'estudiante' => $primerNombre,
                     'detalle' => 'hizo una pregunta',
                     'titulo_actividad' => $pregunta->titulo,
-                    'curso' => $pregunta->curso->titulo ?? 'Curso',
-                    'paralelo' => 10 + (($pregunta->idCurso ?? 0) % 5),
+                    'curso' => $curso->titulo ?? 'Curso',
+                    'paralelo' => 10 + (($curso->idCurso ?? 0) % 5),
                     'fecha' => $pregunta->created_at ? $pregunta->created_at->toISOString() : now()->toISOString(),
                     'timestamp' => $pregunta->created_at ? $pregunta->created_at->timestamp : now()->timestamp,
                 ];
