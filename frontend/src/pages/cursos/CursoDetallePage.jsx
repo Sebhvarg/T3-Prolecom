@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
@@ -63,34 +63,49 @@ const CursoDetallePage = () => {
 
   const canManage = user?.rol === 'Administrador' || user?.rol === 'Profesor';
 
-  const fetchCurso = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await cursosService.getCurso(id);
-      if (data.temas) {
-        data.temas.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { numeric: true }));
-        data.temas.forEach(t => {
-          if (t.items) t.items.sort((a, b) => a.titulo.localeCompare(b.titulo, 'es', { numeric: true }));
-        });
-      }
-      setCurso(data);
-      
-      const expandMap = {};
-      data.temas?.forEach(t => {
-        expandMap[t.idTema] = true;
-      });
-      setExpandedTemas(expandMap);
-    } catch (err) {
-      console.error(err);
-      setError('No se pudo cargar la información del curso.');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+  const [reloadKey, setReloadKey] = useState(0);
+  const fetchCurso = () => setReloadKey((k) => k + 1);
 
   useEffect(() => {
-    fetchCurso();
-  }, [fetchCurso]);
+    let isMounted = true;
+
+    const loadCursoData = async () => {
+      try {
+        const data = await cursosService.getCurso(id);
+        if (!isMounted) return;
+
+        if (data.temas) {
+          data.temas.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { numeric: true }));
+          data.temas.forEach((t) => {
+            if (t.items) t.items.sort((a, b) => a.titulo.localeCompare(b.titulo, 'es', { numeric: true }));
+          });
+        }
+
+        setCurso(data);
+
+        const expandMap = {};
+        data.temas?.forEach((t) => {
+          expandMap[t.idTema] = true;
+        });
+        setExpandedTemas(expandMap);
+      } catch (err) {
+        if (isMounted) {
+          console.error(err);
+          setError('No se pudo cargar la información del curso.');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadCursoData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id, reloadKey]);
 
   useEffect(() => {
     return () => {
