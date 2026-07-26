@@ -435,6 +435,7 @@ const CursoDetallePage = () => {
           <h3 className="text-xl font-bold text-gray-900">Curso no encontrado</h3>
           <p className="text-gray-500 mt-2">El curso que intentas ver no existe o fue eliminado.</p>
           <button
+            type="button"
             onClick={() => navigate('/cursos')}
             className="mt-6 inline-flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white px-5 py-2.5 rounded-xl font-semibold shadow"
           >
@@ -450,6 +451,7 @@ const CursoDetallePage = () => {
     <DashboardContainer title={`Curso: ${curso.titulo}`} user={user}>
       {/* Botón Volver */}
       <button
+        type="button"
         onClick={() => navigate('/cursos')}
         className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors mb-6 font-semibold"
       >
@@ -507,6 +509,7 @@ const CursoDetallePage = () => {
             <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Temas del Curso</h2>
             {canManage && (
               <button
+                type="button"
                 onClick={handleOpenTemaModal}
                 className="flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2.5 rounded-xl font-semibold shadow-sm transition-all hover:shadow-md"
               >
@@ -549,6 +552,7 @@ const CursoDetallePage = () => {
                       {canManage && (
                         <div className="flex gap-2">
                           <button
+                            type="button"
                             onClick={() => handleOpenMaterialModal(tema.idTema)}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-bold rounded-lg transition-colors"
                           >
@@ -556,6 +560,7 @@ const CursoDetallePage = () => {
                             <span>Subir Material</span>
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleOpenDesafioModal(tema.idTema)}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-lg transition-colors"
                           >
@@ -563,6 +568,7 @@ const CursoDetallePage = () => {
                             <span>Crear Desafío</span>
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleOpenForoModal(tema.idTema)}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-700 text-xs font-bold rounded-lg transition-colors"
                           >
@@ -570,6 +576,7 @@ const CursoDetallePage = () => {
                             <span>Crear Foro</span>
                           </button>
                           <button
+                            type="button"
                             onClick={(e) => handleDeleteTema(tema.idTema, e)}
                             className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Eliminar Tema"
@@ -639,6 +646,7 @@ const CursoDetallePage = () => {
         <div className="fixed inset-0 bg-black/55 backdrop-blur-xs flex justify-center items-center z-50 p-4 animate-fade-in">
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative">
             <button 
+              type="button"
               onClick={() => setIsTemaModalOpen(false)}
               className="absolute right-6 top-6 p-1.5 text-gray-400 hover:bg-gray-50 rounded-lg"
             >
@@ -697,6 +705,7 @@ const CursoDetallePage = () => {
         <div className="fixed inset-0 bg-black/55 backdrop-blur-xs flex justify-center items-center z-50 p-4 animate-fade-in">
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative">
             <button 
+              type="button"
               onClick={() => setIsMaterialModalOpen(false)}
               className="absolute right-6 top-6 p-1.5 text-gray-400 hover:bg-gray-50 rounded-lg"
             >
@@ -779,6 +788,7 @@ const CursoDetallePage = () => {
         <div className="fixed inset-0 bg-black/55 backdrop-blur-xs flex justify-center items-center z-50 p-4 overflow-y-auto animate-fade-in">
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl relative my-8">
             <button 
+              type="button"
               onClick={() => setIsDesafioModalOpen(false)}
               className="absolute right-6 top-6 p-1.5 text-gray-400 hover:bg-gray-50 rounded-lg"
             >
@@ -937,6 +947,7 @@ const CursoDetallePage = () => {
         <div className="fixed inset-0 bg-black/55 backdrop-blur-xs flex justify-center items-center z-50 p-4 animate-fade-in">
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative">
             <button 
+              type="button"
               onClick={() => setIsForoModalOpen(false)}
               className="absolute right-6 top-6 p-1.5 text-gray-400 hover:bg-gray-50 rounded-lg"
             >
@@ -1011,6 +1022,7 @@ const CursoDetallePage = () => {
               </div>
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => handleDownloadSecure(activeViewerMaterial)}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white text-xs font-bold rounded-lg transition-colors"
                   title="Descargar para almacenamiento sin conexión"
@@ -1019,6 +1031,7 @@ const CursoDetallePage = () => {
                   <span>Descargar</span>
                 </button>
                 <button 
+                  type="button"
                   onClick={handleCloseViewer}
                   className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg"
                 >
@@ -1093,6 +1106,7 @@ const renderMaterialItem = (item, resource, canManage, handleViewSecure, handleD
 
       <div className="flex items-center gap-2">
         <button
+          type="button"
           onClick={() => handleViewSecure(resource)}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors"
         >
@@ -1101,6 +1115,7 @@ const renderMaterialItem = (item, resource, canManage, handleViewSecure, handleD
         </button>
         
         <button
+          type="button"
           onClick={() => handleDownloadSecure(resource)}
           className="p-1.5 border border-gray-100 hover:border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
           title="Descargar"
@@ -1110,6 +1125,7 @@ const renderMaterialItem = (item, resource, canManage, handleViewSecure, handleD
 
         {canManage && (
           <button
+            type="button"
             onClick={() => handleDeleteMaterial(resource.idMaterial)}
             className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
             title="Eliminar Material"
@@ -1151,6 +1167,7 @@ const renderDesafioItem = (item, resource, id, navigate, canManage, handleDelete
 
       <div className="flex items-center gap-2">
         <button
+          type="button"
           onClick={() => navigate(`/cursos/${id}/desafios/${resource.idDesafio}`)}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-[#d97706] hover:bg-[#b45309] text-white text-xs font-bold rounded-lg transition-colors shadow-xs"
         >
@@ -1160,6 +1177,7 @@ const renderDesafioItem = (item, resource, id, navigate, canManage, handleDelete
 
         {canManage && (
           <button
+            type="button"
             onClick={() => handleDeleteDesafio(resource.idDesafio)}
             className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
             title="Eliminar Desafío"
@@ -1197,6 +1215,7 @@ const renderForoItem = (item, resource, handleSelectForo, canManage, handleDelet
 
       <div className="flex items-center gap-2">
         <button
+          type="button"
           onClick={() => handleSelectForo(resource.idForo)}
           className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#0f766e] hover:bg-[#115e59] text-white text-xs font-bold rounded-lg transition-colors shadow-xs"
         >
@@ -1206,6 +1225,7 @@ const renderForoItem = (item, resource, handleSelectForo, canManage, handleDelet
 
         {canManage && (
           <button
+            type="button"
             onClick={() => handleDeleteForo(resource.idForo)}
             className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
             title="Eliminar Foro"

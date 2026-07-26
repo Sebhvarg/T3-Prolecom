@@ -256,6 +256,40 @@ const ForoSeccion = ({ idForo, user, onBack }) => {
     );
   }
 
+  let mainContent;
+  if (loading) {
+    mainContent = (
+      <div className="flex flex-col items-center justify-center py-16 gap-3">
+        <Loader2 className="w-10 h-10 text-[#2c5364] animate-spin" />
+        <p className="text-sm font-semibold text-gray-500">Cargando preguntas del foro...</p>
+      </div>
+    );
+  } else if (preguntasProcesadas.length === 0) {
+    mainContent = (
+      <ForoEmptyState
+        onOpenCreateModal={() => setIsModalNuevaOpen(true)}
+        isClosed={isForoClosed}
+      />
+    );
+  } else {
+    mainContent = (
+      <div className="space-y-4">
+        {preguntasProcesadas.map((preg) => (
+          <PreguntaCard
+            key={preg.idPregunta}
+            pregunta={preg}
+            currentUser={user}
+            onSelect={loadPreguntaDetalle}
+            onPinToggle={handleTogglePin}
+            onEdit={(p) => setEditingPregunta(p)}
+            onDelete={handleDeletePregunta}
+            onReport={(id) => setReportModalData({ isOpen: true, targetId: id, targetType: 'pregunta' })}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Botón Volver si fue invocado como vista */}
@@ -412,33 +446,7 @@ const ForoSeccion = ({ idForo, user, onBack }) => {
         </div>
       )}
 
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <Loader2 className="w-10 h-10 text-[#2c5364] animate-spin" />
-          <p className="text-sm font-semibold text-gray-500">Cargando preguntas del foro...</p>
-        </div>
-      ) : preguntasProcesadas.length === 0 ? (
-        <ForoEmptyState
-          onOpenCreateModal={() => setIsModalNuevaOpen(true)}
-          isClosed={isForoClosed}
-        />
-      ) : (
-        /* Lista de Preguntas */
-        <div className="space-y-4">
-          {preguntasProcesadas.map((preg) => (
-            <PreguntaCard
-              key={preg.idPregunta}
-              pregunta={preg}
-              currentUser={user}
-              onSelect={loadPreguntaDetalle}
-              onPinToggle={handleTogglePin}
-              onEdit={(p) => setEditingPregunta(p)}
-              onDelete={handleDeletePregunta}
-              onReport={(id) => setReportModalData({ isOpen: true, targetId: id, targetType: 'pregunta' })}
-            />
-          ))}
-        </div>
-      )}
+      {mainContent}
 
       {/* Modal Nueva Pregunta */}
       <NuevaPreguntaModal

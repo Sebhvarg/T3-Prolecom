@@ -44,7 +44,11 @@ const PreguntaCard = ({
         </div>
       )}
 
-      <div className="p-5" onClick={() => onSelect(pregunta.idPregunta)}>
+      <button
+        type="button"
+        className="p-5 text-left w-full cursor-pointer focus:outline-none block"
+        onClick={() => onSelect(pregunta.idPregunta)}
+      >
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 space-y-2">
             {/* Badges de Estado y Creador */}
@@ -157,7 +161,7 @@ const PreguntaCard = ({
             <span>{pregunta.respuestas_count ?? 0} respuestas</span>
           </div>
         </div>
-      </div>
+      </button>
     </div>
   );
 };

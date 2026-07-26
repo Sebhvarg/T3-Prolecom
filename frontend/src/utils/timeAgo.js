@@ -1,51 +1,33 @@
+const TIME_UNITS = [
+  { maxSeconds: 60, divisor: 1, label: () => 'hace unos segundos' },
+  { maxSeconds: 3600, divisor: 60, label: (m) => `hace ${m} min${m > 1 ? 's' : ''}` },
+  { maxSeconds: 86400, divisor: 3600, label: (h) => `hace ${h} hr${h > 1 ? 's' : ''}` },
+  { maxSeconds: 172800, divisor: 86400, label: () => 'ayer' },
+  { maxSeconds: 604800, divisor: 86400, label: (d) => `hace ${d} días` },
+  { maxSeconds: 2592000, divisor: 604800, label: (w) => `hace ${w} sem${w > 1 ? 'anas' : 'ana'}` },
+  { maxSeconds: 31536000, divisor: 2592000, label: (m) => `hace ${m} mes${m > 1 ? 'es' : ''}` },
+];
+
 /**
  * Convierte un timestamp ISO o Date en una cadena de tiempo relativo en español.
- * Ej: "hace 5 minutos", "hace 2 horas", "ayer", "hace 3 días".
  */
 export function timeAgo(dateString) {
   if (!dateString) return '';
 
   const date = new Date(dateString);
-  const now = new Date();
-  const secondsPast = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const secondsPast = Math.floor((Date.now() - date.getTime()) / 1000);
 
-  if (secondsPast < 0) {
+  if (secondsPast <= 0) {
     return 'hace un momento';
   }
 
-  if (secondsPast < 60) {
-    return 'hace unos segundos';
+  const unit = TIME_UNITS.find((item) => secondsPast < item.maxSeconds);
+  if (unit) {
+    const qty = Math.floor(secondsPast / unit.divisor);
+    return unit.label(qty);
   }
 
-  const minutesPast = Math.floor(secondsPast / 60);
-  if (minutesPast < 60) {
-    return `hace ${minutesPast} min${minutesPast > 1 ? 's' : ''}`;
-  }
-
-  const hoursPast = Math.floor(minutesPast / 60);
-  if (hoursPast < 24) {
-    return `hace ${hoursPast} hr${hoursPast > 1 ? 's' : ''}`;
-  }
-
-  const daysPast = Math.floor(hoursPast / 24);
-  if (daysPast === 1) {
-    return 'ayer';
-  }
-  if (daysPast < 7) {
-    return `hace ${daysPast} días`;
-  }
-
-  const weeksPast = Math.floor(daysPast / 7);
-  if (weeksPast < 4) {
-    return `hace ${weeksPast} sem${weeksPast > 1 ? 'anas' : 'ana'}`;
-  }
-
-  const monthsPast = Math.floor(daysPast / 30);
-  if (monthsPast < 12) {
-    return `hace ${monthsPast} mes${monthsPast > 1 ? 'es' : ''}`;
-  }
-
-  const yearsPast = Math.floor(daysPast / 365);
+  const yearsPast = Math.floor(secondsPast / 31536000);
   return `hace ${yearsPast} año${yearsPast > 1 ? 's' : ''}`;
 }
 
