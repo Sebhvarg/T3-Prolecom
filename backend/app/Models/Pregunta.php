@@ -17,22 +17,50 @@ class Pregunta extends Model
         'titulo',
         'descripcion',
         'idUsuarioCreador',
-        'idCurso',
+        'idForo',
         'estado',
+        'fijada',
+        'editado',
     ];
 
+    protected $casts = [
+        'fijada'  => 'boolean',
+        'editado' => 'boolean',
+        'vistas'  => 'integer',
+    ];
+
+    /**
+     * Usuario que creó la pregunta.
+     */
     public function creador()
     {
         return $this->belongsTo(User::class, 'idUsuarioCreador', 'idUsuario');
     }
 
-    public function curso()
+    /**
+     * Foro al que pertenece esta pregunta.
+     */
+    public function foro()
     {
-        return $this->belongsTo(Curso::class, 'idCurso', 'idCurso');
+        return $this->belongsTo(Foro::class, 'idForo', 'idForo');
     }
 
+    /**
+     * Respuestas publicadas en esta pregunta.
+     * Las respuestas validadas/oficiales aparecen primero.
+     */
     public function respuestas()
     {
-        return $this->hasMany(Respuesta::class, 'idPregunta', 'idPregunta');
+        return $this->hasMany(Respuesta::class, 'idPregunta', 'idPregunta')
+                    ->orderByDesc('validada')
+                    ->orderBy('created_at');
+    }
+
+    /**
+     * Incrementa el contador de vistas de forma atómica (evita race conditions).
+     */
+    public function incrementarVistas(): void
+    {
+        $this->increment('vistas');
     }
 }
