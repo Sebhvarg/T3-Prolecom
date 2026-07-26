@@ -30,12 +30,42 @@ const PreguntaCard = ({
   const canDelete = isAuthor || isSuperior;
   const canPin = isStaff;
 
+  let statusBadge;
+  if (pregunta.tiene_respuesta_validada) {
+    statusBadge = <OfficialAnswerBadge size="small" validatorRole="Oficial" />;
+  } else if (pregunta.estado === 'resuelta') {
+    statusBadge = (
+      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+        Resuelta
+      </span>
+    );
+  } else {
+    statusBadge = (
+      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+        Abierta
+      </span>
+    );
+  }
+
+  const handleCardKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onSelect(pregunta.idPregunta);
+    }
+  };
+
   return (
-    <div className={`bg-white rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${
-      pregunta.fijada
-        ? 'border-purple-200 bg-purple-50/20 shadow-xs hover:border-purple-300'
-        : 'border-gray-100 hover:border-gray-200 hover:shadow-md'
-    }`}>
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect(pregunta.idPregunta)}
+      onKeyDown={handleCardKeyDown}
+      className={`bg-white rounded-2xl border transition-all cursor-pointer relative overflow-hidden group focus:outline-none focus:ring-2 focus:ring-[#2c5364] ${
+        pregunta.fijada
+          ? 'border-purple-200 bg-purple-50/20 shadow-xs hover:border-purple-300'
+          : 'border-gray-100 hover:border-gray-200 hover:shadow-md'
+      }`}
+    >
       {/* Indicador visual de fijado */}
       {pregunta.fijada && (
         <div className="bg-purple-600 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-0.5 inline-flex items-center gap-1 rounded-br-lg">
@@ -44,26 +74,12 @@ const PreguntaCard = ({
         </div>
       )}
 
-      <button
-        type="button"
-        className="p-5 text-left w-full cursor-pointer focus:outline-none block"
-        onClick={() => onSelect(pregunta.idPregunta)}
-      >
+      <div className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 space-y-2">
             {/* Badges de Estado y Creador */}
             <div className="flex items-center gap-2 flex-wrap text-xs text-gray-500">
-              {pregunta.tiene_respuesta_validada ? (
-                <OfficialAnswerBadge size="small" validatorRole="Oficial" />
-              ) : pregunta.estado === 'resuelta' ? (
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-                  Resuelta
-                </span>
-              ) : (
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
-                  Abierta
-                </span>
-              )}
+              {statusBadge}
 
               <span className="font-semibold text-gray-700">{authorName}</span>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-bold uppercase">
@@ -86,12 +102,16 @@ const PreguntaCard = ({
           </div>
 
           {/* Menú de Opciones (...) */}
-          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="flex items-center gap-2"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setShowMenu(!showMenu)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100 transition"
+                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100 transition cursor-pointer"
               >
                 <MoreVertical size={18} />
               </button>
@@ -102,7 +122,7 @@ const PreguntaCard = ({
                     <button
                       type="button"
                       onClick={() => { setShowMenu(false); onPinToggle(pregunta.idPregunta); }}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-purple-700"
+                      className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-purple-700 cursor-pointer"
                     >
                       <Pin size={14} />
                       <span>{pregunta.fijada ? 'Desfijar' : 'Fijar al tope'}</span>
@@ -113,7 +133,7 @@ const PreguntaCard = ({
                     <button
                       type="button"
                       onClick={() => { setShowMenu(false); onEdit(pregunta); }}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
+                      className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 cursor-pointer"
                     >
                       <Edit size={14} />
                       <span>Editar</span>
@@ -124,7 +144,7 @@ const PreguntaCard = ({
                     <button
                       type="button"
                       onClick={() => { setShowMenu(false); onDelete(pregunta.idPregunta); }}
-                      className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2"
+                      className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2 cursor-pointer"
                     >
                       <Trash2 size={14} />
                       <span>Eliminar</span>
@@ -135,7 +155,7 @@ const PreguntaCard = ({
                     <button
                       type="button"
                       onClick={() => { setShowMenu(false); onReport(pregunta.idPregunta); }}
-                      className="w-full text-left px-4 py-2 hover:bg-amber-50 text-amber-600 flex items-center gap-2 border-t border-gray-100"
+                      className="w-full text-left px-4 py-2 hover:bg-amber-50 text-amber-600 flex items-center gap-2 border-t border-gray-100 cursor-pointer"
                     >
                       <Flag size={14} />
                       <span>Reportar</span>
@@ -161,7 +181,7 @@ const PreguntaCard = ({
             <span>{pregunta.respuestas_count ?? 0} respuestas</span>
           </div>
         </div>
-      </button>
+      </div>
     </div>
   );
 };

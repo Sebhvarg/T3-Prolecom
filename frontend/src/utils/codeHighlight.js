@@ -8,86 +8,84 @@ import 'highlight.js/styles/atom-one-dark.css';
 export function parseContentWithCode(text) {
   if (!text) return [];
 
-  const segments = [];
-  let count = 0;
-  const codeBlockRegex = /```(\w*)\n?([\s\S]*?)```/g;
-
-  let lastIndex = 0;
-  let match;
-
-  while ((match = codeBlockRegex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      const plainText = text.substring(lastIndex, match.index);
-      count = parseInlineCode(plainText, segments, count);
-    }
-
-    const language = (match[1] || 'plaintext').trim().toLowerCase();
-    const rawCode = match[2];
-
-    let highlightedHtml;
-    try {
-      if (language && hljs.getLanguage(language)) {
-        highlightedHtml = hljs.highlight(rawCode, { language }).value;
-      } else {
-        highlightedHtml = hljs.highlightAuto(rawCode).value;
-      }
-    } catch {
-      highlightedHtml = escapeHtml(rawCode);
-    }
-
-    count += 1;
-    segments.push({
-      id: `block-${count}`,
-      type: 'code_block',
-      language: language || 'code',
-      content: rawCode,
-      highlightedHtml,
-    });
-
-    lastIndex = codeBlockRegex.lastIndex;
+  const parts = text.split('```');
+  if (parts.length === 1) {
+    const segments = [];
+    parseInlineCode(text, segments, 0);
+    return segments;
   }
 
-  if (lastIndex < text.length) {
-    const remainingText = text.substring(lastIndex);
-    parseInlineCode(remainingText, segments, count);
+  const segments = [];
+  let count = 0;
+
+  for (let i = 0; i < parts.length; i += 1) {
+    const part = parts[i];
+    if (i % 2 === 0) {
+      // Texto normal (fuera de bloques de código)
+      if (part) {
+        count = parseInlineCode(part, segments, count);
+      }
+    } else {
+      // Bloque de código triple backtick
+      let language = 'plaintext';
+      let rawCode = part;
+
+      const firstNewline = part.indexOf('\n');
+      if (firstNewline !== -1) {
+        const posibleLang = part.substring(0, firstNewline).trim().toLowerCase();
+        if (posibleLang && /^[a-zA-Z0-9_-]+$/.test(posibleLang)) {
+          language = posibleLang;
+          rawCode = part.substring(firstNewline + 1);
+        }
+      }
+
+      let highlightedHtml;
+      try {
+        if (language && hljs.getLanguage(language)) {
+          highlightedHtml = hljs.highlight(rawCode, { language }).value;
+        } else {
+          highlightedHtml = hljs.highlightAuto(rawCode).value;
+        }
+      } catch {
+        highlightedHtml = escapeHtml(rawCode);
+      }
+
+      count += 1;
+      segments.push({
+        id: `block-${count}`,
+        type: 'code_block',
+        language: language || 'code',
+        content: rawCode,
+        highlightedHtml,
+      });
+    }
   }
 
   return segments;
 }
 
 function parseInlineCode(text, segments, initialCount = 0) {
-  const inlineRegex = /`([^`]+)`/g;
-  let lastIndex = 0;
-  let match;
+  const parts = text.split('`');
   let count = initialCount;
 
-  while ((match = inlineRegex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      count += 1;
+  for (let i = 0; i < parts.length; i += 1) {
+    const part = parts[i];
+    if (!part) continue;
+
+    count += 1;
+    if (i % 2 === 0) {
       segments.push({
         id: `text-${count}`,
         type: 'text',
-        content: text.substring(lastIndex, match.index),
+        content: part,
+      });
+    } else {
+      segments.push({
+        id: `inline-${count}`,
+        type: 'code_inline',
+        content: part,
       });
     }
-
-    count += 1;
-    segments.push({
-      id: `inline-${count}`,
-      type: 'code_inline',
-      content: match[1],
-    });
-
-    lastIndex = inlineRegex.lastIndex;
-  }
-
-  if (lastIndex < text.length) {
-    count += 1;
-    segments.push({
-      id: `text-${count}`,
-      type: 'text',
-      content: text.substring(lastIndex),
-    });
   }
 
   return count;
