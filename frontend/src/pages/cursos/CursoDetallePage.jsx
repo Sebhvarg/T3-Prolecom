@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
@@ -10,7 +10,7 @@ import ForoSeccion from '../../components/foro/ForoSeccion';
 import { 
   ArrowLeft, Plus, Trash2, FileText, Video, Play, Download, Eye, 
   X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code,
-  MessageSquare, BookOpen
+  MessageSquare
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
@@ -70,7 +70,7 @@ const CursoDetallePage = () => {
 
   const canManage = user?.rol === 'Administrador' || user?.rol === 'Profesor';
 
-  const fetchCurso = async () => {
+  const fetchCurso = useCallback(async () => {
     setLoading(true);
     try {
       const data = await cursosService.getCurso(id);
@@ -101,11 +101,18 @@ const CursoDetallePage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
-    fetchCurso();
-  }, [id]);
+    let ignore = false;
+    async function load() {
+      if (!ignore) {
+        await fetchCurso();
+      }
+    }
+    load();
+    return () => { ignore = true; };
+  }, [fetchCurso]);
 
   const toggleTema = (temaId) => {
     setExpandedTemas(prev => ({
