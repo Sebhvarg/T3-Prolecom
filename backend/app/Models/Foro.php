@@ -44,8 +44,8 @@ class Foro extends Model
     public function preguntas()
     {
         return $this->hasMany(Pregunta::class, 'idForo', 'idForo')
-                    ->orderByDesc('fijada')
-                    ->orderByDesc('created_at');
+            ->orderByDesc('fijada')
+            ->orderByDesc('created_at');
     }
 
     /**

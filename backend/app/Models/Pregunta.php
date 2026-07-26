@@ -24,9 +24,9 @@ class Pregunta extends Model
     ];
 
     protected $casts = [
-        'fijada'  => 'boolean',
+        'fijada' => 'boolean',
         'editado' => 'boolean',
-        'vistas'  => 'integer',
+        'vistas' => 'integer',
     ];
 
     /**
@@ -52,8 +52,8 @@ class Pregunta extends Model
     public function respuestas()
     {
         return $this->hasMany(Respuesta::class, 'idPregunta', 'idPregunta')
-                    ->orderByDesc('validada')
-                    ->orderBy('created_at');
+            ->orderByDesc('validada')
+            ->orderBy('created_at');
     }
 
     /**
