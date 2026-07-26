@@ -192,6 +192,9 @@ jobs:
             echo "==> Deteniendo servicios previos para liberar puertos..."
             $DC down --remove-orphans || true
 
+            echo "==> Limpiando directorios del host para evitar conflictos con los contenedores..."
+            sudo rm -rf backend/vendor || true
+
             echo "==> Garantizando permisos de escritura 777 para Apache (www-data)..."
             sudo chmod -R 777 backend/storage backend/bootstrap/cache || true
 
