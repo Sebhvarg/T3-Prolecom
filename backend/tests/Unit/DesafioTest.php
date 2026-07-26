@@ -7,7 +7,6 @@ use App\Models\Desafio;
 use App\Models\Rol;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class DesafioTest extends TestCase
