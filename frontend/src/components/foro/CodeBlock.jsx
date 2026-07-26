@@ -12,10 +12,10 @@ const CodeBlock = ({ content }) => {
 
   return (
     <div className="text-sm leading-relaxed space-y-2">
-      {segments.map((segment, index) => {
+      {segments.map((segment) => {
         if (segment.type === 'code_block') {
           return (
-            <div key={`block-${index}`} className="my-3 rounded-xl overflow-hidden shadow-md border border-slate-700/60 bg-[#1e1e2e]">
+            <div key={segment.id} className="my-3 rounded-xl overflow-hidden shadow-md border border-slate-700/60 bg-[#1e1e2e]">
               <div className="flex items-center justify-between px-4 py-1.5 bg-slate-800/80 border-b border-slate-700/50 text-xs font-mono text-slate-400">
                 <span className="uppercase tracking-wider font-semibold text-[11px] text-teal-400">
                   {segment.language}
@@ -32,7 +32,7 @@ const CodeBlock = ({ content }) => {
         if (segment.type === 'code_inline') {
           return (
             <code
-              key={`inline-${index}`}
+              key={segment.id}
               className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-800 font-mono text-xs border border-slate-200"
             >
               {segment.content}
@@ -41,7 +41,7 @@ const CodeBlock = ({ content }) => {
         }
 
         return (
-          <span key={`text-${index}`} className="whitespace-pre-wrap">
+          <span key={segment.id} className="whitespace-pre-wrap">
             {segment.content}
           </span>
         );
