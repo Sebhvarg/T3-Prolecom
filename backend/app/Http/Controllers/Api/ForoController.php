@@ -36,14 +36,6 @@ class ForoController extends Controller
         return $esOwner || $esSuperior;
     }
 
-    /**
-     * Verifica si el usuario tiene alguno de los roles indicados.
-     */
-    private function tieneRol(Request $request, array $roles): bool
-    {
-        return $request->user()->roles->pluck('rol')->intersect($roles)->isNotEmpty();
-    }
-
     // ─────────────────────────────────────────────────────────────────────
     // CRUD FOROS
     // ─────────────────────────────────────────────────────────────────────
@@ -54,7 +46,7 @@ class ForoController extends Controller
      */
     public function store(Request $request, $idTema)
     {
-        $tema = Tema::findOrFail($idTema);
+        Tema::findOrFail($idTema);
 
         $validator = Validator::make($request->all(), [
             'titulo' => 'required|string|max:200',
@@ -76,7 +68,6 @@ class ForoController extends Controller
                 'estado' => 'abierto',
             ]);
 
-            // Registrar como itemable en items_tema (mismo patrón que Desafio y MaterialAprendizaje)
             DB::table('items_tema')->insert([
                 'idTema' => $idTema,
                 'itemable_type' => Foro::class,
@@ -99,34 +90,35 @@ class ForoController extends Controller
             DB::rollBack();
             Log::error('Error al crear foro: '.$e->getMessage());
 
-            return response()->json(['message' => 'Error al crear el foro.'], 500);
+            return response()->json(['error' => 'No se pudo crear el foro.'], 500);
         }
     }
 
     /**
-     * Obtener los datos de un foro.
+     * Consultar detalle de un foro con sus estadísticas.
      */
     public function show($idForo)
     {
         $foro = Foro::with('creador:idUsuario,nombreCompleto,usuario,avatar_path')
+            ->withCount('preguntas')
             ->findOrFail($idForo);
 
         return response()->json($foro);
     }
 
     /**
-     * Editar un foro (creador, Admin o Moderador).
+     * Editar título/descripción de un foro (Creador, Admin, Moderador).
      */
     public function update(Request $request, $idForo)
     {
         $foro = Foro::findOrFail($idForo);
 
         if (! $this->puedeModificar($request, $foro, 'idUsuarioCreador')) {
-            return response()->json(['message' => 'No tenés permiso para editar este foro.'], 403);
+            return response()->json(['error' => 'No tienes permisos para modificar este foro.'], 403);
         }
 
         $validator = Validator::make($request->all(), [
-            'titulo' => 'required|string|max:200',
+            'titulo' => 'sometimes|required|string|max:200',
             'descripcion' => 'nullable|string',
         ]);
 
@@ -134,96 +126,114 @@ class ForoController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $foro->update([
-            'titulo' => $request->titulo,
-            'descripcion' => $request->descripcion,
-        ]);
+        $foro->update($request->only(['titulo', 'descripcion']));
 
-        return response()->json(['message' => 'Foro actualizado.', 'foro' => $foro]);
+        return response()->json([
+            'message' => 'Foro actualizado exitosamente.',
+            'foro' => $foro,
+        ]);
     }
 
     /**
-     * Eliminar un foro (creador, Admin o Moderador).
-     * Cascade elimina preguntas, respuestas y votos asociados.
+     * Eliminar un foro y desvincularlo de los temas (Creador, Admin, Moderador).
      */
     public function destroy(Request $request, $idForo)
     {
         $foro = Foro::findOrFail($idForo);
 
         if (! $this->puedeModificar($request, $foro, 'idUsuarioCreador')) {
-            return response()->json(['message' => 'No tenés permiso para eliminar este foro.'], 403);
+            return response()->json(['error' => 'No tienes permisos para eliminar este foro.'], 403);
         }
 
         DB::beginTransaction();
         try {
-            // Eliminar el itemable asociado en items_tema
             ItemTema::where('itemable_type', Foro::class)
-                ->where('itemable_id', $foro->idForo)
+                ->where('itemable_id', $idForo)
                 ->delete();
 
             $foro->delete();
+
             DB::commit();
 
-            return response()->json(['message' => 'Foro eliminado correctamente.']);
-
+            return response()->json(['message' => 'Foro eliminado exitosamente.']);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al eliminar foro: '.$e->getMessage());
 
-            return response()->json(['message' => 'Error al eliminar el foro.'], 500);
+            return response()->json(['error' => 'No se pudo eliminar el foro.'], 500);
         }
     }
 
     /**
-     * Cambiar el estado del foro: abierto ↔ cerrado (creador Profe/Admin/Moderador).
+     * Abrir o cerrar un foro (Cambiar estado abierto <-> cerrado).
      */
     public function toggleEstado(Request $request, $idForo)
     {
         $foro = Foro::findOrFail($idForo);
 
-        $puedeGestionar = $this->puedeModificar($request, $foro, 'idUsuarioCreador')
-                       || $this->tieneRol($request, ['Administrador', 'Moderador', 'Profesor']);
+        $hasRole = $request->user()->roles->pluck('rol')
+            ->intersect(['Administrador', 'Moderador', 'Profesor'])
+            ->isNotEmpty();
+
+        $puedeGestionar = $this->puedeModificar($request, $foro, 'idUsuarioCreador') || $hasRole;
 
         if (! $puedeGestionar) {
-            return response()->json(['message' => 'No tenés permiso para cambiar el estado de este foro.'], 403);
+            return response()->json(['error' => 'No tienes permisos para cambiar el estado de este foro.'], 403);
         }
 
         $nuevoEstado = $foro->estado === 'abierto' ? 'cerrado' : 'abierto';
-        $foro->estado = $nuevoEstado;
-        $foro->save();
+        $foro->update(['estado' => $nuevoEstado]);
 
-        // Notificar a todos los participantes únicos del foro si se cierra
         if ($nuevoEstado === 'cerrado') {
-            $this->notificarParticipantesForo($foro);
+            try {
+                $preguntaIds = Pregunta::where('idForo', $foro->idForo)->pluck('idPregunta');
+                $autoresPregunta = Pregunta::where('idForo', $foro->idForo)->pluck('idUsuarioCreador');
+                $autoresRespuesta = Respuesta::whereIn('idPregunta', $preguntaIds)->pluck('idUsuario');
+
+                $participantes = $autoresPregunta->merge($autoresRespuesta)
+                    ->push($foro->idUsuarioCreador)
+                    ->unique()
+                    ->values();
+
+                foreach ($participantes as $idUsuario) {
+                    Notificacion::crear(
+                        $idUsuario,
+                        Notificacion::TIPO_FORO_CERRADO,
+                        "Foro cerrado: \"{$foro->titulo}\"",
+                        "El foro \"{$foro->titulo}\" ha sido cerrado. Ya no se pueden publicar nuevas preguntas.",
+                        ['idForo' => $foro->idForo]
+                    );
+                }
+            } catch (\Exception $e) {
+                Log::warning('Error al notificar cierre de foro: '.$e->getMessage());
+            }
         }
 
         return response()->json([
-            'message' => "Foro {$nuevoEstado} correctamente.",
+            'message' => "Foro {$nuevoEstado} exitosamente.",
             'foro' => $foro,
         ]);
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // CRUD PREGUNTAS
+    // PREGUNTAS (Q&A)
     // ─────────────────────────────────────────────────────────────────────
 
     /**
      * Listar preguntas de un foro.
-     * Las fijadas (pinned) aparecen primero, luego por fecha descendente.
      */
-    public function indexPreguntas(Request $request, $idForo)
+    public function indexPreguntas($idForo)
     {
         Foro::findOrFail($idForo);
 
         $preguntas = Pregunta::where('idForo', $idForo)
-            ->where('estado', '!=', 'oculta')                                // ocultas solo las ven Admin/Moderador
+            ->where('estado', '!=', 'oculta')
             ->with(['creador:idUsuario,nombreCompleto,usuario,avatar_path', 'creador.roles:idRol,rol'])
             ->withCount('respuestas')
             ->orderByDesc('fijada')
             ->orderByDesc('created_at')
             ->get();
 
-        // Adjuntar si tiene respuesta validada (para el badge de la card)
         foreach ($preguntas as $pregunta) {
             $pregunta->tiene_respuesta_validada = Respuesta::where('idPregunta', $pregunta->idPregunta)
                 ->where('validada', true)
@@ -234,22 +244,19 @@ class ForoController extends Controller
     }
 
     /**
-     * Crear una pregunta en un foro (todos los roles autenticados, foro debe estar abierto).
+     * Publicar una nueva pregunta en el foro (Cualquier usuario autenticado).
      */
     public function storePregunta(Request $request, $idForo)
     {
         $foro = Foro::findOrFail($idForo);
 
-        if (! $foro->estaAbierto()) {
-            return response()->json(['message' => 'Este foro está cerrado. No se pueden publicar nuevas preguntas.'], 403);
+        if ($foro->estado === 'cerrado') {
+            return response()->json(['error' => 'Este foro está cerrado. No se permiten nuevas preguntas.'], 403);
         }
 
         $validator = Validator::make($request->all(), [
-            'titulo' => 'required|string|max:200',
+            'titulo' => 'required|string|max:250',
             'descripcion' => 'required|string',
-        ], [
-            'titulo.required' => 'El título de la pregunta es obligatorio.',
-            'descripcion.required' => 'La descripción de la pregunta es obligatoria.',
         ]);
 
         if ($validator->fails()) {
@@ -257,201 +264,229 @@ class ForoController extends Controller
         }
 
         $pregunta = Pregunta::create([
+            'idForo' => $idForo,
+            'idUsuarioCreador' => $request->user()->idUsuario,
             'titulo' => $request->titulo,
             'descripcion' => $request->descripcion,
-            'idUsuarioCreador' => $request->user()->idUsuario,
-            'idForo' => $idForo,
             'estado' => 'abierta',
+            'fijada' => false,
+            'vistas' => 0,
         ]);
 
-        $pregunta->load(['creador:idUsuario,nombreCompleto,usuario,avatar_path', 'creador.roles:idRol,rol']);
-        $pregunta->respuestas_count = 0;
-        $pregunta->tiene_respuesta_validada = false;
+        $pregunta->load('creador:idUsuario,nombreCompleto,usuario,avatar_path');
 
-        return response()->json($pregunta, 201);
+        return response()->json([
+            'message' => 'Pregunta publicada exitosamente.',
+            'pregunta' => $pregunta,
+            'idPregunta' => $pregunta->idPregunta,
+        ], 201);
     }
 
     /**
-     * Detalle de una pregunta con sus respuestas, votos y datos del autor.
-     * Incrementa el contador de vistas de forma atómica.
+     * Ver hilo completo de una pregunta con sus respuestas e incrementa vistas.
      */
     public function showPregunta(Request $request, $idPregunta)
     {
         $pregunta = Pregunta::with([
             'creador:idUsuario,nombreCompleto,usuario,avatar_path',
-            'creador.roles:idRol,rol',
-            'foro:idForo,titulo,estado',
-            'respuestas.usuario:idUsuario,nombreCompleto,usuario,avatar_path',
-            'respuestas.usuario.roles:idRol,rol',
-            'respuestas.votos',
+            'respuestas' => function ($q) {
+                $q->with('usuario:idUsuario,nombreCompleto,usuario,avatar_path', 'usuario.roles:idRol,rol')
+                    ->orderByDesc('validada')
+                    ->orderByDesc('created_at');
+            },
         ])->findOrFail($idPregunta);
 
-        // Incrementar vistas de forma atómica (evita race conditions)
         $pregunta->incrementarVistas();
 
-        // Adjuntar conteo de votos y voto propio del usuario autenticado en cada respuesta
         $userId = $request->user()->idUsuario;
         foreach ($pregunta->respuestas as $respuesta) {
             $votos = $respuesta->votos;
             $respuesta->likes_count = $votos->where('valor', VotoRespuesta::LIKE)->count();
             $respuesta->dislikes_count = $votos->where('valor', VotoRespuesta::DISLIKE)->count();
             $votoPropio = $votos->firstWhere('idUsuario', $userId);
-            $respuesta->mi_voto = $votoPropio ? ($votoPropio->valor === VotoRespuesta::LIKE ? 'like' : 'dislike') : null;
-            unset($respuesta->votos);    // Limpiar la colección cruda antes de devolver
+
+            $miVotoStr = null;
+            if ($votoPropio) {
+                $miVotoStr = ($votoPropio->valor === VotoRespuesta::LIKE) ? 'like' : 'dislike';
+            }
+            $respuesta->mi_voto = $miVotoStr;
+
+            unset($respuesta->votos);
         }
 
         return response()->json($pregunta);
     }
 
     /**
-     * Editar una pregunta (autor, Admin o Moderador).
+     * Editar título o descripción de una pregunta (Autor, Admin, Moderador).
      */
     public function updatePregunta(Request $request, $idPregunta)
     {
         $pregunta = Pregunta::findOrFail($idPregunta);
 
         if (! $this->puedeModificar($request, $pregunta, 'idUsuarioCreador')) {
-            return response()->json(['message' => 'No tenés permiso para editar esta pregunta.'], 403);
+            return response()->json(['error' => 'No tienes permisos para editar esta pregunta.'], 403);
         }
 
         $validator = Validator::make($request->all(), [
-            'titulo' => 'required|string|max:200',
-            'descripcion' => 'required|string',
+            'titulo' => 'sometimes|required|string|max:250',
+            'descripcion' => 'sometimes|required|string',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $pregunta->update([
-            'titulo' => $request->titulo,
-            'descripcion' => $request->descripcion,
-            'editado' => true,
-        ]);
+        $pregunta->fill($request->only(['titulo', 'descripcion']));
+        $pregunta->editado = true;
+        $pregunta->save();
 
-        return response()->json(['message' => 'Pregunta actualizada.', 'pregunta' => $pregunta]);
+        return response()->json([
+            'message' => 'Pregunta actualizada exitosamente.',
+            'pregunta' => $pregunta,
+        ]);
     }
 
     /**
-     * Eliminar una pregunta (autor, Admin o Moderador).
-     * Cascade elimina respuestas y votos asociados.
+     * Eliminar una pregunta (Autor, Admin, Moderador).
      */
     public function destroyPregunta(Request $request, $idPregunta)
     {
         $pregunta = Pregunta::findOrFail($idPregunta);
 
         if (! $this->puedeModificar($request, $pregunta, 'idUsuarioCreador')) {
-            return response()->json(['message' => 'No tenés permiso para eliminar esta pregunta.'], 403);
+            return response()->json(['error' => 'No tienes permisos para eliminar esta pregunta.'], 403);
         }
 
         $pregunta->delete();
 
-        return response()->json(['message' => 'Pregunta eliminada correctamente.']);
+        return response()->json(['message' => 'Pregunta eliminada exitosamente.']);
     }
 
     /**
-     * Fijar / Desfijar una pregunta al tope del foro (Admin, Moderador, Profesor).
+     * Fijar/Desfijar pregunta (Admin, Moderador, Profesor).
      */
     public function toggleFijar(Request $request, $idPregunta)
     {
-        if (! $this->tieneRol($request, ['Administrador', 'Moderador', 'Profesor'])) {
-            return response()->json(['message' => 'No tenés permiso para fijar preguntas.'], 403);
+        $pregunta = Pregunta::findOrFail($idPregunta);
+
+        $hasRole = $request->user()->roles->pluck('rol')
+            ->intersect(['Administrador', 'Moderador', 'Profesor'])
+            ->isNotEmpty();
+
+        if (! $hasRole) {
+            return response()->json(['error' => 'Solo profesores o administradores pueden fijar preguntas.'], 403);
         }
 
-        $pregunta = Pregunta::findOrFail($idPregunta);
-        $pregunta->fijada = ! $pregunta->fijada;
-        $pregunta->save();
-
-        $accion = $pregunta->fijada ? 'fijada' : 'desfijada';
+        $pregunta->update(['fijada' => ! $pregunta->fijada]);
 
         return response()->json([
-            'message' => "Pregunta {$accion} correctamente.",
-            'pregunta' => $pregunta,
+            'message' => $pregunta->fijada ? 'Pregunta fijada al inicio del foro.' : 'Pregunta desmarcada.',
+            'fijada' => $pregunta->fijada,
         ]);
     }
 
     /**
-     * Cambiar estado de una pregunta: ocultar/mostrar (Admin, Moderador, Profesor).
+     * Cambiar estado de la pregunta (abierta <-> resuelta).
      */
     public function toggleEstadoPregunta(Request $request, $idPregunta)
     {
-        if (! $this->tieneRol($request, ['Administrador', 'Moderador', 'Profesor'])) {
-            return response()->json(['message' => 'No tenés permiso para ocultar preguntas.'], 403);
+        $pregunta = Pregunta::findOrFail($idPregunta);
+
+        $hasRole = $request->user()->roles->pluck('rol')
+            ->intersect(['Administrador', 'Moderador', 'Profesor'])
+            ->isNotEmpty();
+
+        if (! $hasRole) {
+            return response()->json(['error' => 'No autorizado para cambiar el estado de la pregunta.'], 403);
         }
 
-        $pregunta = Pregunta::findOrFail($idPregunta);
-        $pregunta->estado = $pregunta->estado === 'oculta' ? 'abierta' : 'oculta';
-        $pregunta->save();
+        $nuevoEstado = $pregunta->estado === 'resuelta' ? 'abierta' : 'resuelta';
+        $pregunta->update(['estado' => $nuevoEstado]);
 
         return response()->json([
-            'message' => "Pregunta {$pregunta->estado} correctamente.",
-            'pregunta' => $pregunta,
+            'message' => "Estado de la pregunta cambiado a {$nuevoEstado}.",
+            'estado' => $nuevoEstado,
         ]);
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // CRUD RESPUESTAS
+    // RESPUESTAS
     // ─────────────────────────────────────────────────────────────────────
 
     /**
-     * Publicar una respuesta a una pregunta.
-     * Dispara notificación al autor de la pregunta.
+     * Responder a una pregunta.
      */
     public function storeRespuesta(Request $request, $idPregunta)
     {
         $pregunta = Pregunta::findOrFail($idPregunta);
 
+        if ($pregunta->foro->estado === 'cerrado') {
+            return response()->json(['error' => 'El foro correspondiente está cerrado.'], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'contenido' => 'required|string',
-        ], [
-            'contenido.required' => 'El contenido de la respuesta es obligatorio.',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $user = $request->user();
+
         $respuesta = Respuesta::create([
-            'contenido' => $request->contenido,
-            'idUsuario' => $request->user()->idUsuario,
             'idPregunta' => $idPregunta,
+            'idUsuario' => $user->idUsuario,
+            'contenido' => $request->contenido,
             'validada' => false,
         ]);
 
-        $respuesta->load(['usuario:idUsuario,nombreCompleto,usuario,avatar_path', 'usuario.roles:idRol,rol']);
-        $respuesta->likes_count = 0;
-        $respuesta->dislikes_count = 0;
-        $respuesta->mi_voto = null;
+        $respuesta->load('usuario:idUsuario,nombreCompleto,usuario,avatar_path', 'usuario.roles:idRol,rol');
 
-        // Notificar al autor de la pregunta (si no es el mismo que responde)
-        $autorPregunta = $pregunta->idUsuarioCreador;
-        if ($autorPregunta !== $request->user()->idUsuario) {
-            $idCurso = $pregunta->foro?->itemTema?->tema?->idCurso;
+        // Notificar al autor de la pregunta si no es él mismo quien respondió
+        if ($pregunta->idUsuarioCreador !== $user->idUsuario) {
+            $itemTema = DB::table('items_tema')
+                ->where('itemable_type', Foro::class)
+                ->where('itemable_id', $pregunta->idForo)
+                ->first();
+
+            $idCurso = null;
+            if ($itemTema) {
+                $tema = Tema::find($itemTema->idTema);
+                $idCurso = $tema ? $tema->idCurso : null;
+            }
+
             Notificacion::crear(
-                $autorPregunta,
+                $pregunta->idUsuarioCreador,
                 Notificacion::TIPO_NUEVA_RESPUESTA,
-                'Nueva respuesta en tu pregunta',
-                "\"{$request->user()->nombreCompleto}\" respondió tu pregunta: \"{$pregunta->titulo}\"",
+                "Nueva respuesta a tu pregunta: \"{$pregunta->titulo}\"",
+                "{$user->nombreCompleto} ha respondido a tu consulta.",
                 [
-                    'idPregunta' => $idPregunta,
-                    'idForo' => $pregunta->idForo,
                     'idCurso' => $idCurso,
+                    'idForo' => $pregunta->idForo,
+                    'idPregunta' => $pregunta->idPregunta,
+                    'idRespuesta' => $respuesta->idRespuesta,
                 ]
             );
         }
 
-        return response()->json($respuesta, 201);
+        return response()->json([
+            'message' => 'Respuesta publicada exitosamente.',
+            'respuesta' => $respuesta,
+            'idRespuesta' => $respuesta->idRespuesta,
+        ], 201);
     }
 
     /**
-     * Editar una respuesta (autor, Admin o Moderador).
+     * Editar contenido de una respuesta (Autor, Admin, Moderador).
      */
     public function updateRespuesta(Request $request, $idRespuesta)
     {
         $respuesta = Respuesta::findOrFail($idRespuesta);
 
         if (! $this->puedeModificar($request, $respuesta, 'idUsuario')) {
-            return response()->json(['message' => 'No tenés permiso para editar esta respuesta.'], 403);
+            return response()->json(['error' => 'No tienes permisos para editar esta respuesta.'], 403);
         }
 
         $validator = Validator::make($request->all(), [
@@ -467,115 +502,81 @@ class ForoController extends Controller
             'editado' => true,
         ]);
 
-        return response()->json(['message' => 'Respuesta actualizada.', 'respuesta' => $respuesta]);
+        return response()->json([
+            'message' => 'Respuesta actualizada exitosamente.',
+            'respuesta' => $respuesta,
+        ]);
     }
 
     /**
-     * Eliminar una respuesta (autor, Admin o Moderador).
+     * Eliminar una respuesta (Autor, Admin, Moderador).
      */
     public function destroyRespuesta(Request $request, $idRespuesta)
     {
         $respuesta = Respuesta::findOrFail($idRespuesta);
 
         if (! $this->puedeModificar($request, $respuesta, 'idUsuario')) {
-            return response()->json(['message' => 'No tenés permiso para eliminar esta respuesta.'], 403);
-        }
-
-        // Si era la única respuesta validada, cambiar estado de la pregunta a abierta
-        if ($respuesta->validada) {
-            $pregunta = Pregunta::find($respuesta->idPregunta);
-            if ($pregunta) {
-                $hayOtraValidada = Respuesta::where('idPregunta', $pregunta->idPregunta)
-                    ->where('idRespuesta', '!=', $idRespuesta)
-                    ->where('validada', true)
-                    ->exists();
-                if (! $hayOtraValidada) {
-                    $pregunta->estado = 'abierta';
-                    $pregunta->save();
-                }
-            }
+            return response()->json(['error' => 'No tienes permisos para eliminar esta respuesta.'], 403);
         }
 
         $respuesta->delete();
 
-        return response()->json(['message' => 'Respuesta eliminada correctamente.']);
+        return response()->json(['message' => 'Respuesta eliminada exitosamente.']);
     }
 
     /**
-     * Validar / Desvalidar una respuesta como Oficial.
-     * Roles: Admin, Moderador, Profesor, Ayudante.
-     * Dispara notificación al autor de la respuesta.
+     * Marcar/Desmarcar respuesta como Solución Oficial Validada (Admin, Profesor, Ayudante).
      */
     public function toggleValidarRespuesta(Request $request, $idRespuesta)
     {
-        if (! $this->tieneRol($request, ['Administrador', 'Moderador', 'Profesor', 'Ayudante'])) {
-            return response()->json([
-                'message' => 'No tenés permisos para validar respuestas. Solo instructores y ayudantes pueden realizar esta acción.',
-            ], 403);
+        $respuesta = Respuesta::with('pregunta')->findOrFail($idRespuesta);
+
+        $hasRole = $request->user()->roles->pluck('rol')
+            ->intersect(['Administrador', 'Moderador', 'Profesor', 'Ayudante'])
+            ->isNotEmpty();
+
+        if (! $hasRole) {
+            return response()->json(['error' => 'Solo personal docente o ayudantes pueden validar soluciones.'], 403);
         }
 
-        $respuesta = Respuesta::findOrFail($idRespuesta);
+        $nuevoEstado = ! $respuesta->validada;
+        $respuesta->update(['validada' => $nuevoEstado]);
 
-        // Permitir forzar un valor booleano o hacer toggle
-        $respuesta->validada = $request->has('validada')
-            ? filter_var($request->input('validada'), FILTER_VALIDATE_BOOLEAN)
-            : ! $respuesta->validada;
+        if ($nuevoEstado) {
+            $respuesta->pregunta->update(['estado' => 'resuelta']);
 
-        $respuesta->save();
-
-        // Actualizar estado de la pregunta asociada
-        $pregunta = Pregunta::find($respuesta->idPregunta);
-        if ($pregunta) {
-            $tieneValidada = Respuesta::where('idPregunta', $pregunta->idPregunta)->where('validada', true)->exists();
-            $pregunta->estado = $tieneValidada ? 'resuelta' : 'abierta';
-            $pregunta->save();
+            if ($respuesta->idUsuario !== $request->user()->idUsuario) {
+                Notificacion::crear(
+                    $respuesta->idUsuario,
+                    Notificacion::TIPO_RESPUESTA_VALIDADA,
+                    '¡Tu respuesta fue marcada como Solución Oficial! ⭐',
+                    "Un docente o ayudante validó tu aporte en \"{$respuesta->pregunta->titulo}\".",
+                    [
+                        'idForo' => $respuesta->pregunta->idForo,
+                        'idPregunta' => $respuesta->idPregunta,
+                        'idRespuesta' => $respuesta->idRespuesta,
+                    ]
+                );
+            }
         }
-
-        // Notificar al autor de la respuesta si fue validada (no si fue desvalidada)
-        if ($respuesta->validada && $respuesta->idUsuario !== $request->user()->idUsuario) {
-            $idCurso = $pregunta?->foro?->itemTema?->tema?->idCurso;
-            Notificacion::crear(
-                $respuesta->idUsuario,
-                Notificacion::TIPO_RESPUESTA_VALIDADA,
-                '¡Tu respuesta fue marcada como Oficial! ✅',
-                "Tu respuesta en la pregunta \"{$pregunta?->titulo}\" fue validada como Respuesta Oficial por {$request->user()->nombreCompleto}.",
-                [
-                    'idPregunta' => $respuesta->idPregunta,
-                    'idRespuesta' => $idRespuesta,
-                    'idForo' => $pregunta?->idForo,
-                    'idCurso' => $idCurso,
-                ]
-            );
-        }
-
-        $respuesta->load(['usuario:idUsuario,nombreCompleto,usuario,avatar_path', 'usuario.roles:idRol,rol']);
 
         return response()->json([
-            'message' => $respuesta->validada ? 'Respuesta validada como Oficial correctamente.' : 'Validación de respuesta removida.',
+            'message' => $nuevoEstado ? 'Respuesta marcada como Solución Oficial.' : 'Validación removida.',
+            'validada' => $nuevoEstado,
             'respuesta' => $respuesta,
         ]);
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // VOTOS (LIKES / DISLIKES)
-    // ─────────────────────────────────────────────────────────────────────
-
     /**
-     * Votar una respuesta (like o dislike).
-     * Lógica de toggle:
-     *   - Mismo tipo → elimina el voto
-     *   - Tipo diferente → actualiza el voto
-     *   - Sin voto previo → crea el voto
-     * No se puede votar la propia respuesta.
+     * Votar positivo (like) o negativo (dislike) en una respuesta.
      */
     public function votar(Request $request, $idRespuesta)
     {
         $respuesta = Respuesta::findOrFail($idRespuesta);
         $userId = $request->user()->idUsuario;
 
-        // No se puede votar la propia respuesta
         if ($respuesta->idUsuario === $userId) {
-            return response()->json(['message' => 'No podés votar tu propia respuesta.'], 403);
+            return response()->json(['error' => 'No puedes votar en tu propia respuesta.'], 403);
         }
 
         $validator = Validator::make($request->all(), [
@@ -586,20 +587,16 @@ class ForoController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Convertir tipo string a valor int (1=like, -1=dislike)
         $valorNuevo = $request->tipo === 'like' ? VotoRespuesta::LIKE : VotoRespuesta::DISLIKE;
-
         $votoExistente = VotoRespuesta::where('idRespuesta', $idRespuesta)
             ->where('idUsuario', $userId)
             ->first();
 
         if ($votoExistente) {
             if ($votoExistente->valor === $valorNuevo) {
-                // Toggle: mismo tipo → eliminar voto
                 $votoExistente->delete();
-                $accion = 'eliminado';
+                $accion = 'removido';
             } else {
-                // Cambiar de like a dislike o viceversa
                 $votoExistente->update(['valor' => $valorNuevo]);
                 $accion = 'actualizado';
             }
@@ -612,11 +609,14 @@ class ForoController extends Controller
             $accion = 'registrado';
         }
 
-        // Devolver conteos actualizados
         $likes = VotoRespuesta::where('idRespuesta', $idRespuesta)->where('valor', VotoRespuesta::LIKE)->count();
         $dislikes = VotoRespuesta::where('idRespuesta', $idRespuesta)->where('valor', VotoRespuesta::DISLIKE)->count();
         $miVotoRaw = VotoRespuesta::where('idRespuesta', $idRespuesta)->where('idUsuario', $userId)->value('valor');
-        $miVoto = $miVotoRaw === null ? null : ($miVotoRaw === VotoRespuesta::LIKE ? 'like' : 'dislike');
+
+        $miVoto = null;
+        if ($miVotoRaw !== null) {
+            $miVoto = ($miVotoRaw === VotoRespuesta::LIKE) ? 'like' : 'dislike';
+        }
 
         return response()->json([
             'message' => "Voto {$accion}.",
@@ -688,43 +688,5 @@ class ForoController extends Controller
         ]);
 
         return response()->json(['message' => 'Reporte enviado. Nuestro equipo lo revisará pronto.'], 201);
-    }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // NOTIFICACIONES (HELPERS INTERNOS)
-    // ─────────────────────────────────────────────────────────────────────
-
-    /**
-     * Notifica a todos los usuarios que participaron en el foro cuando este se cierra.
-     */
-    private function notificarParticipantesForo(Foro $foro): void
-    {
-        try {
-            // Obtener IDs únicos de todos los que preguntaron o respondieron en el foro
-            $preguntaIds = Pregunta::where('idForo', $foro->idForo)->pluck('idPregunta');
-
-            $autoresPregunta = Pregunta::where('idForo', $foro->idForo)
-                ->pluck('idUsuarioCreador');
-
-            $autoresRespuesta = Respuesta::whereIn('idPregunta', $preguntaIds)
-                ->pluck('idUsuario');
-
-            $participantes = $autoresPregunta->merge($autoresRespuesta)
-                ->push($foro->idUsuarioCreador)
-                ->unique()
-                ->values();
-
-            foreach ($participantes as $idUsuario) {
-                Notificacion::crear(
-                    $idUsuario,
-                    Notificacion::TIPO_FORO_CERRADO,
-                    "Foro cerrado: \"{$foro->titulo}\"",
-                    "El foro \"{$foro->titulo}\" ha sido cerrado. Ya no se pueden publicar nuevas preguntas.",
-                    ['idForo' => $foro->idForo]
-                );
-            }
-        } catch (\Exception $e) {
-            Log::warning('Error al notificar cierre de foro: '.$e->getMessage());
-        }
     }
 }

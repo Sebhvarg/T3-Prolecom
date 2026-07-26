@@ -534,7 +534,7 @@ class TestUserSeeder extends Seeder
                 'password' => Hash::make('password123'),
                 'fechaDeNacimiento' => '2001-01-01',
                 'idEstado' => 1,
-                'xp' => rand(10, 300),
+                'xp' => random_int(10, 300),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
