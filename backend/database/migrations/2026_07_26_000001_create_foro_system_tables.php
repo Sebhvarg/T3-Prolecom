@@ -8,12 +8,18 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     *
-     * Soporta tanto bases de datos existentes como ejecuciones en limpio (RefreshDatabase en PHPUnit).
      */
     public function up(): void
     {
-        // 1. TABLA FOROS
+        $this->createForosTable();
+        $this->createNotificacionesTable();
+        $this->createVotosRespuestasTable();
+        $this->modifyPreguntasTable();
+        $this->modifyRespuestasTable();
+    }
+
+    private function createForosTable(): void
+    {
         if (! Schema::hasTable('foros')) {
             Schema::create('foros', function (Blueprint $table) {
                 $table->id('idForo');
@@ -27,53 +33,65 @@ return new class extends Migration
                     ->onUpdate('cascade');
                 $table->timestamps();
             });
-        } else {
-            Schema::table('foros', function (Blueprint $table) {
-                if (! Schema::hasColumn('foros', 'estado')) {
-                    $table->enum('estado', ['abierto', 'cerrado'])->default('abierto')->after('idUsuarioCreador');
-                }
-            });
+
+            return;
         }
 
-        // 2. TABLA NOTIFICACIONES
-        if (! Schema::hasTable('notificaciones')) {
-            Schema::create('notificaciones', function (Blueprint $table) {
-                $table->id('idNotificacion');
-                $table->unsignedBigInteger('idUsuario');
-                $table->string('tipo', 60);
-                $table->string('titulo', 200);
-                $table->text('mensaje');
-                $table->boolean('leida')->default(false);
-                $table->json('datos')->nullable();
-                $table->foreign('idUsuario')
-                    ->references('idUsuario')
-                    ->on('usuarios')
-                    ->onDelete('cascade');
-                $table->timestamps();
-            });
+        Schema::table('foros', function (Blueprint $table) {
+            if (! Schema::hasColumn('foros', 'estado')) {
+                $table->enum('estado', ['abierto', 'cerrado'])->default('abierto')->after('idUsuarioCreador');
+            }
+        });
+    }
+
+    private function createNotificacionesTable(): void
+    {
+        if (Schema::hasTable('notificaciones')) {
+            return;
         }
 
-        // 3. TABLA VOTOS_RESPUESTAS
-        if (! Schema::hasTable('votos_respuestas')) {
-            Schema::create('votos_respuestas', function (Blueprint $table) {
-                $table->id();
-                $table->unsignedBigInteger('idUsuario');
-                $table->unsignedBigInteger('idRespuesta');
-                $table->tinyInteger('valor');
-                $table->unique(['idUsuario', 'idRespuesta'], 'votos_respuestas_idusuario_idrespuesta_unique');
-                $table->foreign('idRespuesta')
-                    ->references('idRespuesta')
-                    ->on('respuestas')
-                    ->onDelete('cascade');
-                $table->foreign('idUsuario')
-                    ->references('idUsuario')
-                    ->on('usuarios')
-                    ->onDelete('cascade');
-                $table->timestamps();
-            });
+        Schema::create('notificaciones', function (Blueprint $table) {
+            $table->id('idNotificacion');
+            $table->unsignedBigInteger('idUsuario');
+            $table->string('tipo', 60);
+            $table->string('titulo', 200);
+            $table->text('mensaje');
+            $table->boolean('leida')->default(false);
+            $table->json('datos')->nullable();
+            $table->foreign('idUsuario')
+                ->references('idUsuario')
+                ->on('usuarios')
+                ->onDelete('cascade');
+            $table->timestamps();
+        });
+    }
+
+    private function createVotosRespuestasTable(): void
+    {
+        if (Schema::hasTable('votos_respuestas')) {
+            return;
         }
 
-        // 4. MODIFICAR TABLA PREGUNTAS
+        Schema::create('votos_respuestas', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('idUsuario');
+            $table->unsignedBigInteger('idRespuesta');
+            $table->tinyInteger('valor');
+            $table->unique(['idUsuario', 'idRespuesta'], 'votos_respuestas_idusuario_idrespuesta_unique');
+            $table->foreign('idRespuesta')
+                ->references('idRespuesta')
+                ->on('respuestas')
+                ->onDelete('cascade');
+            $table->foreign('idUsuario')
+                ->references('idUsuario')
+                ->on('usuarios')
+                ->onDelete('cascade');
+            $table->timestamps();
+        });
+    }
+
+    private function modifyPreguntasTable(): void
+    {
         Schema::table('preguntas', function (Blueprint $table) {
             if (Schema::hasColumn('preguntas', 'idCurso')) {
                 $table->dropForeign(['idCurso']);
@@ -100,8 +118,10 @@ return new class extends Migration
                 $table->boolean('editado')->default(false)->after('vistas');
             }
         });
+    }
 
-        // 5. MODIFICAR TABLA RESPUESTAS
+    private function modifyRespuestasTable(): void
+    {
         Schema::table('respuestas', function (Blueprint $table) {
             if (! Schema::hasColumn('respuestas', 'editado')) {
                 $table->boolean('editado')->default(false)->after('validada');

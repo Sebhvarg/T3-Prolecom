@@ -69,7 +69,7 @@ class ForoAndNotificationFeatureTest extends TestCase
     private function createUserWithRole(Rol $role, string $namePrefix): User
     {
         $user = User::factory()->create([
-            'nombreCompleto' => $namePrefix.' '.rand(100, 999),
+            'nombreCompleto' => $namePrefix.' '.random_int(100, 999),
         ]);
         $user->roles()->attach($role->idRol);
 
