@@ -26,16 +26,35 @@ class DesafioTest extends TestCase
     {
         parent::setUp();
 
-        DB::table('estadosCuenta')->insertOrIgnore([
-            'idEstado' => 1,
-            'estado' => 'Activo',
-        ]);
-
-        DB::table('roles')->insertOrIgnore([
-            ['idRol' => 3, 'rol' => 'Profesor'],
-        ]);
-
+        $this->seedBasicTestData();
         $this->profesorRol = Rol::find(3);
+    }
+
+    private function createMockCourse(User $professor): Curso
+    {
+        return Curso::create([
+            'titulo' => self::TITULO_CURSO,
+            'descripcion' => self::DESCRIPCION_CURSO,
+            'lp' => 'Python',
+            'tipo' => self::TIPO_PUBLICO,
+            'idProfeCreador' => $professor->idUsuario,
+        ]);
+    }
+
+    private function createMockDesafio(User $professor, Curso $curso, string $titulo, array $testCases = []): Desafio
+    {
+        return Desafio::create([
+            'titulo' => $titulo,
+            'descripcionProblema' => 'Problema de prueba.',
+            'dificultad' => 'Easy',
+            'testCases' => $testCases,
+            'salidaEsperada' => 'OK',
+            'estado' => 'publicado',
+            'idCreador' => $professor->idUsuario,
+            'idCurso' => $curso->idCurso,
+            'puntos' => 10,
+            'starter_code' => 'def run(): pass',
+        ]);
     }
 
     public function test_desafio_belongs_to_creator()
@@ -43,27 +62,9 @@ class DesafioTest extends TestCase
         $professor = User::factory()->create();
         $professor->roles()->attach($this->profesorRol->idRol);
 
-        $curso = Curso::create([
-            'titulo' => self::TITULO_CURSO,
-            'descripcion' => self::DESCRIPCION_CURSO,
-            'lp' => 'Python',
-            'tipo' => self::TIPO_PUBLICO,
-            'idProfeCreador' => $professor->idUsuario,
-        ]);
-
-        $desafio = Desafio::create([
-            'titulo' => 'Suma de Dos Números',
-            'descripcionProblema' => 'Suma A y B.',
-            'dificultad' => 'Easy',
-            'testCases' => [
-                ['input' => '1 2', 'expected_output' => '3', 'is_hidden' => false],
-            ],
-            'salidaEsperada' => 'OK',
-            'estado' => 'publicado',
-            'idCreador' => $professor->idUsuario,
-            'idCurso' => $curso->idCurso,
-            'puntos' => 10,
-            'starter_code' => 'def suma(a, b): pass',
+        $curso = $this->createMockCourse($professor);
+        $desafio = $this->createMockDesafio($professor, $curso, 'Suma de Dos Números', [
+            ['input' => '1 2', 'expected_output' => '3', 'is_hidden' => false],
         ]);
 
         $this->assertInstanceOf(User::class, $desafio->creador);
@@ -75,27 +76,9 @@ class DesafioTest extends TestCase
         $professor = User::factory()->create();
         $professor->roles()->attach($this->profesorRol->idRol);
 
-        $curso = Curso::create([
-            'titulo' => self::TITULO_CURSO,
-            'descripcion' => self::DESCRIPCION_CURSO,
-            'lp' => 'Python',
-            'tipo' => self::TIPO_PUBLICO,
-            'idProfeCreador' => $professor->idUsuario,
-        ]);
-
-        $desafio = Desafio::create([
-            'titulo' => 'Resta de Dos Números',
-            'descripcionProblema' => 'Resta A y B.',
-            'dificultad' => 'Easy',
-            'testCases' => [
-                ['input' => '5 2', 'expected_output' => '3', 'is_hidden' => false],
-            ],
-            'salidaEsperada' => 'OK',
-            'estado' => 'publicado',
-            'idCreador' => $professor->idUsuario,
-            'idCurso' => $curso->idCurso,
-            'puntos' => 10,
-            'starter_code' => 'def resta(a, b): pass',
+        $curso = $this->createMockCourse($professor);
+        $desafio = $this->createMockDesafio($professor, $curso, 'Resta de Dos Números', [
+            ['input' => '5 2', 'expected_output' => '3', 'is_hidden' => false],
         ]);
 
         $this->assertInstanceOf(Curso::class, $desafio->curso);
@@ -107,31 +90,13 @@ class DesafioTest extends TestCase
         $professor = User::factory()->create();
         $professor->roles()->attach($this->profesorRol->idRol);
 
-        $curso = Curso::create([
-            'titulo' => self::TITULO_CURSO,
-            'descripcion' => self::DESCRIPCION_CURSO,
-            'lp' => 'Python',
-            'tipo' => self::TIPO_PUBLICO,
-            'idProfeCreador' => $professor->idUsuario,
-        ]);
-
+        $curso = $this->createMockCourse($professor);
         $testCasesArray = [
             ['input' => '10', 'expected_output' => '20', 'is_hidden' => false],
             ['input' => '30', 'expected_output' => '60', 'is_hidden' => true],
         ];
 
-        $desafio = Desafio::create([
-            'titulo' => 'Multiplicar por Dos',
-            'descripcionProblema' => 'Multiplica por 2.',
-            'dificultad' => 'Easy',
-            'testCases' => $testCasesArray,
-            'salidaEsperada' => 'OK',
-            'estado' => 'publicado',
-            'idCreador' => $professor->idUsuario,
-            'idCurso' => $curso->idCurso,
-            'puntos' => 10,
-            'starter_code' => 'def double(x): pass',
-        ]);
+        $desafio = $this->createMockDesafio($professor, $curso, 'Multiplicar por Dos', $testCasesArray);
 
         $this->assertIsArray($desafio->testCases);
         $this->assertEquals($testCasesArray, $desafio->testCases);
