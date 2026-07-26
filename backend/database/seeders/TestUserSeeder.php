@@ -37,7 +37,7 @@ class TestUserSeeder extends Seeder
         $this->seedMaterials($users['profesor'], $temas['tema1'], $temas['tema2']);
 
         // 6. Challenges (Desafíos) + items_tema
-        $desafios = $this->seedChallenges($users['profesor'], $courses['course1'], $temas['tema1'], $temas['tema2']);
+        $this->seedChallenges($users['profesor'], $courses['course1'], $temas['tema1'], $temas['tema2']);
 
         // 7. Foros (Itemable) + items_tema
         $foros = $this->seedForos($users['profesor'], $users['ayudante'], $temas['tema1'], $temas['tema2'], $temas['tema3']);

@@ -20,6 +20,12 @@ if (! defined('ROUTE_CURSO_ID')) {
 if (! defined('ROUTE_DESAFIO_ID')) {
     define('ROUTE_DESAFIO_ID', '/desafios/{id}');
 }
+if (! defined('ROUTE_FORO_ID')) {
+    define('ROUTE_FORO_ID', '/foros/{idForo}');
+}
+if (! defined('ROUTE_PREGUNTA_ID')) {
+    define('ROUTE_PREGUNTA_ID', '/preguntas/{idPregunta}');
+}
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
@@ -75,17 +81,17 @@ Route::middleware('auth:sanctum')->group(function () {
     // FORO ACADÉMICO — PB12
     // Gestión de Foros (Itemable — creado dentro de un Tema)
     // ─────────────────────────────────────────────────────────────────
-    Route::get('/foros/{idForo}', [ForoController::class, 'show']);
+    Route::get(ROUTE_FORO_ID, [ForoController::class, 'show']);
 
     // Preguntas del foro (todos los usuarios autenticados)
-    Route::get('/foros/{idForo}/preguntas', [ForoController::class, 'indexPreguntas']);
-    Route::post('/foros/{idForo}/preguntas', [ForoController::class, 'storePregunta']);
-    Route::get('/preguntas/{idPregunta}', [ForoController::class, 'showPregunta']);
-    Route::put('/preguntas/{idPregunta}', [ForoController::class, 'updatePregunta']);
-    Route::delete('/preguntas/{idPregunta}', [ForoController::class, 'destroyPregunta']);
+    Route::get(ROUTE_FORO_ID.'/preguntas', [ForoController::class, 'indexPreguntas']);
+    Route::post(ROUTE_FORO_ID.'/preguntas', [ForoController::class, 'storePregunta']);
+    Route::get(ROUTE_PREGUNTA_ID, [ForoController::class, 'showPregunta']);
+    Route::put(ROUTE_PREGUNTA_ID, [ForoController::class, 'updatePregunta']);
+    Route::delete(ROUTE_PREGUNTA_ID, [ForoController::class, 'destroyPregunta']);
 
     // Respuestas (todos los usuarios autenticados)
-    Route::post('/preguntas/{idPregunta}/respuestas', [ForoController::class, 'storeRespuesta']);
+    Route::post(ROUTE_PREGUNTA_ID.'/respuestas', [ForoController::class, 'storeRespuesta']);
     Route::put('/respuestas/{idRespuesta}', [ForoController::class, 'updateRespuesta']);
     Route::delete('/respuestas/{idRespuesta}', [ForoController::class, 'destroyRespuesta']);
 
@@ -93,7 +99,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/respuestas/{idRespuesta}/votar', [ForoController::class, 'votar']);
 
     // Reportes de contenido (todos los usuarios autenticados)
-    Route::post('/preguntas/{idPregunta}/reportar', [ForoController::class, 'reportarPregunta']);
+    Route::post(ROUTE_PREGUNTA_ID.'/reportar', [ForoController::class, 'reportarPregunta']);
     Route::post('/respuestas/{idRespuesta}/reportar', [ForoController::class, 'reportarRespuesta']);
 
     // ─────────────────────────────────────────────────────────────────
@@ -116,13 +122,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/temas/{idTema}/foros', [ForoController::class, 'store']);
 
         // Foro — editar/eliminar/cambiar estado (la verificación de ownership es interna)
-        Route::put('/foros/{idForo}', [ForoController::class, 'update']);
-        Route::delete('/foros/{idForo}', [ForoController::class, 'destroy']);
-        Route::patch('/foros/{idForo}/estado', [ForoController::class, 'toggleEstado']);
+        Route::patch(ROUTE_FORO_ID.'/estado', [ForoController::class, 'toggleEstado']);
 
         // Preguntas — fijar/desfijar y ocultar/mostrar
-        Route::patch('/preguntas/{idPregunta}/fijar', [ForoController::class, 'toggleFijar']);
-        Route::patch('/preguntas/{idPregunta}/estado', [ForoController::class, 'toggleEstadoPregunta']);
+        Route::patch(ROUTE_PREGUNTA_ID.'/fijar', [ForoController::class, 'toggleFijar']);
+        Route::patch(ROUTE_PREGUNTA_ID.'/estado', [ForoController::class, 'toggleEstadoPregunta']);
 
         // Respuestas — validar como Oficial (PB16 RBAC)
         Route::put('/respuestas/{idRespuesta}/validar', [ForoController::class, 'toggleValidarRespuesta']);
