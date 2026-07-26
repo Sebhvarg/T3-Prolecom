@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
@@ -63,7 +63,7 @@ const CursoDetallePage = () => {
 
   const canManage = user?.rol === 'Administrador' || user?.rol === 'Profesor';
 
-  const fetchCurso = async () => {
+  const fetchCurso = useCallback(async () => {
     setLoading(true);
     try {
       const data = await cursosService.getCurso(id);
@@ -86,11 +86,11 @@ const CursoDetallePage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchCurso();
-  }, [id]);
+  }, [fetchCurso]);
 
   useEffect(() => {
     return () => {
