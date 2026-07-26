@@ -28,7 +28,8 @@ class VotoRespuesta extends Model
     /**
      * Constantes de valor de voto.
      */
-    const LIKE    = 1;
+    const LIKE = 1;
+
     const DISLIKE = -1;
 
     /**

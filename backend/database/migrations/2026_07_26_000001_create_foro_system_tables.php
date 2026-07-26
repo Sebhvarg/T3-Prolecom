@@ -22,9 +22,9 @@ return new class extends Migration
                 $table->unsignedBigInteger('idUsuarioCreador');
                 $table->enum('estado', ['abierto', 'cerrado'])->default('abierto');
                 $table->foreign('idUsuarioCreador')
-                      ->references('idUsuario')
-                      ->on('usuarios')
-                      ->onUpdate('cascade');
+                    ->references('idUsuario')
+                    ->on('usuarios')
+                    ->onUpdate('cascade');
                 $table->timestamps();
             });
         } else {
@@ -46,9 +46,9 @@ return new class extends Migration
                 $table->boolean('leida')->default(false);
                 $table->json('datos')->nullable();
                 $table->foreign('idUsuario')
-                      ->references('idUsuario')
-                      ->on('usuarios')
-                      ->onDelete('cascade');
+                    ->references('idUsuario')
+                    ->on('usuarios')
+                    ->onDelete('cascade');
                 $table->timestamps();
             });
         }
@@ -62,13 +62,13 @@ return new class extends Migration
                 $table->tinyInteger('valor');
                 $table->unique(['idUsuario', 'idRespuesta'], 'votos_respuestas_idusuario_idrespuesta_unique');
                 $table->foreign('idRespuesta')
-                      ->references('idRespuesta')
-                      ->on('respuestas')
-                      ->onDelete('cascade');
+                    ->references('idRespuesta')
+                    ->on('respuestas')
+                    ->onDelete('cascade');
                 $table->foreign('idUsuario')
-                      ->references('idUsuario')
-                      ->on('usuarios')
-                      ->onDelete('cascade');
+                    ->references('idUsuario')
+                    ->on('usuarios')
+                    ->onDelete('cascade');
                 $table->timestamps();
             });
         }
@@ -83,9 +83,9 @@ return new class extends Migration
             if (! Schema::hasColumn('preguntas', 'idForo')) {
                 $table->unsignedBigInteger('idForo')->after('idUsuarioCreador');
                 $table->foreign('idForo')
-                      ->references('idForo')
-                      ->on('foros')
-                      ->onDelete('cascade');
+                    ->references('idForo')
+                    ->on('foros')
+                    ->onDelete('cascade');
             }
 
             if (! Schema::hasColumn('preguntas', 'fijada')) {

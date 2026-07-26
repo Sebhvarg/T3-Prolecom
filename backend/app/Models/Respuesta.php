@@ -23,7 +23,7 @@ class Respuesta extends Model
 
     protected $casts = [
         'validada' => 'boolean',
-        'editado'  => 'boolean',
+        'editado' => 'boolean',
     ];
 
     /**

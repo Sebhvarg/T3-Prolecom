@@ -7,7 +7,6 @@ use App\Models\Foro;
 use App\Models\ItemTema;
 use App\Models\Notificacion;
 use App\Models\Pregunta;
-use App\Models\Reporte;
 use App\Models\Respuesta;
 use App\Models\Tema;
 use App\Models\VotoRespuesta;
@@ -28,11 +27,12 @@ class ForoController extends Controller
      */
     private function puedeModificar(Request $request, $recurso, string $campoOwner): bool
     {
-        $user    = $request->user();
+        $user = $request->user();
         $esOwner = $recurso->{$campoOwner} === $user->idUsuario;
         $esSuperior = $user->roles->pluck('rol')
-                          ->intersect(['Administrador', 'Moderador'])
-                          ->isNotEmpty();
+            ->intersect(['Administrador', 'Moderador'])
+            ->isNotEmpty();
+
         return $esOwner || $esSuperior;
     }
 
@@ -57,7 +57,7 @@ class ForoController extends Controller
         $tema = Tema::findOrFail($idTema);
 
         $validator = Validator::make($request->all(), [
-            'titulo'      => 'required|string|max:200',
+            'titulo' => 'required|string|max:200',
             'descripcion' => 'nullable|string',
         ], [
             'titulo.required' => 'El título del foro es obligatorio.',
@@ -70,20 +70,20 @@ class ForoController extends Controller
         DB::beginTransaction();
         try {
             $foro = Foro::create([
-                'titulo'           => $request->titulo,
-                'descripcion'      => $request->descripcion,
+                'titulo' => $request->titulo,
+                'descripcion' => $request->descripcion,
                 'idUsuarioCreador' => $request->user()->idUsuario,
-                'estado'           => 'abierto',
+                'estado' => 'abierto',
             ]);
 
             // Registrar como itemable en items_tema (mismo patrón que Desafio y MaterialAprendizaje)
             DB::table('items_tema')->insert([
-                'idTema'        => $idTema,
+                'idTema' => $idTema,
                 'itemable_type' => Foro::class,
-                'itemable_id'   => $foro->idForo,
-                'orden'         => 0,
-                'created_at'    => now(),
-                'updated_at'    => now(),
+                'itemable_id' => $foro->idForo,
+                'orden' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             DB::commit();
@@ -92,12 +92,12 @@ class ForoController extends Controller
 
             return response()->json([
                 'message' => 'Foro creado exitosamente.',
-                'foro'    => $foro,
+                'foro' => $foro,
             ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al crear foro: ' . $e->getMessage());
+            Log::error('Error al crear foro: '.$e->getMessage());
 
             return response()->json(['message' => 'Error al crear el foro.'], 500);
         }
@@ -109,7 +109,7 @@ class ForoController extends Controller
     public function show($idForo)
     {
         $foro = Foro::with('creador:idUsuario,nombreCompleto,usuario,avatar_path')
-                    ->findOrFail($idForo);
+            ->findOrFail($idForo);
 
         return response()->json($foro);
     }
@@ -126,7 +126,7 @@ class ForoController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'titulo'      => 'required|string|max:200',
+            'titulo' => 'required|string|max:200',
             'descripcion' => 'nullable|string',
         ]);
 
@@ -135,7 +135,7 @@ class ForoController extends Controller
         }
 
         $foro->update([
-            'titulo'      => $request->titulo,
+            'titulo' => $request->titulo,
             'descripcion' => $request->descripcion,
         ]);
 
@@ -158,8 +158,8 @@ class ForoController extends Controller
         try {
             // Eliminar el itemable asociado en items_tema
             ItemTema::where('itemable_type', Foro::class)
-                    ->where('itemable_id', $foro->idForo)
-                    ->delete();
+                ->where('itemable_id', $foro->idForo)
+                ->delete();
 
             $foro->delete();
             DB::commit();
@@ -168,7 +168,7 @@ class ForoController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al eliminar foro: ' . $e->getMessage());
+            Log::error('Error al eliminar foro: '.$e->getMessage());
 
             return response()->json(['message' => 'Error al eliminar el foro.'], 500);
         }
@@ -188,8 +188,8 @@ class ForoController extends Controller
             return response()->json(['message' => 'No tenés permiso para cambiar el estado de este foro.'], 403);
         }
 
-        $nuevoEstado    = $foro->estado === 'abierto' ? 'cerrado' : 'abierto';
-        $foro->estado   = $nuevoEstado;
+        $nuevoEstado = $foro->estado === 'abierto' ? 'cerrado' : 'abierto';
+        $foro->estado = $nuevoEstado;
         $foro->save();
 
         // Notificar a todos los participantes únicos del foro si se cierra
@@ -199,7 +199,7 @@ class ForoController extends Controller
 
         return response()->json([
             'message' => "Foro {$nuevoEstado} correctamente.",
-            'foro'    => $foro,
+            'foro' => $foro,
         ]);
     }
 
@@ -245,10 +245,10 @@ class ForoController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'titulo'      => 'required|string|max:200',
+            'titulo' => 'required|string|max:200',
             'descripcion' => 'required|string',
         ], [
-            'titulo.required'      => 'El título de la pregunta es obligatorio.',
+            'titulo.required' => 'El título de la pregunta es obligatorio.',
             'descripcion.required' => 'La descripción de la pregunta es obligatoria.',
         ]);
 
@@ -257,15 +257,15 @@ class ForoController extends Controller
         }
 
         $pregunta = Pregunta::create([
-            'titulo'           => $request->titulo,
-            'descripcion'      => $request->descripcion,
+            'titulo' => $request->titulo,
+            'descripcion' => $request->descripcion,
             'idUsuarioCreador' => $request->user()->idUsuario,
-            'idForo'           => $idForo,
-            'estado'           => 'abierta',
+            'idForo' => $idForo,
+            'estado' => 'abierta',
         ]);
 
         $pregunta->load(['creador:idUsuario,nombreCompleto,usuario,avatar_path', 'creador.roles:idRol,rol']);
-        $pregunta->respuestas_count        = 0;
+        $pregunta->respuestas_count = 0;
         $pregunta->tiene_respuesta_validada = false;
 
         return response()->json($pregunta, 201);
@@ -293,11 +293,11 @@ class ForoController extends Controller
         $userId = $request->user()->idUsuario;
         foreach ($pregunta->respuestas as $respuesta) {
             $votos = $respuesta->votos;
-        $respuesta->likes_count    = $votos->where('valor', VotoRespuesta::LIKE)->count();
-        $respuesta->dislikes_count = $votos->where('valor', VotoRespuesta::DISLIKE)->count();
-        $votoPropio = $votos->firstWhere('idUsuario', $userId);
-        $respuesta->mi_voto        = $votoPropio ? ($votoPropio->valor === VotoRespuesta::LIKE ? 'like' : 'dislike') : null;
-        unset($respuesta->votos);    // Limpiar la colección cruda antes de devolver
+            $respuesta->likes_count = $votos->where('valor', VotoRespuesta::LIKE)->count();
+            $respuesta->dislikes_count = $votos->where('valor', VotoRespuesta::DISLIKE)->count();
+            $votoPropio = $votos->firstWhere('idUsuario', $userId);
+            $respuesta->mi_voto = $votoPropio ? ($votoPropio->valor === VotoRespuesta::LIKE ? 'like' : 'dislike') : null;
+            unset($respuesta->votos);    // Limpiar la colección cruda antes de devolver
         }
 
         return response()->json($pregunta);
@@ -315,7 +315,7 @@ class ForoController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'titulo'      => 'required|string|max:200',
+            'titulo' => 'required|string|max:200',
             'descripcion' => 'required|string',
         ]);
 
@@ -324,9 +324,9 @@ class ForoController extends Controller
         }
 
         $pregunta->update([
-            'titulo'      => $request->titulo,
+            'titulo' => $request->titulo,
             'descripcion' => $request->descripcion,
-            'editado'     => true,
+            'editado' => true,
         ]);
 
         return response()->json(['message' => 'Pregunta actualizada.', 'pregunta' => $pregunta]);
@@ -358,14 +358,14 @@ class ForoController extends Controller
             return response()->json(['message' => 'No tenés permiso para fijar preguntas.'], 403);
         }
 
-        $pregunta          = Pregunta::findOrFail($idPregunta);
-        $pregunta->fijada  = ! $pregunta->fijada;
+        $pregunta = Pregunta::findOrFail($idPregunta);
+        $pregunta->fijada = ! $pregunta->fijada;
         $pregunta->save();
 
         $accion = $pregunta->fijada ? 'fijada' : 'desfijada';
 
         return response()->json([
-            'message'  => "Pregunta {$accion} correctamente.",
+            'message' => "Pregunta {$accion} correctamente.",
             'pregunta' => $pregunta,
         ]);
     }
@@ -379,12 +379,12 @@ class ForoController extends Controller
             return response()->json(['message' => 'No tenés permiso para ocultar preguntas.'], 403);
         }
 
-        $pregunta          = Pregunta::findOrFail($idPregunta);
-        $pregunta->estado  = $pregunta->estado === 'oculta' ? 'abierta' : 'oculta';
+        $pregunta = Pregunta::findOrFail($idPregunta);
+        $pregunta->estado = $pregunta->estado === 'oculta' ? 'abierta' : 'oculta';
         $pregunta->save();
 
         return response()->json([
-            'message'  => "Pregunta {$pregunta->estado} correctamente.",
+            'message' => "Pregunta {$pregunta->estado} correctamente.",
             'pregunta' => $pregunta,
         ]);
     }
@@ -412,16 +412,16 @@ class ForoController extends Controller
         }
 
         $respuesta = Respuesta::create([
-            'contenido'  => $request->contenido,
-            'idUsuario'  => $request->user()->idUsuario,
+            'contenido' => $request->contenido,
+            'idUsuario' => $request->user()->idUsuario,
             'idPregunta' => $idPregunta,
-            'validada'   => false,
+            'validada' => false,
         ]);
 
         $respuesta->load(['usuario:idUsuario,nombreCompleto,usuario,avatar_path', 'usuario.roles:idRol,rol']);
-        $respuesta->likes_count    = 0;
+        $respuesta->likes_count = 0;
         $respuesta->dislikes_count = 0;
-        $respuesta->mi_voto        = null;
+        $respuesta->mi_voto = null;
 
         // Notificar al autor de la pregunta (si no es el mismo que responde)
         $autorPregunta = $pregunta->idUsuarioCreador;
@@ -464,7 +464,7 @@ class ForoController extends Controller
 
         $respuesta->update([
             'contenido' => $request->contenido,
-            'editado'   => true,
+            'editado' => true,
         ]);
 
         return response()->json(['message' => 'Respuesta actualizada.', 'respuesta' => $respuesta]);
@@ -526,7 +526,7 @@ class ForoController extends Controller
         // Actualizar estado de la pregunta asociada
         $pregunta = Pregunta::find($respuesta->idPregunta);
         if ($pregunta) {
-            $tieneValidada    = Respuesta::where('idPregunta', $pregunta->idPregunta)->where('validada', true)->exists();
+            $tieneValidada = Respuesta::where('idPregunta', $pregunta->idPregunta)->where('validada', true)->exists();
             $pregunta->estado = $tieneValidada ? 'resuelta' : 'abierta';
             $pregunta->save();
         }
@@ -551,7 +551,7 @@ class ForoController extends Controller
         $respuesta->load(['usuario:idUsuario,nombreCompleto,usuario,avatar_path', 'usuario.roles:idRol,rol']);
 
         return response()->json([
-            'message'   => $respuesta->validada ? 'Respuesta validada como Oficial correctamente.' : 'Validación de respuesta removida.',
+            'message' => $respuesta->validada ? 'Respuesta validada como Oficial correctamente.' : 'Validación de respuesta removida.',
             'respuesta' => $respuesta,
         ]);
     }
@@ -571,7 +571,7 @@ class ForoController extends Controller
     public function votar(Request $request, $idRespuesta)
     {
         $respuesta = Respuesta::findOrFail($idRespuesta);
-        $userId    = $request->user()->idUsuario;
+        $userId = $request->user()->idUsuario;
 
         // No se puede votar la propia respuesta
         if ($respuesta->idUsuario === $userId) {
@@ -590,8 +590,8 @@ class ForoController extends Controller
         $valorNuevo = $request->tipo === 'like' ? VotoRespuesta::LIKE : VotoRespuesta::DISLIKE;
 
         $votoExistente = VotoRespuesta::where('idRespuesta', $idRespuesta)
-                                      ->where('idUsuario', $userId)
-                                      ->first();
+            ->where('idUsuario', $userId)
+            ->first();
 
         if ($votoExistente) {
             if ($votoExistente->valor === $valorNuevo) {
@@ -606,23 +606,23 @@ class ForoController extends Controller
         } else {
             VotoRespuesta::create([
                 'idRespuesta' => $idRespuesta,
-                'idUsuario'   => $userId,
-                'valor'       => $valorNuevo,
+                'idUsuario' => $userId,
+                'valor' => $valorNuevo,
             ]);
             $accion = 'registrado';
         }
 
         // Devolver conteos actualizados
-        $likes    = VotoRespuesta::where('idRespuesta', $idRespuesta)->where('valor', VotoRespuesta::LIKE)->count();
+        $likes = VotoRespuesta::where('idRespuesta', $idRespuesta)->where('valor', VotoRespuesta::LIKE)->count();
         $dislikes = VotoRespuesta::where('idRespuesta', $idRespuesta)->where('valor', VotoRespuesta::DISLIKE)->count();
         $miVotoRaw = VotoRespuesta::where('idRespuesta', $idRespuesta)->where('idUsuario', $userId)->value('valor');
         $miVoto = $miVotoRaw === null ? null : ($miVotoRaw === VotoRespuesta::LIKE ? 'like' : 'dislike');
 
         return response()->json([
-            'message'        => "Voto {$accion}.",
-            'likes_count'    => $likes,
+            'message' => "Voto {$accion}.",
+            'likes_count' => $likes,
             'dislikes_count' => $dislikes,
-            'mi_voto'        => $miVoto,
+            'mi_voto' => $miVoto,
         ]);
     }
 
@@ -638,7 +638,7 @@ class ForoController extends Controller
         Pregunta::findOrFail($idPregunta);
 
         $validator = Validator::make($request->all(), [
-            'motivo'      => 'required|string|max:255',
+            'motivo' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
         ]);
 
@@ -647,14 +647,14 @@ class ForoController extends Controller
         }
 
         DB::table('reportes')->insert([
-            'motivo'               => $request->motivo,
-            'descripcion'          => $request->descripcion,
-            'idUsuarioReportador'  => $request->user()->idUsuario,
-            'tipoPublicacion'      => 'pregunta',
+            'motivo' => $request->motivo,
+            'descripcion' => $request->descripcion,
+            'idUsuarioReportador' => $request->user()->idUsuario,
+            'tipoPublicacion' => 'pregunta',
             'idPublicacionReportada' => $idPregunta,
-            'estado'               => 'pendiente',
-            'created_at'           => now(),
-            'updated_at'           => now(),
+            'estado' => 'pendiente',
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         return response()->json(['message' => 'Reporte enviado. Nuestro equipo lo revisará pronto.'], 201);
@@ -668,7 +668,7 @@ class ForoController extends Controller
         Respuesta::findOrFail($idRespuesta);
 
         $validator = Validator::make($request->all(), [
-            'motivo'      => 'required|string|max:255',
+            'motivo' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
         ]);
 
@@ -677,14 +677,14 @@ class ForoController extends Controller
         }
 
         DB::table('reportes')->insert([
-            'motivo'               => $request->motivo,
-            'descripcion'          => $request->descripcion,
-            'idUsuarioReportador'  => $request->user()->idUsuario,
-            'tipoPublicacion'      => 'respuesta',
+            'motivo' => $request->motivo,
+            'descripcion' => $request->descripcion,
+            'idUsuarioReportador' => $request->user()->idUsuario,
+            'tipoPublicacion' => 'respuesta',
             'idPublicacionReportada' => $idRespuesta,
-            'estado'               => 'pendiente',
-            'created_at'           => now(),
-            'updated_at'           => now(),
+            'estado' => 'pendiente',
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         return response()->json(['message' => 'Reporte enviado. Nuestro equipo lo revisará pronto.'], 201);
@@ -704,15 +704,15 @@ class ForoController extends Controller
             $preguntaIds = Pregunta::where('idForo', $foro->idForo)->pluck('idPregunta');
 
             $autoresPregunta = Pregunta::where('idForo', $foro->idForo)
-                                       ->pluck('idUsuarioCreador');
+                ->pluck('idUsuarioCreador');
 
             $autoresRespuesta = Respuesta::whereIn('idPregunta', $preguntaIds)
-                                         ->pluck('idUsuario');
+                ->pluck('idUsuario');
 
             $participantes = $autoresPregunta->merge($autoresRespuesta)
-                                             ->push($foro->idUsuarioCreador)
-                                             ->unique()
-                                             ->values();
+                ->push($foro->idUsuarioCreador)
+                ->unique()
+                ->values();
 
             foreach ($participantes as $idUsuario) {
                 Notificacion::crear(
@@ -724,7 +724,7 @@ class ForoController extends Controller
                 );
             }
         } catch (\Exception $e) {
-            Log::warning('Error al notificar cierre de foro: ' . $e->getMessage());
+            Log::warning('Error al notificar cierre de foro: '.$e->getMessage());
         }
     }
 }

@@ -19,11 +19,17 @@ class ForoRBACTest extends TestCase
     use RefreshDatabase;
 
     protected ?Rol $adminRol = null;
+
     protected ?Rol $profesorRol = null;
+
     protected ?Rol $ayudanteRol = null;
+
     protected ?Rol $estudianteRol = null;
+
     protected ?Curso $curso = null;
+
     protected ?Tema $tema = null;
+
     protected ?Foro $foro = null;
 
     protected function setUp(): void

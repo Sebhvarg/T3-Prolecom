@@ -161,14 +161,14 @@ class TestUserSeeder extends Seeder
         DB::table('rolUsuario')->insert(['idUsuario' => $teresaId, 'idRol' => 6]);
 
         return [
-            'admin'      => $adminId,
-            'profesor'   => $profesorId,
-            'ayudante'   => $ayudanteId,
+            'admin' => $adminId,
+            'profesor' => $profesorId,
+            'ayudante' => $ayudanteId,
             'estudiante' => $estudianteId,
-            'juan'       => $juanId,
-            'karla'      => $karlaId,
-            'alex'       => $alexId,
-            'teresa'     => $teresaId,
+            'juan' => $juanId,
+            'karla' => $karlaId,
+            'alex' => $alexId,
+            'teresa' => $teresaId,
         ];
     }
 

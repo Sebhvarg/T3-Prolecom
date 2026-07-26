@@ -20,14 +20,21 @@ class ForoAndNotificationFeatureTest extends TestCase
     use RefreshDatabase;
 
     protected ?Rol $adminRol = null;
+
     protected ?Rol $profesorRol = null;
+
     protected ?Rol $ayudanteRol = null;
+
     protected ?Rol $estudianteRol = null;
 
     protected ?User $profesor = null;
+
     protected ?User $estudiante1 = null;
+
     protected ?User $estudiante2 = null;
+
     protected ?Curso $curso = null;
+
     protected ?Tema $tema = null;
 
     protected function setUp(): void
@@ -62,7 +69,7 @@ class ForoAndNotificationFeatureTest extends TestCase
     private function createUserWithRole(Rol $role, string $namePrefix): User
     {
         $user = User::factory()->create([
-            'nombreCompleto' => $namePrefix . ' ' . rand(100, 999),
+            'nombreCompleto' => $namePrefix.' '.rand(100, 999),
         ]);
         $user->roles()->attach($role->idRol);
 
