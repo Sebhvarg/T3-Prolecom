@@ -9,7 +9,12 @@ COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr
 
 # Instalar dependencias del sistema y extensiones de PHP necesarias
 RUN apt-get update && apt-get install -y \
+    default-jdk-headless \
+    g++ \
+    gcc \
     git \
+    nodejs \
+    python3 \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 

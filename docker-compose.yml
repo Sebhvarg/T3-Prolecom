@@ -41,6 +41,8 @@ services:
       - APP_ENV=local
       - APP_DEBUG=true
       - APP_URL=http://localhost:8000
+      - JUDGE0_URL=${JUDGE0_URL}
+      - JUDGE0_HOST=${JUDGE0_HOST}
     restart: always
     networks:
       - prolecom_network
@@ -95,6 +97,8 @@ services:
       - APP_ENV=local
       - APP_DEBUG=true
       - APP_URL=http://localhost:8000
+      - JUDGE0_URL=${JUDGE0_URL}
+      - JUDGE0_HOST=${JUDGE0_HOST}
     command: php artisan queue:work --verbose --tries=3 --timeout=90
     restart: always
     networks:
@@ -103,11 +107,58 @@ services:
       db:
         condition: service_healthy
 
+  # Motor de ejecución de código Judge0 CE
+  judge0-server:
+    image: judge0/judge0:1.13.1
+    ports:
+      - "2358:2358"
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    tmpfs:
+      - /tmp
+    environment:
+      - POSTGRES_HOST=judge0-db
+      - POSTGRES_USER=judge0
+      - POSTGRES_PASSWORD=judge0
+      - POSTGRES_DB=judge0
+      - REDIS_HOST=judge0-redis
+      - REDIS_PORT=6379
+      - JUDGE0_ENABLE_PER_PROCESS_AND_THREAD_MEMORY_LIMIT=false
+      - JUDGE0_ENABLE_PER_PROCESS_AND_THREAD_TIME_LIMIT=false
+      - ENABLE_PER_PROCESS_AND_THREAD_MEMORY_LIMIT=false
+      - ENABLE_PER_PROCESS_AND_THREAD_TIME_LIMIT=false
+
+
+    restart: always
+    networks:
+      - prolecom_network
+    depends_on:
+      - judge0-db
+      - judge0-redis
+
+  judge0-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: judge0
+      POSTGRES_PASSWORD: judge0
+      POSTGRES_DB: judge0
+    volumes:
+      - judge0_db_data:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - prolecom_network
+
+  judge0-redis:
+    image: redis:7-alpine
+    restart: always
+    networks:
+      - prolecom_network
+
 networks:
   prolecom_network:
     driver: bridge
 
 volumes:
   db_data:
-
- 
+  judge0_db_data:
