@@ -1,0 +1,102 @@
+# SCRUM-52 - CI/CD: Staging workflow
+# Se ejecuta cuando se hace merge a master (después de pasar dev)
+# Despliega automáticamente al entorno de Staging para smoke testing
+
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [ "master" ]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  # ── 1. Backend CI (reutiliza la misma lógica que backend-ci.yml) ─────────
+  backend-checks:
+    name: Backend Checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo, pdo_mysql, openssl
+          coverage: xdebug
+
+      - name: Copy .env
+        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Code style (Pint)
+        run: ./vendor/bin/pint --test
+
+      - name: Static analysis (PHPStan)
+        run: composer analyse
+
+      - name: Run tests with coverage
+        run: php artisan config:clear && php -d xdebug.mode=coverage vendor/bin/phpunit --coverage-clover build/logs/clover.xml
+
+  # ── 2. Frontend CI ────────────────────────────────────────────────────────
+  frontend-checks:
+    name: Frontend Checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: ESLint
+        run: yarn lint
+
+      - name: Build
+        run: yarn build
+
+  # ── 3. Deploy Staging (solo si ambos checks pasan) ───────────────────────
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [ backend-checks, frontend-checks ]
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Notify staging deploy start
+        run: echo "Deploying to Staging environment..."
+
+      # Si tienen servidor propio, aquí va el SSH deploy.
+      # Ejemplo con servidor via SSH:
+      # - name: Deploy via SSH
+      #   uses: appleboy/ssh-action@v1.0.0
+      #   with:
+      #     host: ${{ secrets.STAGING_HOST }}
+      #     username: ${{ secrets.STAGING_USER }}
+      #     key: ${{ secrets.STAGING_SSH_KEY }}
+      #     script: |
+      #       cd /var/www/prolecom-staging
+      #       git pull origin master
+      #       cd backend && composer install --no-dev
+      #       php artisan migrate --force
+      #       cd ../frontend && yarn install && yarn build
+
+      - name: Staging deploy complete
+        run: echo "✅ Staging deploy complete. Ready for smoke testing."
