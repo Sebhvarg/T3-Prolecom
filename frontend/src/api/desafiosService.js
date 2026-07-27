@@ -38,5 +38,11 @@ export const desafiosService = {
 
   getIntentos: async (idDesafio) => {
     return await authService.apiFetch(`/desafios/${idDesafio}/soluciones`);
-  }
+  },
+
+  resetDesafio: async (idDesafio) => {
+    return await authService.apiFetch(`/desafios/${idDesafio}/reset`, {
+      method: 'POST',
+    });
+  },
 };
