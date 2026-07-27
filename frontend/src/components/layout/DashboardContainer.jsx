@@ -1,6 +1,7 @@
 import Sidebar from './Sidebar';
 import Breadcrumbs from './Breadcrumbs';
-import { Bell, User } from 'lucide-react';
+import NotificacionesDropdown from './NotificacionesDropdown';
+import { User } from 'lucide-react';
 import PropTypes from 'prop-types';
 
 const DashboardContainer = ({ title, user, children }) => {
@@ -11,10 +12,7 @@ const DashboardContainer = ({ title, user, children }) => {
         <header className="h-16 bg-white border-b flex items-center justify-between px-8">
           <h1 className="text-xl font-semibold text-gray-800">{title}</h1>
           <div className="flex items-center gap-6">
-            <div className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full cursor-pointer">
-              <Bell size={20} />
-              <div className="absolute top-1 right-2 w-2 h-2 bg-red-500 rounded-full"></div>
-            </div>
+            <NotificacionesDropdown />
             <div className="flex items-center gap-3 p-1 pl-4 border-l border-gray-200">
               <div className="p-2 bg-gray-100 rounded-full">
                 <User size={20} className="text-gray-600" />
