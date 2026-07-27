@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Curso;
+use App\Models\Solucion;
 use App\Models\User;
 use App\Strategies\CourseTemplate\CursoTemplateFactory;
 use Illuminate\Http\Request;
@@ -53,20 +54,50 @@ class CursoController extends Controller
         return response()->json($cursos);
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        $user = $request->user('sanctum') ?? auth()->user();
+
         $curso = Curso::with([
             'creador:idUsuario,nombreCompleto',
             'temas.items.itemable',
         ])->findOrFail($id);
 
-        $curso->temas->each(function ($tema) {
-            $tema->items->each(function ($item) {
-                if ($item->itemable && method_exists($item->itemable, 'creador')) {
-                    $item->itemable->load('creador:idUsuario,nombreCompleto');
+        $idsDesafiosResueltos = [];
+        if ($user) {
+            $idsDesafiosResueltos = Solucion::where('idEstudiante', $user->idUsuario)
+                ->where('estado', 'aprobado')
+                ->pluck('idDesafio')
+                ->unique()
+                ->toArray();
+        }
+
+        $totalXPCurso = 0;
+        $xpGanadoCurso = 0;
+        $desafiosTotales = 0;
+        $desafiosResueltosCount = 0;
+
+        foreach ($curso->temas as $tema) {
+            foreach ($tema->items as $item) {
+                $res = $this->procesarItemTema($item, $idsDesafiosResueltos);
+                if ($res['es_desafio']) {
+                    $totalXPCurso += $res['puntos'];
+                    $desafiosTotales++;
+                    if ($res['completado']) {
+                        $xpGanadoCurso += $res['puntos'];
+                        $desafiosResueltosCount++;
+                    }
                 }
-            });
-        });
+            }
+        }
+
+        $curso->progreso_estudiante = [
+            'xp_ganado' => $xpGanadoCurso,
+            'xp_total' => $totalXPCurso,
+            'desafios_resueltos' => $desafiosResueltosCount,
+            'desafios_totales' => $desafiosTotales,
+            'porcentaje' => $desafiosTotales > 0 ? round(($desafiosResueltosCount / $desafiosTotales) * 100) : 0,
+        ];
 
         return response()->json($curso);
     }
@@ -230,5 +261,28 @@ class CursoController extends Controller
     public function cursosTotal()
     {
         return response()->json(['count' => Curso::count()]);
+    }
+
+    private function procesarItemTema($item, array $idsDesafiosResueltos): array
+    {
+        if ($item->itemable && method_exists($item->itemable, 'creador')) {
+            $item->itemable->load('creador:idUsuario,nombreCompleto');
+        }
+
+        $isDesafio = $item->itemable_type && str_contains($item->itemable_type, 'Desafio') && $item->itemable;
+        if (! $isDesafio) {
+            return ['es_desafio' => false, 'puntos' => 0, 'completado' => false];
+        }
+
+        $desafio = $item->itemable;
+        $puntos = $desafio->puntos ?? 10;
+        $isCompleted = in_array($desafio->idDesafio, $idsDesafiosResueltos);
+        $desafio->completado = $isCompleted;
+
+        return [
+            'es_desafio' => true,
+            'puntos' => $puntos,
+            'completado' => $isCompleted,
+        ];
     }
 }
