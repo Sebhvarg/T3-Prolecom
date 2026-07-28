@@ -5,30 +5,35 @@ namespace Tests\Unit;
 use App\Services\ProgresoService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
 /**
  * SCRUM-50 - Backend (QA): Pruebas unitarias del ProgresoService
  * Verifica que los algoritmos de cálculo de completitud sean exactos.
  */
-class ProgresoServiceTest extends TestCase{
+class ProgresoServiceTest extends TestCase
+{
     use RefreshDatabase;
 
     protected ProgresoService $service;
-    protected int $idCurso    = 1;
+
+    protected int $idCurso = 1;
+
     protected int $idEstudiante = 10;
 
-    protected function setUp(): void{
+    protected function setUp(): void
+    {
         parent::setUp();
-        $this->service = new ProgresoService();
+        $this->service = new ProgresoService;
         $this->seedBasicData();
     }
 
     /**
      * Inserta datos mínimos para las pruebas sin depender de seeders completos.
      */
-    private function seedBasicData(): void{
+    private function seedBasicData(): void
+    {
         // Estado y rol base
         DB::table('estadosCuenta')->insertOrIgnore([
             ['idEstado' => 1, 'estado' => 'Activo'],
@@ -39,59 +44,59 @@ class ProgresoServiceTest extends TestCase{
 
         // Usuario estudiante
         DB::table('usuarios')->insertOrIgnore([[
-            'idUsuario'       => $this->idEstudiante,
-            'nombreCompleto'  => 'Estudiante Test',
-            'usuario'         => 'estudiantetest',
-            'email'           => 'estudiantetest@test.com',
-            'password'        => bcrypt('password'),
+            'idUsuario' => $this->idEstudiante,
+            'nombreCompleto' => 'Estudiante Test',
+            'usuario' => 'estudiantetest',
+            'email' => 'estudiantetest@test.com',
+            'password' => bcrypt('password'),
             'fechaDeNacimiento' => '2000-01-01',
-            'idEstado'        => 1,
-            'xp'              => 0,
-            'created_at'      => now(),
-            'updated_at'      => now(),
+            'idEstado' => 1,
+            'xp' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]]);
 
         // Usuario profesor
         DB::table('usuarios')->insertOrIgnore([[
-            'idUsuario'       => 99,
-            'nombreCompleto'  => 'Profesor Test',
-            'usuario'         => 'profesortest',
-            'email'           => 'profesortest@test.com',
-            'password'        => bcrypt('password'),
+            'idUsuario' => 99,
+            'nombreCompleto' => 'Profesor Test',
+            'usuario' => 'profesortest',
+            'email' => 'profesortest@test.com',
+            'password' => bcrypt('password'),
             'fechaDeNacimiento' => '1985-01-01',
-            'idEstado'        => 1,
-            'xp'              => 0,
-            'created_at'      => now(),
-            'updated_at'      => now(),
+            'idEstado' => 1,
+            'xp' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]]);
 
         // Curso
         DB::table('cursos')->insertOrIgnore([[
-            'idCurso'        => $this->idCurso,
-            'titulo'         => 'Curso Test',
-            'descripcion'    => 'Descripción test',
-            'lp'             => 'Python',
-            'tipo'           => 'público',
+            'idCurso' => $this->idCurso,
+            'titulo' => 'Curso Test',
+            'descripcion' => 'Descripción test',
+            'lp' => 'Python',
+            'tipo' => 'público',
             'idProfeCreador' => 99,
-            'created_at'     => now(),
-            'updated_at'     => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
         ]]);
 
         // Inscripción del estudiante
         DB::table('inscripciones_cursos')->insertOrIgnore([[
             'idUsuarioEstudiante' => $this->idEstudiante,
-            'idCurso'             => $this->idCurso,
-            'fechaInscripcion'    => now(),
+            'idCurso' => $this->idCurso,
+            'fechaInscripcion' => now(),
         ]]);
 
         // Tema del curso
         DB::table('temas')->insertOrIgnore([[
-            'idTema'      => 1,
-            'nombre'      => 'Tema Test',
+            'idTema' => 1,
+            'nombre' => 'Tema Test',
             'descripcion' => 'Descripción tema test',
-            'idCurso'     => $this->idCurso,
-            'created_at'  => now(),
-            'updated_at'  => now(),
+            'idCurso' => $this->idCurso,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]]);
     }
 
@@ -100,7 +105,8 @@ class ProgresoServiceTest extends TestCase{
     // ────────────────────────────────────────────────────────────────────────
 
     #[Test]
-    public function retorna_cero_cuando_no_hay_desafios_en_el_curso(): void {
+    public function retorna_cero_cuando_no_hay_desafios_en_el_curso(): void
+    {
         $resultado = $this->service->calcularProgresoDesafios($this->idCurso, $this->idEstudiante);
 
         $this->assertEquals(0, $resultado['total']);
@@ -109,7 +115,8 @@ class ProgresoServiceTest extends TestCase{
     }
 
     #[Test]
-    public function retorna_cero_cuando_estudiante_no_ha_resuelto_ningun_desafio(): void {
+    public function retorna_cero_cuando_estudiante_no_ha_resuelto_ningun_desafio(): void
+    {
         // 3 desafíos publicados, ninguna solución
         $this->insertarDesafios(3);
 
@@ -121,7 +128,8 @@ class ProgresoServiceTest extends TestCase{
     }
 
     #[Test]
-    public function calcula_correctamente_cuando_estudiante_completo_mitad_de_desafios(): void {
+    public function calcula_correctamente_cuando_estudiante_completo_mitad_de_desafios(): void
+    {
         // 4 desafíos, 2 aprobados
         $desafioIds = $this->insertarDesafios(4);
         $this->insertarSolucionAprobada($desafioIds[0]);
@@ -135,7 +143,8 @@ class ProgresoServiceTest extends TestCase{
     }
 
     #[Test]
-    public function calcula_cien_por_ciento_cuando_todos_los_desafios_estan_aprobados(): void {
+    public function calcula_cien_por_ciento_cuando_todos_los_desafios_estan_aprobados(): void
+    {
         $desafioIds = $this->insertarDesafios(3);
         foreach ($desafioIds as $id) {
             $this->insertarSolucionAprobada($id);
@@ -147,18 +156,19 @@ class ProgresoServiceTest extends TestCase{
     }
 
     #[Test]
-    public function multiples_soluciones_del_mismo_desafio_cuentan_como_uno(): void {
+    public function multiples_soluciones_del_mismo_desafio_cuentan_como_uno(): void
+    {
         // Un desafío con 3 intentos aprobados — debe contar como 1 completado
         $desafioIds = $this->insertarDesafios(2);
         // 3 soluciones al mismo desafío
         for ($i = 0; $i < 3; $i++) {
             DB::table('soluciones')->insert([
                 'codigoFuente' => 'print("test")',
-                'estado'       => 'aprobado',
+                'estado' => 'aprobado',
                 'idEstudiante' => $this->idEstudiante,
-                'idDesafio'    => $desafioIds[0],
-                'created_at'   => now(),
-                'updated_at'   => now(),
+                'idDesafio' => $desafioIds[0],
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
 
@@ -170,20 +180,21 @@ class ProgresoServiceTest extends TestCase{
     }
 
     #[Test]
-    public function desafios_pendientes_no_publicados_no_cuentan_en_el_total(): void {
+    public function desafios_pendientes_no_publicados_no_cuentan_en_el_total(): void
+    {
         // 2 publicados + 1 pendiente
         $this->insertarDesafios(2);
         DB::table('desafios')->insert([
-            'titulo'              => 'Desafío Pendiente',
+            'titulo' => 'Desafío Pendiente',
             'descripcionProblema' => 'Problema pendiente',
-            'dificultad'          => 'Easy',
-            'testCases'           => json_encode([]),
-            'salidaEsperada'      => 'OK',
-            'estado'              => 'pendiente',
-            'idCreador'           => 99,
-            'idCurso'             => $this->idCurso,
-            'created_at'          => now(),
-            'updated_at'          => now(),
+            'dificultad' => 'Easy',
+            'testCases' => json_encode([]),
+            'salidaEsperada' => 'OK',
+            'estado' => 'pendiente',
+            'idCreador' => 99,
+            'idCurso' => $this->idCurso,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         $resultado = $this->service->calcularProgresoDesafios($this->idCurso, $this->idEstudiante);
@@ -197,7 +208,8 @@ class ProgresoServiceTest extends TestCase{
     // ────────────────────────────────────────────────────────────────────────
 
     #[Test]
-    public function retorna_cero_cuando_no_hay_materiales_en_el_curso(): void {
+    public function retorna_cero_cuando_no_hay_materiales_en_el_curso(): void
+    {
         $resultado = $this->service->calcularProgresoMateriales($this->idCurso, $this->idEstudiante);
 
         $this->assertEquals(0, $resultado['total']);
@@ -206,7 +218,8 @@ class ProgresoServiceTest extends TestCase{
     }
 
     #[Test]
-    public function calcula_correctamente_materiales_vistos(): void {
+    public function calcula_correctamente_materiales_vistos(): void
+    {
         $materialIds = $this->insertarMateriales(4);
         // Estudiante vio 1 de 4
         $this->marcarMaterialVisto($materialIds[0]);
@@ -223,16 +236,18 @@ class ProgresoServiceTest extends TestCase{
     // ────────────────────────────────────────────────────────────────────────
 
     #[Test]
-    public function progreso_total_es_cero_sin_actividad(): void {
+    public function progreso_total_es_cero_sin_actividad(): void
+    {
         $resultado = $this->service->calcularProgreso($this->idCurso, $this->idEstudiante);
 
         $this->assertEquals(0.0, $resultado['progreso_total']);
     }
 
     #[Test]
-    public function progreso_total_pondera_correctamente_desafios_y_materiales(): void {
+    public function progreso_total_pondera_correctamente_desafios_y_materiales(): void
+    {
         // 100% desafíos (peso 60%) + 50% materiales (peso 40%) = 80%
-        $desafioIds  = $this->insertarDesafios(2);
+        $desafioIds = $this->insertarDesafios(2);
         $materialIds = $this->insertarMateriales(2);
 
         foreach ($desafioIds as $id) {
@@ -247,8 +262,9 @@ class ProgresoServiceTest extends TestCase{
     }
 
     #[Test]
-    public function progreso_total_es_cien_cuando_todo_esta_completado(): void {
-        $desafioIds  = $this->insertarDesafios(2);
+    public function progreso_total_es_cien_cuando_todo_esta_completado(): void
+    {
+        $desafioIds = $this->insertarDesafios(2);
         $materialIds = $this->insertarMateriales(2);
 
         foreach ($desafioIds as $id) {
@@ -264,7 +280,8 @@ class ProgresoServiceTest extends TestCase{
     }
 
     #[Test]
-    public function estructura_de_respuesta_es_correcta(): void {
+    public function estructura_de_respuesta_es_correcta(): void
+    {
         $resultado = $this->service->calcularProgreso($this->idCurso, $this->idEstudiante);
 
         $this->assertArrayHasKey('idCurso', $resultado);
@@ -284,70 +301,76 @@ class ProgresoServiceTest extends TestCase{
     // HELPERS
     // ────────────────────────────────────────────────────────────────────────
 
-    private function insertarDesafios(int $cantidad): array {
+    private function insertarDesafios(int $cantidad): array
+    {
         $ids = [];
         for ($i = 1; $i <= $cantidad; $i++) {
             $ids[] = DB::table('desafios')->insertGetId([
-                'titulo'              => "Desafío {$i}",
+                'titulo' => "Desafío {$i}",
                 'descripcionProblema' => "Problema {$i}",
-                'dificultad'          => 'Easy',
-                'testCases'           => json_encode([]),
-                'salidaEsperada'      => 'OK',
-                'estado'              => 'publicado',
-                'idCreador'           => 99,
-                'idCurso'             => $this->idCurso,
-                'created_at'          => now(),
-                'updated_at'          => now(),
+                'dificultad' => 'Easy',
+                'testCases' => json_encode([]),
+                'salidaEsperada' => 'OK',
+                'estado' => 'publicado',
+                'idCreador' => 99,
+                'idCurso' => $this->idCurso,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
+
         return $ids;
     }
 
-    private function insertarSolucionAprobada(int $idDesafio): void {
+    private function insertarSolucionAprobada(int $idDesafio): void
+    {
         DB::table('soluciones')->insert([
             'codigoFuente' => 'print("OK")',
-            'estado'       => 'aprobado',
+            'estado' => 'aprobado',
             'idEstudiante' => $this->idEstudiante,
-            'idDesafio'    => $idDesafio,
-            'created_at'   => now(),
-            'updated_at'   => now(),
+            'idDesafio' => $idDesafio,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
     }
 
-    private function insertarMateriales(int $cantidad): array {
+    private function insertarMateriales(int $cantidad): array
+    {
         $ids = [];
         for ($i = 1; $i <= $cantidad; $i++) {
             $idMaterial = DB::table('materiales_aprendizaje')->insertGetId([
-                'titulo'           => "Material {$i}",
-                'descripcion'      => "Descripción {$i}",
-                'tipo'             => 'PDF',
-                'enlaceArchivo'    => "material_{$i}.pdf",
+                'titulo' => "Material {$i}",
+                'descripcion' => "Descripción {$i}",
+                'tipo' => 'PDF',
+                'enlaceArchivo' => "material_{$i}.pdf",
                 'idUsuarioCreador' => 99,
-                'created_at'       => now(),
-                'updated_at'       => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             DB::table('items_tema')->insert([
-                'idTema'        => 1,
+                'idTema' => 1,
                 'itemable_type' => 'App\\Models\\MaterialAprendizaje',
-                'itemable_id'   => $idMaterial,
-                'orden'         => $i,
-                'created_at'    => now(),
-                'updated_at'    => now(),
+                'itemable_id' => $idMaterial,
+                'orden' => $i,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             $ids[] = $idMaterial;
         }
+
         return $ids;
     }
 
-    private function marcarMaterialVisto(int $idMaterial): void {
+    private function marcarMaterialVisto(int $idMaterial): void
+    {
         DB::table('materiales_vistos')->insertOrIgnore([
             'idEstudiante' => $this->idEstudiante,
-            'idMaterial'   => $idMaterial,
-            'visto_en'     => now(),
-            'created_at'   => now(),
-            'updated_at'   => now(),
+            'idMaterial' => $idMaterial,
+            'visto_en' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
     }
 }

@@ -23,14 +23,14 @@ return new class extends Migration
             $table->unique(['idEstudiante', 'idMaterial']);
 
             $table->foreign('idEstudiante')
-                  ->references('idUsuario')
-                  ->on('usuarios')
-                  ->onDelete('cascade');
+                ->references('idUsuario')
+                ->on('usuarios')
+                ->onDelete('cascade');
 
             $table->foreign('idMaterial')
-                  ->references('idMaterial')
-                  ->on('materiales_aprendizaje')
-                  ->onDelete('cascade');
+                ->references('idMaterial')
+                ->on('materiales_aprendizaje')
+                ->onDelete('cascade');
         });
     }
 
