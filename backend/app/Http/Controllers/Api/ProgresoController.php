@@ -7,12 +7,6 @@ use App\Services\ProgresoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-/**
- * SCRUM-49 - Backend (PHP): Algoritmos de cálculo de progreso
- * Calcula el avance del estudiante basado en:
- * - Desafíos superados (aprobado) vs total de desafíos del curso
- * - Materiales consumidos vs total de materiales del curso
- */
 class ProgresoController extends Controller
 {
     protected ProgresoService $progresoService;
@@ -24,19 +18,17 @@ class ProgresoController extends Controller
 
     /**
      * GET /cursos/{id}/progreso
-     * Devuelve el progreso completo del estudiante autenticado en un curso.
      */
     public function show(Request $request, int $id)
     {
         $usuario = $request->user();
 
-        // Verificar que el estudiante esté inscrito
         $inscrito = DB::table('inscripciones_cursos')
             ->where('idUsuarioEstudiante', $usuario->idUsuario)
             ->where('idCurso', $id)
             ->exists();
 
-        if (!$inscrito) {
+        if (! $inscrito) {
             return response()->json([
                 'error' => 'No estás inscrito en este curso.',
             ], 403);
