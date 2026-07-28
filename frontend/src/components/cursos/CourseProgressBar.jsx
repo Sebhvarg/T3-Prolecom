@@ -94,11 +94,14 @@ const CourseProgressBar = ({ idCurso }) => {
   const { progreso_total, desafios, materiales } = progreso;
 
   // Color del progreso total según nivel
-  const colorTotal =
-    progreso_total >= 80 ? '#16a34a' :
-    progreso_total >= 50 ? '#2c5364' :
-    progreso_total >= 25 ? '#d97706' :
-                           '#dc2626';
+  const getColorTotal = (pct) => {
+    if (pct >= 80) return '#16a34a';
+    if (pct >= 50) return '#2c5364';
+    if (pct >= 25) return '#d97706';
+    return '#dc2626';
+  };
+
+  const colorTotal = getColorTotal(progreso_total);
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
