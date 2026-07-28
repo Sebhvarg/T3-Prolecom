@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\CursoController;
 use App\Http\Controllers\Api\DesafioController;
 use App\Http\Controllers\Api\MaterialController;
 use App\Http\Controllers\Api\PerfilController;
+use App\Http\Controllers\Api\ProgresoController;
 use App\Http\Controllers\Api\TemaController;
 use App\Http\Controllers\Api\UserController;
 use App\Models\LenguajeProgramacion;
@@ -23,7 +24,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/cursos/{id}/progreso', [\App\Http\Controllers\Api\ProgresoController::class, 'show']);
+    Route::get('/cursos/{id}/progreso', [ProgresoController::class, 'show']);
     Route::put('/perfil/password', [PerfilController::class, 'cambiarPassword']);
     Route::get('/user', function (Request $request) {
         return $request->user();

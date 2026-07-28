@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\ProgresoService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * SCRUM-49 - Backend (PHP): Algoritmos de cálculo de progreso
@@ -30,14 +31,14 @@ class ProgresoController extends Controller
         $usuario = $request->user();
 
         // Verificar que el estudiante esté inscrito
-        $inscrito = \DB::table('inscripciones_cursos')
+        $inscrito = DB::table('inscripciones_cursos')
             ->where('idUsuarioEstudiante', $usuario->idUsuario)
             ->where('idCurso', $id)
             ->exists();
 
         if (!$inscrito) {
             return response()->json([
-                'error' => 'No estás inscrito en este curso.'
+                'error' => 'No estás inscrito en este curso.',
             ], 403);
         }
 

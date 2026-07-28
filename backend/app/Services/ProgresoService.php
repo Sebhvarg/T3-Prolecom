@@ -17,8 +17,8 @@ use Illuminate\Support\Facades\DB;
  */
 class ProgresoService
 {
-    // Pesos de cada componente en el progreso total
-    const PESO_DESAFIOS   = 0.60;
+    const PESO_DESAFIOS = 0.60;
+
     const PESO_MATERIALES = 0.40;
 
     /**
@@ -41,11 +41,11 @@ class ProgresoService
         );
 
         return [
-            'idCurso'           => $idCurso,
-            'idEstudiante'      => $idEstudiante,
-            'progreso_total'    => $total,
-            'desafios'          => $progresoChallenges,
-            'materiales'        => $progresoMateriales,
+            'idCurso' => $idCurso,
+            'idEstudiante' => $idEstudiante,
+            'progreso_total' => $total,
+            'desafios' => $progresoChallenges,
+            'materiales' => $progresoMateriales,
         ];
     }
 
@@ -65,8 +65,8 @@ class ProgresoService
         if ($total === 0) {
             return [
                 'completados' => 0,
-                'total'       => 0,
-                'porcentaje'  => 0.0,
+                'total' => 0,
+                'porcentaje' => 0.0,
             ];
         }
 
@@ -84,8 +84,8 @@ class ProgresoService
 
         return [
             'completados' => $completados,
-            'total'       => $total,
-            'porcentaje'  => $porcentaje,
+            'total' => $total,
+            'porcentaje' => $porcentaje,
         ];
     }
 
@@ -100,7 +100,7 @@ class ProgresoService
         $total = DB::table('materiales_aprendizaje')
             ->join('items_tema', function ($join) {
                 $join->on('materiales_aprendizaje.idMaterial', '=', 'items_tema.itemable_id')
-                     ->where('items_tema.itemable_type', '=', 'App\\Models\\MaterialAprendizaje');
+                    ->where('items_tema.itemable_type', '=', 'App\\Models\\MaterialAprendizaje');
             })
             ->join('temas', 'items_tema.idTema', '=', 'temas.idTema')
             ->where('temas.idCurso', $idCurso)
@@ -108,8 +108,8 @@ class ProgresoService
 
         if ($total === 0) {
             return [
-                'vistos'     => 0,
-                'total'      => 0,
+                'vistos' => 0,
+                'total' => 0,
                 'porcentaje' => 0.0,
             ];
         }
@@ -119,7 +119,7 @@ class ProgresoService
             ->join('materiales_aprendizaje', 'materiales_vistos.idMaterial', '=', 'materiales_aprendizaje.idMaterial')
             ->join('items_tema', function ($join) {
                 $join->on('materiales_aprendizaje.idMaterial', '=', 'items_tema.itemable_id')
-                     ->where('items_tema.itemable_type', '=', 'App\\Models\\MaterialAprendizaje');
+                    ->where('items_tema.itemable_type', '=', 'App\\Models\\MaterialAprendizaje');
             })
             ->join('temas', 'items_tema.idTema', '=', 'temas.idTema')
             ->where('temas.idCurso', $idCurso)
@@ -129,8 +129,8 @@ class ProgresoService
         $porcentaje = round(($vistos / $total) * 100, 2);
 
         return [
-            'vistos'     => $vistos,
-            'total'      => $total,
+            'vistos' => $vistos,
+            'total' => $total,
             'porcentaje' => $porcentaje,
         ];
     }
