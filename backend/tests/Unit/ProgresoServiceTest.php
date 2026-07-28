@@ -8,10 +8,6 @@ use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * SCRUM-50 - Backend (QA): Pruebas unitarias del ProgresoService
- * Verifica que los algoritmos de cálculo de completitud sean exactos.
- */
 class ProgresoServiceTest extends TestCase
 {
     use RefreshDatabase;
@@ -29,12 +25,8 @@ class ProgresoServiceTest extends TestCase
         $this->seedBasicData();
     }
 
-    /**
-     * Inserta datos mínimos para las pruebas sin depender de seeders completos.
-     */
     private function seedBasicData(): void
     {
-        // Estado y rol base
         DB::table('estadosCuenta')->insertOrIgnore([
             ['idEstado' => 1, 'estado' => 'Activo'],
         ]);
@@ -42,7 +34,6 @@ class ProgresoServiceTest extends TestCase
             ['idRol' => 6, 'rol' => 'Estudiante'],
         ]);
 
-        // Usuario estudiante
         DB::table('usuarios')->insertOrIgnore([[
             'idUsuario' => $this->idEstudiante,
             'nombreCompleto' => 'Estudiante Test',
@@ -56,7 +47,6 @@ class ProgresoServiceTest extends TestCase
             'updated_at' => now(),
         ]]);
 
-        // Usuario profesor
         DB::table('usuarios')->insertOrIgnore([[
             'idUsuario' => 99,
             'nombreCompleto' => 'Profesor Test',
@@ -70,7 +60,6 @@ class ProgresoServiceTest extends TestCase
             'updated_at' => now(),
         ]]);
 
-        // Curso
         DB::table('cursos')->insertOrIgnore([[
             'idCurso' => $this->idCurso,
             'titulo' => 'Curso Test',
@@ -82,14 +71,12 @@ class ProgresoServiceTest extends TestCase
             'updated_at' => now(),
         ]]);
 
-        // Inscripción del estudiante
         DB::table('inscripciones_cursos')->insertOrIgnore([[
             'idUsuarioEstudiante' => $this->idEstudiante,
             'idCurso' => $this->idCurso,
             'fechaInscripcion' => now(),
         ]]);
 
-        // Tema del curso
         DB::table('temas')->insertOrIgnore([[
             'idTema' => 1,
             'nombre' => 'Tema Test',
@@ -99,10 +86,6 @@ class ProgresoServiceTest extends TestCase
             'updated_at' => now(),
         ]]);
     }
-
-    // ────────────────────────────────────────────────────────────────────────
-    // PRUEBAS DE DESAFÍOS
-    // ────────────────────────────────────────────────────────────────────────
 
     #[Test]
     public function retorna_cero_cuando_no_hay_desafios_en_el_curso(): void
@@ -117,7 +100,6 @@ class ProgresoServiceTest extends TestCase
     #[Test]
     public function retorna_cero_cuando_estudiante_no_ha_resuelto_ningun_desafio(): void
     {
-        // 3 desafíos publicados, ninguna solución
         $this->insertarDesafios(3);
 
         $resultado = $this->service->calcularProgresoDesafios($this->idCurso, $this->idEstudiante);
@@ -130,7 +112,6 @@ class ProgresoServiceTest extends TestCase
     #[Test]
     public function calcula_correctamente_cuando_estudiante_completo_mitad_de_desafios(): void
     {
-        // 4 desafíos, 2 aprobados
         $desafioIds = $this->insertarDesafios(4);
         $this->insertarSolucionAprobada($desafioIds[0]);
         $this->insertarSolucionAprobada($desafioIds[1]);
@@ -158,9 +139,7 @@ class ProgresoServiceTest extends TestCase
     #[Test]
     public function multiples_soluciones_del_mismo_desafio_cuentan_como_uno(): void
     {
-        // Un desafío con 3 intentos aprobados — debe contar como 1 completado
         $desafioIds = $this->insertarDesafios(2);
-        // 3 soluciones al mismo desafío
         for ($i = 0; $i < 3; $i++) {
             DB::table('soluciones')->insert([
                 'codigoFuente' => 'print("test")',
@@ -182,7 +161,6 @@ class ProgresoServiceTest extends TestCase
     #[Test]
     public function desafios_pendientes_no_publicados_no_cuentan_en_el_total(): void
     {
-        // 2 publicados + 1 pendiente
         $this->insertarDesafios(2);
         DB::table('desafios')->insert([
             'titulo' => 'Desafío Pendiente',
@@ -199,13 +177,8 @@ class ProgresoServiceTest extends TestCase
 
         $resultado = $this->service->calcularProgresoDesafios($this->idCurso, $this->idEstudiante);
 
-        // Solo los 2 publicados deben contar
         $this->assertEquals(2, $resultado['total']);
     }
-
-    // ────────────────────────────────────────────────────────────────────────
-    // PRUEBAS DE MATERIALES
-    // ────────────────────────────────────────────────────────────────────────
 
     #[Test]
     public function retorna_cero_cuando_no_hay_materiales_en_el_curso(): void
@@ -221,7 +194,6 @@ class ProgresoServiceTest extends TestCase
     public function calcula_correctamente_materiales_vistos(): void
     {
         $materialIds = $this->insertarMateriales(4);
-        // Estudiante vio 1 de 4
         $this->marcarMaterialVisto($materialIds[0]);
 
         $resultado = $this->service->calcularProgresoMateriales($this->idCurso, $this->idEstudiante);
@@ -230,10 +202,6 @@ class ProgresoServiceTest extends TestCase
         $this->assertEquals(1, $resultado['vistos']);
         $this->assertEquals(25.0, $resultado['porcentaje']);
     }
-
-    // ────────────────────────────────────────────────────────────────────────
-    // PRUEBAS DEL PROGRESO TOTAL PONDERADO
-    // ────────────────────────────────────────────────────────────────────────
 
     #[Test]
     public function progreso_total_es_cero_sin_actividad(): void
@@ -246,18 +214,16 @@ class ProgresoServiceTest extends TestCase
     #[Test]
     public function progreso_total_pondera_correctamente_desafios_y_materiales(): void
     {
-        // 100% desafíos (peso 60%) + 50% materiales (peso 40%) = 80%
         $desafioIds = $this->insertarDesafios(2);
         $materialIds = $this->insertarMateriales(2);
 
         foreach ($desafioIds as $id) {
             $this->insertarSolucionAprobada($id);
         }
-        $this->marcarMaterialVisto($materialIds[0]); // 1 de 2 = 50%
+        $this->marcarMaterialVisto($materialIds[0]);
 
         $resultado = $this->service->calcularProgreso($this->idCurso, $this->idEstudiante);
 
-        // 100 * 0.60 + 50 * 0.40 = 60 + 20 = 80
         $this->assertEquals(80.0, $resultado['progreso_total']);
     }
 
@@ -296,10 +262,6 @@ class ProgresoServiceTest extends TestCase
         $this->assertArrayHasKey('total', $resultado['materiales']);
         $this->assertArrayHasKey('porcentaje', $resultado['materiales']);
     }
-
-    // ────────────────────────────────────────────────────────────────────────
-    // HELPERS
-    // ────────────────────────────────────────────────────────────────────────
 
     private function insertarDesafios(int $cantidad): array
     {
