@@ -62,7 +62,7 @@ jobs:
           cache-dependency-path: frontend/yarn.lock
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --ignore-scripts --frozen-lockfile
 
       - name: ESLint
         run: yarn lint
