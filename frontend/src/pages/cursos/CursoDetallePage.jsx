@@ -9,7 +9,6 @@ import {
   ArrowLeft, Plus, Trash2, FileText, Video, Play, Download, Eye, 
   X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code 
 } from 'lucide-react';
-import CourseProgressBar from '../../components/cursos/CourseProgressBar';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -444,9 +443,6 @@ const CursoDetallePage = () => {
           </div>
         </div>
       </div>
-
-      {/* Barra de progreso — solo visible para estudiantes */}
-      {!canManage && <CourseProgressBar idCurso={curso.idCurso} />}
 
       {error && (
         <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-3">
