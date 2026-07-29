@@ -12,7 +12,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
-  # ── 1. Backend CI (reutiliza la misma lógica que backend-ci.yml) ─────────
+  # ── 1. Backend CI ─────────────────────────────────────────────────────────
   backend-checks:
     name: Backend Checks
     runs-on: ubuntu-latest
@@ -20,10 +20,10 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
         with:
           php-version: '8.4'
           extensions: mbstring, pdo, pdo_mysql, openssl
@@ -52,17 +52,17 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: '20'
           cache: 'yarn'
           cache-dependency-path: frontend/yarn.lock
 
       - name: Install dependencies
-        run: yarn install
+        run: yarn install --frozen-lockfile
 
       - name: ESLint
         run: yarn lint
@@ -78,25 +78,10 @@ jobs:
     environment: staging
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Notify staging deploy start
         run: echo "Deploying to Staging environment..."
 
-      # Si tienen servidor propio, aquí va el SSH deploy.
-      # Ejemplo con servidor via SSH:
-      # - name: Deploy via SSH
-      #   uses: appleboy/ssh-action@v1.0.0
-      #   with:
-      #     host: ${{ secrets.STAGING_HOST }}
-      #     username: ${{ secrets.STAGING_USER }}
-      #     key: ${{ secrets.STAGING_SSH_KEY }}
-      #     script: |
-      #       cd /var/www/prolecom-staging
-      #       git pull origin master
-      #       cd backend && composer install --no-dev
-      #       php artisan migrate --force
-      #       cd ../frontend && yarn install && yarn build
-
       - name: Staging deploy complete
-        run: echo "✅ Staging deploy complete. Ready for smoke testing."
+        run: echo "Staging deploy complete. Ready for smoke testing."
