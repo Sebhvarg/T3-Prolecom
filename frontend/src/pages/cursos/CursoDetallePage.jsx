@@ -12,6 +12,7 @@ import {
   X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code, Pencil, User, Sparkles, RotateCcw, CheckCircle, Trophy,
   MessageSquare, BookOpen
 } from 'lucide-react';
+import CourseProgressBar from '../../components/cursos/CourseProgressBar';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -526,20 +527,15 @@ const CursoDetallePage = () => {
           </div>
         )}
 
-        {/* Banner del Curso */}
-        <div className="bg-gradient-to-r from-[#0f2027] via-[#203a43] to-[#2c5364] rounded-3xl p-6 md:p-8 text-white shadow-lg relative overflow-hidden">
-          <div className="relative z-10 space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold text-white/90">
-                {curso.lp}
-              </span>
-              <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-semibold uppercase">
-                {curso.tipo}
-              </span>
-            </div>
+      {/* Barra de progreso — solo visible para estudiantes */}
+      {!canManage && <CourseProgressBar idCurso={curso.idCurso} />}
 
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">{curso.titulo}</h1>
-            <p className="text-white/80 max-w-2xl text-sm md:text-base leading-relaxed">{curso.descripcion}</p>
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-3">
+          <AlertCircle size={20} className="shrink-0" />
+          <p className="text-sm font-medium">{error}</p>
+        </div>
+      )}
 
             <div className="pt-2 text-xs text-white/60 font-medium">
               Creado por: <span className="text-white font-semibold">{curso.creador?.nombreCompleto || 'Profesor'}</span>
