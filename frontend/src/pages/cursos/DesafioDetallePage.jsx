@@ -221,15 +221,15 @@ const DesafioDetallePage = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              <label htmlFor="language-select" className="text-xs font-bold text-gray-500 uppercase">Lenguaje:</label>
+              <label htmlFor="language-select" className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">Lenguaje:</label>
               <select
                 id="language-select"
                 value={selectedLanguage?.idLenguaje || ''}
                 onChange={(e) => handleLanguageChange(e.target.value)}
-                className="border border-gray-200 rounded-lg px-2.5 py-1 text-xs bg-white font-semibold focus:outline-none focus:ring-1 focus:ring-[#2c5364]"
+                className="bg-slate-900 text-white font-bold text-xs rounded-xl px-3.5 py-1.5 border border-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 hover:bg-slate-800 transition-all cursor-pointer"
               >
                 {lenguajes.map(lang => (
-                  <option key={lang.idLenguaje} value={lang.idLenguaje}>
+                  <option key={lang.idLenguaje} value={lang.idLenguaje} className="bg-slate-900 text-white py-1 font-semibold">
                     {lang.nombre}
                   </option>
                 ))}

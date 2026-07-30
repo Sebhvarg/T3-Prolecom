@@ -20,6 +20,13 @@ class ItemTema extends Model
         'orden',
     ];
 
+    protected $appends = ['resource'];
+
+    public function getResourceAttribute()
+    {
+        return $this->itemable;
+    }
+
     public function tema()
     {
         return $this->belongsTo(Tema::class, 'idTema', 'idTema');
