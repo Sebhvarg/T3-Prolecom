@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { cursosService } from '../../api/cursosService';
@@ -8,6 +8,7 @@ import PropTypes from 'prop-types';
 
 const CursosPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [cursos, setCursos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,6 +84,12 @@ const CursosPage = () => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCursos();
   }, [fetchCursos]);
+
+  useEffect(() => {
+    if (location.state?.openModal && canManage) {
+      setIsModalOpen(true);
+    }
+  }, [location.state, canManage]);
 
   const handleOpenCreateModal = () => {
     setEditingCurso(null);
@@ -705,6 +712,23 @@ const CursosPage = () => {
   );
 };
 
+const getLanguageLogo = (lp) => {
+  const lang = lp?.toLowerCase() || '';
+  if (lang.includes('javascript') || lang.includes('js')) {
+    return 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg';
+  }
+  if (lang.includes('c++') || lang.includes('cpp')) {
+    return 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg';
+  }
+  if (lang.includes('java')) {
+    return 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg';
+  }
+  if (lang.includes('c#') || lang.includes('csharp')) {
+    return 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/csharp/csharp-original.svg';
+  }
+  return 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg';
+};
+
 const CursoCard = ({
   curso,
   canManage,
@@ -719,7 +743,7 @@ const CursoCard = ({
 
   return (
     <div 
-      className={`relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group h-full ${
+      className={`relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-row group h-full ${
         hasAccess ? 'hover:-translate-y-1 transform' : ''
       }`}
     >
@@ -830,6 +854,11 @@ const CursoCard = ({
             })()}
           </div>
         )}
+      </div>
+
+      <div className="w-32 bg-gray-50 flex flex-col items-center justify-center border-l border-gray-50 gap-2 group-hover:bg-gray-100 transition-colors shrink-0">
+        <img alt={curso.lp || 'Python'} className="w-12 h-12 drop-shadow-xs" src={getLanguageLogo(curso.lp)} />
+        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{curso.lp || 'Python'}</span>
       </div>
     </div>
   );
