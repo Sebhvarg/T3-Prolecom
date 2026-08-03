@@ -69,6 +69,11 @@ const ForoSeccion = ({ idForo, user, onBack }) => {
   }, []);
 
   const fetchForoData = useCallback(async () => {
+    if (!idForo) {
+      setLoading(false);
+      setError('No se ha especificado un ID de foro válido.');
+      return;
+    }
     try {
       const [foroData, preguntasData] = await Promise.all([
         foroService.getForo(idForo),
@@ -422,7 +427,7 @@ const ForoSeccion = ({ idForo, user, onBack }) => {
                 filtro === 'fijadas' ? 'bg-white text-[#2c5364] shadow-xs' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              📌 Fijadas
+              Fijadas
             </button>
           </div>
 

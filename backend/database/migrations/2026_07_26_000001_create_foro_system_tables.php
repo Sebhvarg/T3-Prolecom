@@ -99,7 +99,7 @@ return new class extends Migration
             }
 
             if (! Schema::hasColumn('preguntas', 'idForo')) {
-                $table->unsignedBigInteger('idForo')->after('idUsuarioCreador');
+                $table->unsignedBigInteger('idForo')->nullable()->after('idUsuarioCreador');
                 $table->foreign('idForo')
                     ->references('idForo')
                     ->on('foros')

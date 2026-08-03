@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { cursosService } from '../../api/cursosService';
@@ -34,6 +34,7 @@ const CursoDetallePage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [expandedTemas, setExpandedTemas] = useState({});
+  const [activeTab, setActiveTab] = useState('temas');
 
 
   // Modales
@@ -115,6 +116,40 @@ const CursoDetallePage = () => {
     load();
     return () => { ignore = true; };
   }, [fetchCurso]);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!curso) return;
+    const action = location.state?.action;
+    const targetTemaId = location.state?.idTema || (curso.temas?.[0]?.idTema);
+
+    if (action === 'createTema') {
+      setTemaForm({ nombre: '', descripcion: '' });
+      setIsTemaModalOpen(true);
+    } else if (action === 'createMaterial' && targetTemaId) {
+      setActiveTemaId(targetTemaId);
+      setMaterialForm({ titulo: '', descripcion: '', tipo: 'PDF' });
+      setSelectedFile(null);
+      setIsMaterialModalOpen(true);
+    } else if (action === 'createDesafio' && targetTemaId) {
+      setActiveTemaId(targetTemaId);
+      setEditingDesafioId(null);
+      setDesafioForm({
+        titulo: '',
+        descripcionProblema: '',
+        dificultad: 'Easy',
+        puntos: 10,
+        starter_code: '',
+        testCases: [{ id: generateTestCaseId(), input: '', expected_output: '', is_hidden: false }]
+      });
+      setIsDesafioModalOpen(true);
+    } else if (action === 'createForo' && targetTemaId) {
+      setActiveTemaId(targetTemaId);
+      setForoForm({ titulo: '', descripcion: '' });
+      setIsForoModalOpen(true);
+    }
+  }, [curso, location.state]);
 
   const toggleTema = (temaId) => {
     setExpandedTemas(prev => ({
@@ -486,6 +521,16 @@ const CursoDetallePage = () => {
 
   const progreso = curso.progreso_estudiante || { xp_ganado: 0, xp_total: 0, desafios_resueltos: 0, desafios_totales: 0, porcentaje: 0 };
 
+  const allForos = (curso.temas || []).flatMap(tema => 
+    (tema.items || [])
+      .filter(item => Boolean(item.itemable_type?.includes('Foro') && (item.resource || item.itemable)))
+      .map(item => ({
+        ...(item.resource || item.itemable),
+        temaNombre: tema.nombre,
+        idTema: tema.idTema
+      }))
+  );
+
   return (
     <DashboardContainer title={`Curso: ${curso.titulo}`} user={user}>
       {/* Botón Volver */}
@@ -498,323 +543,248 @@ const CursoDetallePage = () => {
         <span>Volver a Cursos</span>
       </button>
 
-        {/* Botón Volver */}
-        <button 
-          onClick={() => navigate('/cursos')} 
-          className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors font-medium text-sm select-none cursor-pointer"
-        >
-          <ArrowLeft size={16} /> Volver a Cursos
-        </button>
-
-        {/* Notificaciones */}
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-between text-red-700 text-sm animate-fade-in">
-            <div className="flex items-center gap-2">
-              <AlertCircle size={18} />
-              <span>{error}</span>
-            </div>
-            <button onClick={() => setError('')} className="p-1 hover:bg-red-100 rounded-lg"><X size={16} /></button>
+      {/* Notificaciones */}
+      {error && (
+        <div className="p-4 mb-4 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-between text-red-700 text-sm animate-fade-in">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={18} />
+            <span>{error}</span>
           </div>
-        )}
+          <button onClick={() => setError('')} className="p-1 hover:bg-red-100 rounded-lg"><X size={16} /></button>
+        </div>
+      )}
 
-        {success && (
-          <div className="p-4 bg-green-50 border border-green-200 rounded-2xl flex items-center justify-between text-green-700 text-sm animate-fade-in">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 size={18} />
-              <span>{success}</span>
-            </div>
-            <button onClick={() => setSuccess('')} className="p-1 hover:bg-green-100 rounded-lg"><X size={16} /></button>
+      {success && (
+        <div className="p-4 mb-4 bg-green-50 border border-green-200 rounded-2xl flex items-center justify-between text-green-700 text-sm animate-fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={18} />
+            <span>{success}</span>
           </div>
-        )}
+          <button onClick={() => setSuccess('')} className="p-1 hover:bg-green-100 rounded-lg"><X size={16} /></button>
+        </div>
+      )}
 
       {/* Barra de progreso — solo visible para estudiantes */}
       {!canManage && <CourseProgressBar idCurso={curso.idCurso} />}
 
-      {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-3">
-          <AlertCircle size={20} className="shrink-0" />
-          <p className="text-sm font-medium">{error}</p>
-        </div>
-      )}
-
-            <div className="pt-2 text-xs text-white/60 font-medium">
-              Creado por: <span className="text-white font-semibold">{curso.creador?.nombreCompleto || 'Profesor'}</span>
-            </div>
-          </div>
-        </div>
 
       {selectedForoId ? (
         <ForoSeccion idForo={selectedForoId} user={user} onBack={() => setSelectedForoId(null)} />
       ) : (
         <>
-          {/* Secciones de Contenido */}
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Temas del Curso</h2>
-            {canManage && (
-              <button
-                type="button"
-                onClick={handleOpenTemaModal}
-                className="flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2.5 rounded-xl font-semibold shadow-sm transition-all hover:shadow-md"
-              >
-                <Plus size={18} />
-                <span>Nuevo Tema</span>
-              </button>
-            )}
+          {/* Navegación por pestañas (Temas vs Foro) */}
+          <div className="flex border-b border-gray-200 mb-6">
+            <button
+              type="button"
+              onClick={() => setActiveTab('temas')}
+              className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all ${
+                activeTab === 'temas'
+                  ? 'border-[#2c5364] text-[#2c5364]'
+                  : 'border-transparent text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              <BookOpen size={18} />
+              <span>Temas y Módulos ({curso.temas?.length || 0})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('foro')}
+              className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all ${
+                activeTab === 'foro'
+                  ? 'border-[#2c5364] text-[#2c5364]'
+                  : 'border-transparent text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              <MessageSquare size={18} />
+              <span>Foro de Preguntas & Q&A</span>
+            </button>
           </div>
-        )}
 
-        {/* Navegación por pestañas (Temas vs Foro) */}
-        <div className="flex border-b border-gray-200">
-          <button
-            type="button"
-            onClick={() => setActiveTab('temas')}
-            className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all ${
-              activeTab === 'temas'
-                ? 'border-[#2c5364] text-[#2c5364]'
-                : 'border-transparent text-gray-500 hover:text-gray-900'
-            }`}
-          >
-            <BookOpen size={18} />
-            <span>Temas y Módulos ({curso.temas?.length || 0})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('foro')}
-            className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all ${
-              activeTab === 'foro'
-                ? 'border-[#2c5364] text-[#2c5364]'
-                : 'border-transparent text-gray-500 hover:text-gray-900'
-            }`}
-          >
-            <MessageSquare size={18} />
-            <span>Foro de Preguntas & Q&A</span>
-          </button>
-        </div>
-
-        {activeTab === 'foro' ? (
-          <ForoSeccion idCurso={id} user={user} />
-        ) : (
-          <>
-            {/* Secciones de Contenido */}
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Temas del Curso</h2>
-              {canManage && (
-                <button
-                  type="button"
-                  onClick={handleOpenTemaModal}
-                  className="flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2.5 rounded-xl font-semibold shadow-sm transition-all hover:shadow-md cursor-pointer"
-                >
-                  <Plus size={18} />
-                  <span>Nuevo Tema</span>
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {curso.temas?.map((tema) => (
-                <div key={tema.idTema} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300">
-                  {/* Header Tema */}
-                  <div className="p-5 flex justify-between items-center hover:bg-gray-50/50 transition-colors select-none">
-                    <button 
-                      type="button"
-                      onClick={() => toggleTema(tema.idTema)}
-                      className="flex items-center gap-4 flex-1 text-left focus:outline-none"
-                      aria-expanded={expandedTemas[tema.idTema]}
-                    >
-                      <div className="p-2.5 bg-blue-50 text-blue-700 rounded-xl">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-gray-900 text-lg leading-tight">{tema.nombre}</h3>
-                        {tema.descripcion && <p className="text-gray-500 text-sm mt-0.5">{tema.descripcion}</p>}
-                      </div>
-                    </button>
-                    
-                    <div className="flex items-center gap-3">
-                      {canManage && (
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenMaterialModal(tema.idTema)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-bold rounded-lg transition-colors"
-                          >
-                            <Plus size={14} />
-                            <span>Subir Material</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenDesafioModal(tema.idTema)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-lg transition-colors"
-                          >
-                            <Plus size={14} />
-                            <span>Crear Desafío</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenForoModal(tema.idTema)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-700 text-xs font-bold rounded-lg transition-colors"
-                          >
-                            <Plus size={14} />
-                            <span>Crear Foro</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeleteTema(tema.idTema, e)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Eliminar Tema"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      )}
-
-            {curso.temas?.length === 0 ? (
-              <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
-                <FileText className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-                <h3 className="text-lg font-bold text-gray-900">No hay contenido disponible</h3>
-                <p className="text-gray-500 mt-1 max-w-sm mx-auto">Este curso aún no tiene temas ni módulos cargados por el profesor.</p>
+          {activeTab === 'foro' ? (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Foros de Discusión del Curso</h2>
+                  <p className="text-gray-500 text-sm mt-0.5">Espacios de preguntas, respuestas y debate estructurado por temas.</p>
+                </div>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {curso.temas?.map((tema) => (
-                  <div key={tema.idTema} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300">
-                    {/* Header Tema */}
-                    <div className="p-5 flex justify-between items-center hover:bg-gray-50/50 transition-colors select-none">
-                      <button 
-                        type="button"
-                        onClick={() => toggleTema(tema.idTema)}
-                        className="flex items-center gap-4 flex-1 text-left focus:outline-none"
-                        aria-expanded={expandedTemas[tema.idTema]}
-                      >
-                        <div className="p-2.5 bg-blue-50 text-blue-700 rounded-xl">
-                          <BookOpen size={20} />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-gray-900 text-lg leading-tight">{tema.nombre}</h3>
-                          {tema.descripcion && <p className="text-gray-500 text-sm mt-0.5">{tema.descripcion}</p>}
-                        </div>
-                      </button>
-                      
-                      <div className="flex items-center gap-3">
-                        {canManage && (
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenMaterialModal(tema.idTema)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-bold rounded-lg transition-colors cursor-pointer"
-                            >
-                              <Plus size={14} />
-                              <span>Subir Material</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleOpenDesafioModal(tema.idTema)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-lg transition-colors cursor-pointer"
-                            >
-                              <Plus size={14} />
-                              <span>Crear Desafío</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => handleDeleteTema(tema.idTema, e)}
-                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                              title="Eliminar Tema"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        )}
 
-                        <button 
+              {allForos.length === 0 ? (
+                <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                  <MessageSquare className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                  <h3 className="text-lg font-bold text-gray-900">No hay foros de discusión activos</h3>
+                  <p className="text-gray-500 mt-1 max-w-sm mx-auto">Este curso aún no tiene foros creados dentro de sus temas o módulos.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {allForos.map((foro) => (
+                    <div key={foro.idForo} className="bg-white border border-gray-100 p-5 rounded-2xl shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-4">
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="px-2.5 py-0.5 text-xs font-bold rounded-md bg-teal-50 text-teal-700">
+                            {foro.temaNombre}
+                          </span>
+                          <span className={`px-2 py-0.5 text-xs font-bold rounded-md uppercase tracking-wider ${
+                            foro.estado === 'cerrado' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'
+                          }`}>
+                            {foro.estado === 'cerrado' ? 'Cerrado' : 'Abierto'}
+                          </span>
+                        </div>
+                        <h3 className="font-bold text-gray-900 text-base leading-snug">{foro.titulo}</h3>
+                        {foro.descripcion && (
+                          <p className="text-gray-500 text-xs mt-1.5 line-clamp-2">{foro.descripcion}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                        <span className="text-xs text-gray-400 font-medium">
+                          Creador: {foro.creador?.nombreCompleto || 'Profesor'}
+                        </span>
+                        <button
                           type="button"
-                          onClick={() => toggleTema(tema.idTema)}
-                          className="p-2 text-gray-400 hover:text-gray-600"
+                          onClick={() => setSelectedForoId(foro.idForo)}
+                          className="flex items-center gap-1.5 px-4 py-2 bg-[#0f766e] hover:bg-[#115e59] text-white text-xs font-bold rounded-xl transition-colors shadow-xs cursor-pointer"
                         >
-                          {expandedTemas[tema.idTema] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                          <MessageSquare size={14} />
+                          <span>Entrar al Foro</span>
                         </button>
                       </div>
                     </div>
-
-                    {/* Lista de Ítems del Tema */}
-                    {expandedTemas[tema.idTema] && (
-                      <div className="border-t border-gray-100 p-5 bg-gray-50/30 space-y-3">
-                        {tema.items?.length === 0 ? (
-                          <p className="text-center text-gray-400 text-sm py-4 italic">No hay ítems en este módulo.</p>
-                        ) : (
-                          tema.items?.map((item) => {
-                            const isMaterial = Boolean(item.itemable_type && item.itemable_type.includes('Material'));
-                            const isDesafio = Boolean(item.itemable_type && item.itemable_type.includes('Desafio'));
-                            const resource = item.itemable;
-
-                            if (!resource) return null;
-
-                            if (isMaterial) {
-                              return renderMaterialItem(
-                                item, resource, handleViewSecure, handleDownloadSecure, handleDeleteMaterial, canManage
-                              );
-                            }
-
-                            if (isDesafio) {
-                              return renderDesafioItem({
-                                item, resource, id, navigate, canManage, handleDeleteDesafio, handleOpenEditDesafioModal, handleResetDesafio
-                              });
-                            }
-
-                            return null;
-                          })
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* Secciones de Contenido */}
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Temas del Curso</h2>
+                {canManage && (
+                  <button
+                    type="button"
+                    onClick={handleOpenTemaModal}
+                    className="flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2.5 rounded-xl font-semibold shadow-sm transition-all hover:shadow-md cursor-pointer"
+                  >
+                    <Plus size={18} />
+                    <span>Nuevo Tema</span>
+                  </button>
+                )}
               </div>
-            )}
-          </>
-        )}
 
-                  {/* Body Accordion (Materiales e Ítems del Tema) */}
-                  {expandedTemas[tema.idTema] && (
-                    <div className="border-t border-gray-100 p-5 space-y-3 bg-gray-50/30">
-                      {(!tema.items || tema.items.length === 0) ? (
-                        <p className="text-gray-400 text-sm italic py-2 text-center">Este tema no contiene materiales o desafíos aún.</p>
-                      ) : (
-                        tema.items.map((item) => {
-                          const resource = item.resource || item.itemable;
-                          if (!resource) return null;
+              {!curso.temas || curso.temas.length === 0 ? (
+                <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                  <FileText className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                  <h3 className="text-lg font-bold text-gray-900">No hay contenido disponible</h3>
+                  <p className="text-gray-500 mt-1 max-w-sm mx-auto">Este curso aún no tiene temas ni módulos cargados por el profesor.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {curso.temas.map((tema) => (
+                    <div key={tema.idTema} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300">
+                      {/* Header Tema */}
+                      <div className="p-5 flex justify-between items-center hover:bg-gray-50/50 transition-colors select-none">
+                        <button 
+                          type="button"
+                          onClick={() => toggleTema(tema.idTema)}
+                          className="flex items-center gap-4 flex-1 text-left focus:outline-none cursor-pointer"
+                          aria-expanded={expandedTemas[tema.idTema]}
+                        >
+                          <div className="p-2.5 bg-blue-50 text-blue-700 rounded-xl">
+                            <BookOpen size={20} />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-gray-900 text-lg leading-tight">{tema.nombre}</h3>
+                            {tema.descripcion && <p className="text-gray-500 text-sm mt-0.5">{tema.descripcion}</p>}
+                          </div>
+                        </button>
+                        
+                        <div className="flex items-center gap-3">
+                          {canManage && (
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenMaterialModal(tema.idTema)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Plus size={14} />
+                                <span>Subir Material</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenDesafioModal(tema.idTema)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Plus size={14} />
+                                <span>Crear Desafío</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenForoModal(tema.idTema)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-700 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Plus size={14} />
+                                <span>Crear Foro</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteTema(tema.idTema, e)}
+                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                title="Eliminar Tema"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          )}
 
-                          const isMaterial = item.itemable_type.includes('MaterialAprendizaje');
-                          const isDesafio = item.itemable_type.includes('Desafio');
-                          const isForo = item.itemable_type.includes('Foro');
+                          <button 
+                            type="button"
+                            onClick={() => toggleTema(tema.idTema)}
+                            className="p-2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                          >
+                            {expandedTemas[tema.idTema] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                          </button>
+                        </div>
+                      </div>
 
-                          if (isMaterial) {
-                            return renderMaterialItem(
-                              item,
-                              resource,
-                              canManage,
-                              handleViewSecure,
-                              handleDownloadSecure,
-                              handleDeleteMaterial
-                            );
-                          }
+                      {/* Lista de Ítems del Tema */}
+                      {expandedTemas[tema.idTema] && (
+                        <div className="border-t border-gray-100 p-5 bg-gray-50/30 space-y-3">
+                          {!tema.items || tema.items.length === 0 ? (
+                            <p className="text-center text-gray-400 text-sm py-4 italic">No hay ítems en este módulo.</p>
+                          ) : (
+                            tema.items.map((item) => {
+                              const resource = item.resource || item.itemable;
+                              if (!resource) return null;
 
-                          if (isDesafio) {
-                            return renderDesafioItem(item, resource, id, navigate, canManage, handleDeleteDesafio);
-                          }
+                              const isMaterial = Boolean(item.itemable_type?.includes('Material'));
+                              const isDesafio = Boolean(item.itemable_type?.includes('Desafio'));
+                              const isForo = Boolean(item.itemable_type?.includes('Foro'));
 
-                          if (isForo) {
-                            return renderForoItem(item, resource, (foroId) => setSelectedForoId(foroId), canManage, handleDeleteForo);
-                          }
+                              if (isMaterial) {
+                                return renderMaterialItem(
+                                  item, resource, handleViewSecure, handleDownloadSecure, handleDeleteMaterial, canManage
+                                );
+                              }
 
-                          return null;
-                        })
+                              if (isDesafio) {
+                                return renderDesafioItem({
+                                  item, resource, id, navigate, canManage, handleDeleteDesafio, handleOpenEditDesafioModal, handleResetDesafio
+                                });
+                              }
+
+                              if (isForo) {
+                                return renderForoItem(item, resource, (foroId) => setSelectedForoId(foroId), canManage, handleDeleteForo);
+                              }
+
+                              return null;
+                            })
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </>
       )}
@@ -1120,7 +1090,7 @@ const CursoDetallePage = () => {
             <form onSubmit={handleForoSubmit} className="space-y-4">
               <div>
                 <label htmlFor="foro-titulo" className="block text-sm font-bold text-gray-700 mb-1.5">Título del Foro <span className="text-red-500">*</span></label>
-                <input 
+                <input
                   id="foro-titulo"
                   type="text" 
                   required
@@ -1270,36 +1240,35 @@ const renderMaterialItem = (item, resource, handleViewSecure, handleDownloadSecu
       </div>
     </div>
 
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => handleViewSecure(resource)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors"
-        >
-          {resource.tipo === 'video' ? <Play size={14} /> : <Eye size={14} />}
-          <span>{resource.tipo === 'video' ? 'Reproducir' : 'Ver'}</span>
-        </button>
-        
-        <button
-          type="button"
-          onClick={() => handleDownloadSecure(resource)}
-          className="p-1.5 border border-gray-100 hover:border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-          title="Descargar"
-        >
-          <Trash2 size={16} />
-        </button>
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => handleViewSecure(resource)}
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+      >
+        {resource.tipo === 'Video' ? <Play size={14} /> : <Eye size={14} />}
+        <span>{resource.tipo === 'Video' ? 'Reproducir' : 'Ver'}</span>
+      </button>
+      
+      <button
+        type="button"
+        onClick={() => handleDownloadSecure(resource)}
+        className="p-1.5 border border-gray-100 hover:border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+        title="Descargar"
+      >
+        <Download size={16} />
+      </button>
 
-        {canManage && (
-          <button
-            type="button"
-            onClick={() => handleDeleteMaterial(resource.idMaterial)}
-            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-            title="Eliminar Material"
-          >
-            <Trash2 size={14} />
-          </button>
-        )}
-      </div>
+      {canManage && (
+        <button
+          type="button"
+          onClick={() => handleDeleteMaterial(resource.idMaterial)}
+          className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+          title="Eliminar Material"
+        >
+          <Trash2 size={14} />
+        </button>
+      )}
     </div>
   </div>
 );
