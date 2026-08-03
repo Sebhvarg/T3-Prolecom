@@ -11,7 +11,7 @@ const ProfesorDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [alertMsg, setAlertMsg] = useState('');
+  const [alertMsg] = useState('');
 
   // Modal Nueva Actividad State
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);

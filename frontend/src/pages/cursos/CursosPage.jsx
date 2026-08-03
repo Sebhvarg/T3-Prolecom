@@ -87,6 +87,7 @@ const CursosPage = () => {
 
   useEffect(() => {
     if (location.state?.openModal && canManage) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsModalOpen(true);
     }
   }, [location.state, canManage]);
