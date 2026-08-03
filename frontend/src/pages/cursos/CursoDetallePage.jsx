@@ -9,7 +9,7 @@ import { storage } from '../../utils/crypto';
 import ForoSeccion from '../../components/foro/ForoSeccion';
 import { 
   ArrowLeft, Plus, Trash2, FileText, Video, Play, Download, Eye,
-  X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code, Pencil, User, Sparkles, RotateCcw, CheckCircle, Trophy,
+  X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code, Pencil, User, Sparkles, RotateCcw, CheckCircle,
   MessageSquare, BookOpen
 } from 'lucide-react';
 import CourseProgressBar from '../../components/cursos/CourseProgressBar';
@@ -125,6 +125,7 @@ const CursoDetallePage = () => {
     const targetTemaId = location.state?.idTema || (curso.temas?.[0]?.idTema);
 
     if (action === 'createTema') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTemaForm({ nombre: '', descripcion: '' });
       setIsTemaModalOpen(true);
     } else if (action === 'createMaterial' && targetTemaId) {
@@ -164,7 +165,7 @@ const CursoDetallePage = () => {
     setIsTemaModalOpen(true);
   };
 
-  const handleCreateTema = async (e) => {
+  const handleTemaSubmit = async (e) => {
     e.preventDefault();
     setActionLoading(true);
     setError('');
@@ -201,7 +202,7 @@ const CursoDetallePage = () => {
     setIsMaterialModalOpen(true);
   };
 
-  const handleCreateMaterial = async (e) => {
+  const handleMaterialSubmit = async (e) => {
     e.preventDefault();
     if (!selectedFile) {
       setError('Por favor selecciona un archivo.');
@@ -490,6 +491,12 @@ const CursoDetallePage = () => {
     }
   };
 
+  const handleCloseViewer = () => {
+    setActiveViewerMaterial(null);
+    if (viewerBlobUrl) URL.revokeObjectURL(viewerBlobUrl);
+    setViewerBlobUrl('');
+  };
+
   if (loading) {
     return (
       <DashboardContainer activeTab="cursos">
@@ -518,8 +525,6 @@ const CursoDetallePage = () => {
       </DashboardContainer>
     );
   }
-
-  const progreso = curso.progreso_estudiante || { xp_ganado: 0, xp_total: 0, desafios_resueltos: 0, desafios_totales: 0, porcentaje: 0 };
 
   const allForos = (curso.temas || []).flatMap(tema => 
     (tema.items || [])
@@ -1352,9 +1357,9 @@ const renderDesafioItem = ({ item, resource, id, navigate, canManage, handleDele
         {isCompleted && (
           <button
             type="button"
-            onClick={() => handleDeleteDesafio(resource.idDesafio)}
-            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-            title="Eliminar Desafío"
+            onClick={(e) => handleResetDesafio(resource.idDesafio, e)}
+            className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+            title="Reiniciar Desafío"
           >
             <RotateCcw size={15} />
           </button>
