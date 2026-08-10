@@ -13,6 +13,18 @@ const genTempId = () => {
   return `temp-id-${qIdCounter}`;
 };
 
+const createDefaultQuestion = () => ({
+  id: genTempId(),
+  enunciado: '',
+  tipo: 'opcion_multiple',
+  puntos: 5,
+  explicacion: '',
+  opciones: [
+    { id: genTempId(), texto_opcion: '', es_correcta: true },
+    { id: genTempId(), texto_opcion: '', es_correcta: false },
+  ]
+});
+
 const getInitialForm = (quizToEdit) => {
   if (quizToEdit) {
     return {
@@ -38,19 +50,7 @@ const getInitialForm = (quizToEdit) => {
           { id: genTempId(), texto_opcion: '', es_correcta: true },
           { id: genTempId(), texto_opcion: '', es_correcta: false },
         ]
-      })) : [
-        {
-          id: genTempId(),
-          enunciado: '',
-          tipo: 'opcion_multiple',
-          puntos: 5,
-          explicacion: '',
-          opciones: [
-            { id: genTempId(), texto_opcion: '', es_correcta: true },
-            { id: genTempId(), texto_opcion: '', es_correcta: false },
-          ]
-        }
-      ]
+      })) : [createDefaultQuestion()]
     };
   }
   return {
@@ -62,19 +62,7 @@ const getInitialForm = (quizToEdit) => {
     mostrar_retroalimentacion: true,
     asignar_a_todos: true,
     estudiantesSeleccionados: [],
-    preguntas: [
-      {
-        id: genTempId(),
-        enunciado: '',
-        tipo: 'opcion_multiple',
-        puntos: 5,
-        explicacion: '',
-        opciones: [
-          { id: genTempId(), texto_opcion: '', es_correcta: true },
-          { id: genTempId(), texto_opcion: '', es_correcta: false },
-        ]
-      }
-    ]
+    preguntas: [createDefaultQuestion()]
   };
 };
 
@@ -118,17 +106,7 @@ const QuizFormModal = ({ isOpen, onClose, idCurso, quizToEdit, temas, onSuccess 
       ...prev,
       preguntas: [
         ...prev.preguntas,
-        {
-          id: genTempId(),
-          enunciado: '',
-          tipo: 'opcion_multiple',
-          puntos: 5,
-          explicacion: '',
-          opciones: [
-            { id: genTempId(), texto_opcion: '', es_correcta: true },
-            { id: genTempId(), texto_opcion: '', es_correcta: false },
-          ]
-        }
+        createDefaultQuestion()
       ]
     }));
   };
