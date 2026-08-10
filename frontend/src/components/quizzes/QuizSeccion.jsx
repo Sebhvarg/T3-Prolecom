@@ -168,6 +168,18 @@ const QuizSeccion = ({ idCurso, user, temas, onQuizCompleted }) => {
             const intentosRealizados = quiz.intentos_realizados || (haCompletado ? 1 : 0);
             const sinIntentos = intentosMaximos > 0 && intentosRealizados >= intentosMaximos;
 
+            const getButtonClassName = () => {
+              if (sinIntentos) return 'bg-slate-200 text-slate-500 cursor-not-allowed';
+              if (haCompletado) return 'bg-slate-200 hover:bg-slate-300 text-slate-900';
+              return 'bg-[#2c5364] hover:bg-[#203a43] text-white';
+            };
+
+            const getButtonLabel = () => {
+              if (sinIntentos) return 'Intentos Agotados';
+              if (haCompletado) return 'Volver a Intentar';
+              return 'Resolver Quiz';
+            };
+
             return (
               <div 
                 key={quiz.idQuiz}
@@ -249,16 +261,10 @@ const QuizSeccion = ({ idCurso, user, temas, onQuizCompleted }) => {
                     type="button"
                     disabled={sinIntentos}
                     onClick={() => handleStartResolver(quiz)}
-                    className={`inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-black rounded-xl transition-all shadow-xs hover:shadow-md cursor-pointer disabled:opacity-50 ${
-                      sinIntentos
-                        ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                        : haCompletado
-                        ? 'bg-slate-200 hover:bg-slate-300 text-slate-900'
-                        : 'bg-[#2c5364] hover:bg-[#203a43] text-white'
-                    }`}
+                    className={`inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-black rounded-xl transition-all shadow-xs hover:shadow-md cursor-pointer disabled:opacity-50 ${getButtonClassName()}`}
                   >
                     <Play size={14} fill="currentColor" />
-                    <span>{sinIntentos ? 'Intentos Agotados' : haCompletado ? 'Volver a Intentar' : 'Resolver Quiz'}</span>
+                    <span>{getButtonLabel()}</span>
                   </button>
 
                   {canManage && (

@@ -28,7 +28,7 @@ const getInitialForm = (quizToEdit) => {
         id: p.idPreguntaQuiz || genTempId(),
         enunciado: p.enunciado || '',
         tipo: p.tipo || 'opcion_multiple',
-        puntos: p.puntos ? parseFloat(p.puntos) : 5,
+        puntos: p.puntos ? Number.parseFloat(p.puntos) : 5,
         explicacion: p.explicacion || '',
         opciones: p.opciones && p.opciones.length > 0 ? p.opciones.map(o => ({
           id: o.idOpcionQuiz || genTempId(),
@@ -111,9 +111,8 @@ const QuizFormModal = ({ isOpen, onClose, idCurso, quizToEdit, temas, onSuccess 
 
   if (!isOpen) return null;
 
-  const puntajeTotalCalculado = form.preguntas.reduce((acc, p) => acc + (parseFloat(p.puntos) || 0), 0);
+  const puntajeTotalCalculado = form.preguntas.reduce((acc, p) => acc + (Number.parseFloat(p.puntos) || 0), 0);
 
-  // --- Handlers Preguntas & Opciones ---
   const handleAddPregunta = () => {
     setForm(prev => ({
       ...prev,
@@ -254,8 +253,8 @@ const QuizFormModal = ({ isOpen, onClose, idCurso, quizToEdit, temas, onSuccess 
       titulo: form.titulo,
       descripcion: form.descripcion,
       idTema: form.idTema || null,
-      limite_tiempo_minutos: parseInt(form.limite_tiempo_minutos, 10) || 0,
-      intentos_maximos: parseInt(form.intentos_maximos, 10) || 0,
+      limite_tiempo_minutos: Number.parseInt(form.limite_tiempo_minutos, 10) || 0,
+      intentos_maximos: Number.parseInt(form.intentos_maximos, 10) || 0,
       calificacion_maxima: puntajeTotalCalculado,
       mostrar_retroalimentacion: form.mostrar_retroalimentacion,
       asignar_a_todos: form.asignar_a_todos,
@@ -263,7 +262,7 @@ const QuizFormModal = ({ isOpen, onClose, idCurso, quizToEdit, temas, onSuccess 
       preguntas: form.preguntas.map(p => ({
         enunciado: p.enunciado,
         tipo: p.tipo,
-        puntos: parseFloat(p.puntos) || 1,
+        puntos: Number.parseFloat(p.puntos) || 1,
         explicacion: p.explicacion,
         opciones: p.opciones.map(o => ({
           texto_opcion: o.texto_opcion,
@@ -286,6 +285,42 @@ const QuizFormModal = ({ isOpen, onClose, idCurso, quizToEdit, temas, onSuccess 
     } finally {
       setLoading(false);
     }
+  };
+
+  const renderEstudiantesListContent = () => {
+    if (loadingEstudiantes) {
+      return <Loader2 size={20} className="animate-spin text-[#2c5364] mx-auto" />;
+    }
+
+    if (estudiantesCurso.length === 0) {
+      return <p className="text-xs text-slate-500 italic">No hay estudiantes inscritos en este curso.</p>;
+    }
+
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-1">
+        {estudiantesCurso.map(est => {
+          const selected = form.estudiantesSeleccionados.includes(est.idUsuario);
+          return (
+            <label 
+              key={est.idUsuario} 
+              htmlFor={`est-select-${est.idUsuario}`}
+              className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-bold cursor-pointer transition-colors ${
+                selected ? 'bg-[#2c5364]/10 border-[#2c5364] text-[#2c5364]' : 'bg-slate-50 border-slate-200 text-slate-800 hover:bg-slate-100'
+              }`}
+            >
+              <input 
+                id={`est-select-${est.idUsuario}`}
+                type="checkbox"
+                checked={selected}
+                onChange={() => toggleEstudianteSeleccionado(est.idUsuario)}
+                className="rounded text-[#2c5364] focus:ring-[#2c5364]"
+              />
+              <span className="truncate">{est.nombreCompleto} ({est.correo})</span>
+            </label>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
@@ -345,8 +380,9 @@ const QuizFormModal = ({ isOpen, onClose, idCurso, quizToEdit, temas, onSuccess 
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Título del Cuestionario</label>
+                <label htmlFor="quiz-form-titulo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Título del Cuestionario</label>
                 <input 
+                  id="quiz-form-titulo"
                   type="text"
                   required
                   placeholder="Ej. Quiz 1: Estructuras de Control y Condicionales"
@@ -357,8 +393,9 @@ const QuizFormModal = ({ isOpen, onClose, idCurso, quizToEdit, temas, onSuccess 
               </div>
 
               <div>
-                <label className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Instrucciones o Descripción (Opcional)</label>
+                <label htmlFor="quiz-form-descripcion" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Instrucciones o Descripción (Opcional)</label>
                 <textarea 
+                  id="quiz-form-descripcion"
                   rows="2"
                   placeholder="Instrucciones breves para los estudiantes..."
                   value={form.descripcion}
@@ -370,8 +407,9 @@ const QuizFormModal = ({ isOpen, onClose, idCurso, quizToEdit, temas, onSuccess 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {/* Vincular a Tema */}
                 <div>
-                  <label className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Tema Asociado (Opcional)</label>
+                  <label htmlFor="quiz-form-idTema" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Tema Asociado (Opcional)</label>
                   <select
+                    id="quiz-form-idTema"
                     value={form.idTema}
                     onChange={(e) => setForm({ ...form, idTema: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-[#2c5364] focus:ring-2 focus:ring-[#2c5364]/20 text-slate-900 font-bold text-sm bg-white"
@@ -385,11 +423,12 @@ const QuizFormModal = ({ isOpen, onClose, idCurso, quizToEdit, temas, onSuccess 
 
                 {/* Intentos Permitidos */}
                 <div>
-                  <label className="block text-xs font-extrabold text-slate-900 uppercase mb-1">
+                  <label htmlFor="quiz-form-intentosMaximos" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">
                     <RotateCcw size={14} className="inline mr-1 text-[#2c5364]" />
                     Intentos Permitidos
                   </label>
                   <select
+                    id="quiz-form-intentosMaximos"
                     value={form.intentos_maximos}
                     onChange={(e) => setForm({ ...form, intentos_maximos: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-[#2c5364] focus:ring-2 focus:ring-[#2c5364]/20 text-slate-900 font-bold text-sm bg-white"
@@ -404,11 +443,12 @@ const QuizFormModal = ({ isOpen, onClose, idCurso, quizToEdit, temas, onSuccess 
 
                 {/* Límite de Tiempo */}
                 <div>
-                  <label className="block text-xs font-extrabold text-slate-900 uppercase mb-1">
+                  <label htmlFor="quiz-form-limiteTiempo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">
                     <Clock size={14} className="inline mr-1 text-[#2c5364]" />
                     Límite (Minutos)
                   </label>
                   <input 
+                    id="quiz-form-limiteTiempo"
                     type="number"
                     min="0"
                     max="180"
@@ -421,10 +461,10 @@ const QuizFormModal = ({ isOpen, onClose, idCurso, quizToEdit, temas, onSuccess 
 
                 {/* Puntuación Total Sumada */}
                 <div>
-                  <label className="block text-xs font-extrabold text-slate-900 uppercase mb-1">
+                  <span className="block text-xs font-extrabold text-slate-900 uppercase mb-1">
                     <Award size={14} className="inline mr-1 text-[#2c5364]" />
                     Puntaje Total
-                  </label>
+                  </span>
                   <div className="w-full px-4 py-3 rounded-xl bg-slate-100 border border-slate-200 text-slate-900 font-black text-sm flex items-center justify-between">
                     <span>{puntajeTotalCalculado} pts</span>
                     <span className="text-[10px] text-slate-500 font-bold uppercase">(Suma)</span>
@@ -455,8 +495,9 @@ const QuizFormModal = ({ isOpen, onClose, idCurso, quizToEdit, temas, onSuccess 
                 2. Asignación a Estudiantes
               </span>
               <div className="flex items-center gap-5">
-                <label className="flex items-center gap-2 text-xs text-slate-900 font-extrabold cursor-pointer">
+                <label htmlFor="asignacion-todos" className="flex items-center gap-2 text-xs text-slate-900 font-extrabold cursor-pointer">
                   <input 
+                    id="asignacion-todos"
                     type="radio" 
                     name="asignacion" 
                     checked={form.asignar_a_todos} 
@@ -465,8 +506,9 @@ const QuizFormModal = ({ isOpen, onClose, idCurso, quizToEdit, temas, onSuccess 
                   />
                   <span>Todos los estudiantes</span>
                 </label>
-                <label className="flex items-center gap-2 text-xs text-slate-900 font-extrabold cursor-pointer">
+                <label htmlFor="asignacion-especificos" className="flex items-center gap-2 text-xs text-slate-900 font-extrabold cursor-pointer">
                   <input 
+                    id="asignacion-especificos"
                     type="radio" 
                     name="asignacion" 
                     checked={!form.asignar_a_todos} 
@@ -480,33 +522,7 @@ const QuizFormModal = ({ isOpen, onClose, idCurso, quizToEdit, temas, onSuccess 
 
             {!form.asignar_a_todos && (
               <div className="pt-2">
-                {loadingEstudiantes ? (
-                  <Loader2 size={20} className="animate-spin text-[#2c5364] mx-auto" />
-                ) : estudiantesCurso.length === 0 ? (
-                  <p className="text-xs text-slate-500 italic">No hay estudiantes inscritos en este curso.</p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-1">
-                    {estudiantesCurso.map(est => {
-                      const selected = form.estudiantesSeleccionados.includes(est.idUsuario);
-                      return (
-                        <label 
-                          key={est.idUsuario} 
-                          className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-bold cursor-pointer transition-colors ${
-                            selected ? 'bg-[#2c5364]/10 border-[#2c5364] text-[#2c5364]' : 'bg-slate-50 border-slate-200 text-slate-800 hover:bg-slate-100'
-                          }`}
-                        >
-                          <input 
-                            type="checkbox"
-                            checked={selected}
-                            onChange={() => toggleEstudianteSeleccionado(est.idUsuario)}
-                            className="rounded text-[#2c5364] focus:ring-[#2c5364]"
-                          />
-                          <span className="truncate">{est.nombreCompleto} ({est.correo})</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
+                {renderEstudiantesListContent()}
               </div>
             )}
           </div>

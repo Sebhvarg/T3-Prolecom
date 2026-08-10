@@ -23,7 +23,7 @@ class QuizController extends Controller
     public function indexByCurso(Request $request, $idCurso)
     {
         $user = $request->user('sanctum') ?? auth()->user();
-        $curso = Curso::findOrFail($idCurso);
+        Curso::findOrFail($idCurso);
 
         $query = Quiz::with(['creador:idUsuario,nombreCompleto', 'tema:idTema,nombre'])
             ->where('idCurso', $idCurso);
@@ -99,7 +99,7 @@ class QuizController extends Controller
     public function store(Request $request, $idCurso)
     {
         $user = $request->user();
-        $curso = Curso::findOrFail($idCurso);
+        Curso::findOrFail($idCurso);
 
         $validator = Validator::make($request->all(), [
             'titulo' => 'required|string|max:150',
@@ -148,7 +148,7 @@ class QuizController extends Controller
                 'asignar_a_todos' => $request->boolean('asignar_a_todos', true),
             ]);
 
-            // Si el quiz está asociado a un Tema, crear la relación polimórfica en items_tema
+            // Registrar en items_tema si pertenece a un Tema
             if ($request->filled('idTema')) {
                 $maxOrden = ItemTema::where('idTema', $request->idTema)->max('orden') ?? 0;
                 ItemTema::create([
@@ -159,7 +159,7 @@ class QuizController extends Controller
                 ]);
             }
 
-            // Crear Preguntas y Opciones
+            // Registrar preguntas y opciones
             foreach ($request->preguntas as $idxP => $pData) {
                 $pregunta = QuizPregunta::create([
                     'idQuiz' => $quiz->idQuiz,
@@ -174,14 +174,14 @@ class QuizController extends Controller
                     QuizOpcion::create([
                         'idPreguntaQuiz' => $pregunta->idPreguntaQuiz,
                         'texto_opcion' => $oData['texto_opcion'],
-                        'es_correcta' => (bool) $oData['es_correcta'],
+                        'es_correcta' => $oData['es_correcta'],
                         'orden' => $idxO + 1,
                     ]);
                 }
             }
 
-            // Crear asignaciones a estudiantes específicos si no es para todos
-            if (! $quiz->asignar_a_todos && is_array($request->estudiantes)) {
+            // Registrar asignaciones si es específico
+            if (! $quiz->asignar_a_todos && $request->has('estudiantes')) {
                 foreach ($request->estudiantes as $idEst) {
                     QuizAsignacion::create([
                         'idQuiz' => $quiz->idQuiz,
@@ -192,7 +192,7 @@ class QuizController extends Controller
 
             DB::commit();
 
-            return response()->json($quiz->load(['preguntas.opciones', 'asignaciones']), 201);
+            return response()->json(array_merge(['message' => 'Quiz creado exitosamente.'], $quiz->load('preguntas.opciones')->toArray()), 201);
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -201,7 +201,7 @@ class QuizController extends Controller
     }
 
     /**
-     * Actualizar Quiz existente.
+     * Actualizar un Quiz (Profesor/Admin).
      */
     public function update(Request $request, $idQuiz)
     {
@@ -275,7 +275,7 @@ class QuizController extends Controller
                     QuizOpcion::create([
                         'idPreguntaQuiz' => $pregunta->idPreguntaQuiz,
                         'texto_opcion' => $oData['texto_opcion'],
-                        'es_correcta' => (bool) $oData['es_correcta'],
+                        'es_correcta' => $oData['es_correcta'],
                         'orden' => $idxO + 1,
                     ]);
                 }
@@ -283,7 +283,7 @@ class QuizController extends Controller
 
             // Actualizar asignaciones
             QuizAsignacion::where('idQuiz', $quiz->idQuiz)->delete();
-            if (! $quiz->asignar_a_todos && is_array($request->estudiantes)) {
+            if (! $quiz->asignar_a_todos && $request->has('estudiantes')) {
                 foreach ($request->estudiantes as $idEst) {
                     QuizAsignacion::create([
                         'idQuiz' => $quiz->idQuiz,
@@ -294,7 +294,7 @@ class QuizController extends Controller
 
             DB::commit();
 
-            return response()->json($quiz->load(['preguntas.opciones', 'asignaciones']));
+            return response()->json(['message' => 'Quiz actualizado exitosamente.', 'quiz' => $quiz->load('preguntas.opciones')]);
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -303,7 +303,7 @@ class QuizController extends Controller
     }
 
     /**
-     * Eliminar Quiz.
+     * Eliminar un Quiz.
      */
     public function destroy($idQuiz)
     {
@@ -346,53 +346,23 @@ class QuizController extends Controller
 
         DB::beginTransaction();
         try {
-            $puntajeObtenido = 0.00;
-            $puntajeMaximo = 0.00;
-            $respuestasData = [];
-
-            // Mapear preguntas del quiz para consulta rápida
             $preguntasMap = $quiz->preguntas->keyBy('idPreguntaQuiz');
             $submittedMap = collect($request->respuestas)->keyBy('idPreguntaQuiz');
 
-            foreach ($preguntasMap as $idPregunta => $pregunta) {
-                $puntosPregunta = (float) $pregunta->puntos;
-                $puntajeMaximo += $puntosPregunta;
+            $evaluacion = $this->procesarEvaluacionPreguntas($preguntasMap, $submittedMap);
+            $puntajeObtenido = $evaluacion['puntajeObtenido'];
+            $puntajeMaximo = $evaluacion['puntajeMaximo'];
+            $respuestasData = $evaluacion['respuestasData'];
 
-                $submitted = $submittedMap->get($idPregunta);
-                $idOpcionSel = $submitted['idOpcionSeleccionada'] ?? null;
-                $esCorrecta = false;
-                $puntajeGanado = 0.00;
-
-                if ($idOpcionSel) {
-                    $opcion = QuizOpcion::find($idOpcionSel);
-                    if ($opcion && $opcion->idPreguntaQuiz === $idPregunta && $opcion->es_correcta) {
-                        $esCorrecta = true;
-                        $puntajeGanado = $puntosPregunta;
-                    }
-                }
-
-                $puntajeObtenido += $puntajeGanado;
-
-                $respuestasData[] = [
-                    'idPreguntaQuiz' => $idPregunta,
-                    'idOpcionSeleccionada' => $idOpcionSel,
-                    'es_correcta' => $esCorrecta,
-                    'puntaje_ganado' => $puntajeGanado,
-                ];
-            }
-
-            // Normalización a la escala de calificacion_maxima
             $calificacionEscalada = 0.00;
+            $porcentaje = 0.00;
             if ($puntajeMaximo > 0) {
                 $calificacionEscalada = round(($puntajeObtenido / $puntajeMaximo) * $quiz->calificacion_maxima, 2);
                 $porcentaje = round(($puntajeObtenido / $puntajeMaximo) * 100, 2);
-            } else {
-                $porcentaje = 0.00;
             }
 
             $aprobado = ($porcentaje >= 60.00);
 
-            // Obtener el mejor puntaje previo del estudiante para otorgar XP solo sobre la MEJORA
             $puntajeMaximoAnterior = QuizIntento::where('idQuiz', $quiz->idQuiz)
                 ->where('idEstudiante', $user->idUsuario)
                 ->max('puntaje_obtenido') ?? 0.00;
@@ -418,7 +388,6 @@ class QuizController extends Controller
                 ]);
             }
 
-            // Otorgar XP al estudiante SOLO por la mejora respecto a su mejor intento anterior
             $mejoraPuntaje = max(0, $calificacionEscalada - $puntajeMaximoAnterior);
             $xpGanada = (int) round($mejoraPuntaje * 10);
             if ($xpGanada > 0) {
@@ -427,7 +396,6 @@ class QuizController extends Controller
 
             DB::commit();
 
-            // Cargar intento con desglose de respuestas
             $intento->load([
                 'respuestas.pregunta.opciones',
                 'respuestas.opcionSeleccionada',
@@ -449,12 +417,52 @@ class QuizController extends Controller
         }
     }
 
+    private function procesarEvaluacionPreguntas($preguntasMap, $submittedMap): array
+    {
+        $puntajeObtenido = 0.00;
+        $puntajeMaximo = 0.00;
+        $respuestasData = [];
+
+        foreach ($preguntasMap as $idPregunta => $pregunta) {
+            $puntosPregunta = (float) $pregunta->puntos;
+            $puntajeMaximo += $puntosPregunta;
+
+            $submitted = $submittedMap->get($idPregunta);
+            $idOpcionSel = $submitted['idOpcionSeleccionada'] ?? null;
+            $esCorrecta = false;
+            $puntajeGanado = 0.00;
+
+            if ($idOpcionSel) {
+                $opcion = QuizOpcion::find($idOpcionSel);
+                if ($opcion && $opcion->idPreguntaQuiz === $idPregunta && $opcion->es_correcta) {
+                    $esCorrecta = true;
+                    $puntajeGanado = $puntosPregunta;
+                }
+            }
+
+            $puntajeObtenido += $puntajeGanado;
+
+            $respuestasData[] = [
+                'idPreguntaQuiz' => $idPregunta,
+                'idOpcionSeleccionada' => $idOpcionSel,
+                'es_correcta' => $esCorrecta,
+                'puntaje_ganado' => $puntajeGanado,
+            ];
+        }
+
+        return [
+            'puntajeObtenido' => $puntajeObtenido,
+            'puntajeMaximo' => $puntajeMaximo,
+            'respuestasData' => $respuestasData,
+        ];
+    }
+
     /**
      * Reiniciar intentos de un Quiz para un estudiante o todos (Profesor/Admin).
      */
     public function reiniciarIntentos(Request $request, $idQuiz)
     {
-        $quiz = Quiz::findOrFail($idQuiz);
+        Quiz::findOrFail($idQuiz);
         $idEstudiante = $request->idEstudiante;
 
         $query = QuizIntento::where('idQuiz', $idQuiz);
@@ -472,7 +480,7 @@ class QuizController extends Controller
     public function listarIntentos(Request $request, $idQuiz)
     {
         $user = $request->user();
-        $quiz = Quiz::findOrFail($idQuiz);
+        Quiz::findOrFail($idQuiz);
 
         $esProfesor = ($user->rol === 'Profesor' || $user->rol === 'Administrador');
 
@@ -483,7 +491,7 @@ class QuizController extends Controller
             $query->where('idEstudiante', $user->idUsuario);
         }
 
-        $intentos = $query->orderBy('created_at', 'desc')->get();
+        $intentos = $query->orderBy('fecha_envio', 'desc')->get();
 
         return response()->json($intentos);
     }
