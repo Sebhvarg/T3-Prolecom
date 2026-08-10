@@ -322,26 +322,9 @@ class QuizController extends Controller
         $user = $request->user();
         $quiz = Quiz::with('preguntas.opciones')->findOrFail($idQuiz);
 
-        $validator = Validator::make($request->all(), [
-            'respuestas' => 'required|array',
-            'respuestas.*.idPreguntaQuiz' => 'required|exists:quiz_preguntas,idPreguntaQuiz',
-            'respuestas.*.idOpcionSeleccionada' => 'nullable|exists:quiz_opciones,idOpcionQuiz',
-            'tiempo_segundos' => 'nullable|integer|min:0',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        if ($quiz->intentos_maximos > 0) {
-            $intentosPreviosCount = QuizIntento::where('idQuiz', $quiz->idQuiz)
-                ->where('idEstudiante', $user->idUsuario)
-                ->count();
-            if ($intentosPreviosCount >= $quiz->intentos_maximos) {
-                return response()->json([
-                    'message' => 'Has alcanzado el número máximo de intentos permitidos para este cuestionario.',
-                ], 403);
-            }
+        $validationError = $this->validarIntentoQuiz($request, $quiz, $user);
+        if ($validationError) {
+            return $validationError;
         }
 
         DB::beginTransaction();
@@ -415,6 +398,33 @@ class QuizController extends Controller
 
             return response()->json(['message' => 'Error al calificar el quiz.', 'error' => $e->getMessage()], 500);
         }
+    }
+
+    private function validarIntentoQuiz(Request $request, Quiz $quiz, $user)
+    {
+        $validator = Validator::make($request->all(), [
+            'respuestas' => 'required|array',
+            'respuestas.*.idPreguntaQuiz' => 'required|exists:quiz_preguntas,idPreguntaQuiz',
+            'respuestas.*.idOpcionSeleccionada' => 'nullable|exists:quiz_opciones,idOpcionQuiz',
+            'tiempo_segundos' => 'nullable|integer|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        if ($quiz->intentos_maximos > 0) {
+            $intentosPreviosCount = QuizIntento::where('idQuiz', $quiz->idQuiz)
+                ->where('idEstudiante', $user->idUsuario)
+                ->count();
+            if ($intentosPreviosCount >= $quiz->intentos_maximos) {
+                return response()->json([
+                    'message' => 'Has alcanzado el número máximo de intentos permitidos para este cuestionario.',
+                ], 403);
+            }
+        }
+
+        return null;
     }
 
     private function procesarEvaluacionPreguntas($preguntasMap, $submittedMap): array
