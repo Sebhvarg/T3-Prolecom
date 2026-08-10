@@ -3,9 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Curso;
+use App\Models\Foro;
 use App\Models\Pregunta;
 use App\Models\Respuesta;
 use App\Models\Rol;
+use App\Models\Tema;
 use App\Models\User;
 use Database\Seeders\RolesAndStatesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -26,6 +28,10 @@ class ForoRBACTest extends TestCase
 
     protected ?Curso $curso = null;
 
+    protected ?Tema $tema = null;
+
+    protected ?Foro $foro = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -44,6 +50,19 @@ class ForoRBACTest extends TestCase
             'tipo' => 'público',
             'idProfeCreador' => $profesor->idUsuario,
         ]);
+
+        $this->tema = Tema::create([
+            'nombre' => 'Tema 1: Fundamentos',
+            'descripcion' => 'Descripción del tema',
+            'idCurso' => $this->curso->idCurso,
+        ]);
+
+        $this->foro = Foro::create([
+            'titulo' => 'Foro de Preguntas Tema 1',
+            'descripcion' => 'Espacio Q&A',
+            'idUsuarioCreador' => $profesor->idUsuario,
+            'estado' => 'abierto',
+        ]);
     }
 
     private function createUserWithRole(Rol $role): User
@@ -59,8 +78,8 @@ class ForoRBACTest extends TestCase
         $student = $this->createUserWithRole($this->estudianteRol);
         Sanctum::actingAs($student);
 
-        // 1. Crear Pregunta
-        $respPregunta = $this->postJson("/api/cursos/{$this->curso->idCurso}/preguntas", [
+        // 1. Crear Pregunta en el Foro
+        $respPregunta = $this->postJson("/api/foros/{$this->foro->idForo}/preguntas", [
             'titulo' => '¿Cómo funciona la validación de respuestas?',
             'descripcion' => 'Tengo dudas sobre cómo los profesores validan una respuesta.',
         ]);
@@ -72,6 +91,7 @@ class ForoRBACTest extends TestCase
             'idPregunta' => $idPregunta,
             'titulo' => '¿Cómo funciona la validación de respuestas?',
             'idUsuarioCreador' => $student->idUsuario,
+            'idForo' => $this->foro->idForo,
             'estado' => 'abierta',
         ]);
 
@@ -97,7 +117,7 @@ class ForoRBACTest extends TestCase
             'titulo' => 'Duda estudiante',
             'descripcion' => 'Detalle',
             'idUsuarioCreador' => $student->idUsuario,
-            'idCurso' => $this->curso->idCurso,
+            'idForo' => $this->foro->idForo,
             'estado' => 'abierta',
         ]);
 
@@ -128,7 +148,7 @@ class ForoRBACTest extends TestCase
             'titulo' => 'Duda estudiante',
             'descripcion' => 'Detalle',
             'idUsuarioCreador' => $student->idUsuario,
-            'idCurso' => $this->curso->idCurso,
+            'idForo' => $this->foro->idForo,
             'estado' => 'abierta',
         ]);
 
@@ -172,7 +192,7 @@ class ForoRBACTest extends TestCase
             'titulo' => 'Duda sobre tarea',
             'descripcion' => '¿Cuándo se entrega?',
             'idUsuarioCreador' => $student->idUsuario,
-            'idCurso' => $this->curso->idCurso,
+            'idForo' => $this->foro->idForo,
             'estado' => 'abierta',
         ]);
 
