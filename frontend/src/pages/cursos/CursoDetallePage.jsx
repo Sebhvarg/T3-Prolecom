@@ -22,6 +22,19 @@ const generateTestCaseId = () => {
   return `tc-id-${testCaseIdCounter}`;
 };
 
+const sortCursoTemasEItems = (temas) => {
+  if (!temas) return;
+  temas.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { numeric: true }));
+  temas.forEach((t) => {
+    if (!t.items) return;
+    t.items.sort((a, b) => {
+      const titleA = a.titulo || a.itemable?.titulo || a.resource?.titulo || a.nombre || '';
+      const titleB = b.titulo || b.itemable?.titulo || b.resource?.titulo || b.nombre || '';
+      return titleA.localeCompare(titleB, 'es', { numeric: true });
+    });
+  });
+};
+
 const CursoDetallePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -89,18 +102,7 @@ const CursoDetallePage = () => {
         const data = await cursosService.getCurso(id);
         if (!isMounted) return;
 
-        if (data.temas) {
-          data.temas.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { numeric: true }));
-          data.temas.forEach((t) => {
-            if (t.items) {
-              t.items.sort((a, b) => {
-                const titleA = a.titulo || a.itemable?.titulo || a.resource?.titulo || a.nombre || '';
-                const titleB = b.titulo || b.itemable?.titulo || b.resource?.titulo || b.nombre || '';
-                return titleA.localeCompare(titleB, 'es', { numeric: true });
-              });
-            }
-          });
-        }
+        sortCursoTemasEItems(data.temas);
 
         setCurso(data);
 
@@ -404,6 +406,210 @@ const CursoDetallePage = () => {
 
   const progreso = curso.progreso || { porcentaje: 0, itemsCompletados: 0, totalItems: 0, xpGanado: 0, xpTotal: 0 };
 
+  const renderActiveTabContent = () => {
+    if (activeTab === 'foro') {
+      return <ForoSeccion idCurso={id} user={user} />;
+    }
+
+    if (activeTab === 'quizzes') {
+      return <QuizSeccion idCurso={id} user={user} temas={curso.temas} onQuizCompleted={fetchCurso} />;
+    }
+
+    return (
+      <>
+        {/* Secciones de Contenido */}
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Temas del Curso</h2>
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => handleOpenTemaModal()}
+              className="flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2.5 rounded-xl font-extrabold shadow-sm transition-all hover:shadow-md cursor-pointer text-xs"
+            >
+              <Plus size={18} />
+              <span>Nuevo Tema</span>
+            </button>
+          )}
+        </div>
+
+        {curso.temas?.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-xs">
+            <FileText className="mx-auto h-12 w-12 text-slate-300 mb-4" />
+            <h3 className="text-lg font-extrabold text-slate-900">No hay contenido disponible</h3>
+            <p className="text-slate-500 text-xs mt-1 max-w-sm mx-auto font-medium">Este curso aún no tiene temas ni módulos cargados por el profesor.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {curso.temas?.map((tema) => (
+              <div key={tema.idTema} className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden transition-all duration-300">
+                {/* Header Tema */}
+                <div className="p-5 flex justify-between items-center hover:bg-slate-50 transition-colors select-none">
+                  <button 
+                    type="button"
+                    onClick={() => toggleTema(tema.idTema)}
+                    className="flex items-center gap-4 flex-1 text-left focus:outline-none cursor-pointer"
+                  >
+                    <div className="p-2.5 bg-slate-100 text-[#2c5364] rounded-2xl">
+                      <BookOpen size={20} />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-slate-900 text-base md:text-lg">{tema.nombre}</h3>
+                      {tema.descripcion && (
+                        <p className="text-slate-500 text-xs font-medium">{tema.descripcion}</p>
+                      )}
+                    </div>
+                  </button>
+
+                  <div className="flex items-center gap-3">
+                    {canManage && (
+                      <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-xl p-1">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenMaterialModal(tema.idTema)}
+                          className="p-1.5 text-slate-700 hover:text-[#2c5364] hover:bg-white rounded-lg transition-colors cursor-pointer"
+                          title="Subir Material"
+                        >
+                          <Plus size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDesafioModal(tema.idTema)}
+                          className="p-1.5 text-slate-700 hover:text-[#2c5364] hover:bg-white rounded-lg transition-colors cursor-pointer"
+                          title="Crear Desafío Práctico"
+                        >
+                          <Code size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenTemaModal(tema)}
+                          className="p-1.5 text-slate-700 hover:text-[#2c5364] hover:bg-white rounded-lg transition-colors cursor-pointer"
+                          title="Editar Tema"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTema(tema.idTema)}
+                          className="p-1.5 text-slate-700 hover:text-red-600 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                          title="Eliminar Tema"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => toggleTema(tema.idTema)}
+                      className="p-2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                    >
+                      {expandedTemas[tema.idTema] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Contenido Expandible */}
+                {expandedTemas[tema.idTema] && (
+                  <div className="border-t border-slate-100 p-5 bg-slate-50/50 space-y-3">
+                    {tema.items?.length === 0 ? (
+                      <p className="text-xs text-slate-400 font-medium italic text-center py-4">No hay ítems cargados en este tema.</p>
+                    ) : (
+                      tema.items?.map((item) => {
+                        const isDesafio = item.itemable_type?.includes('Desafio') || Boolean(item.dificultad);
+                        const isMaterial = item.itemable_type?.includes('Material') || Boolean(item.tipo_archivo);
+
+                        return (
+                          <div key={item.idItem || item.idMaterial || item.idDesafio} className="p-4 bg-white rounded-2xl border border-slate-200 flex justify-between items-center gap-4 hover:border-slate-300 transition-all">
+                            <div className="flex items-center gap-3">
+                              <div className={`p-2 rounded-xl text-xs font-black ${
+                                isDesafio ? 'bg-amber-100 text-amber-900' : 'bg-slate-100 text-[#2c5364]'
+                              }`}>
+                                {isDesafio ? <Code size={18} /> : <FileText size={18} />}
+                              </div>
+
+                              <div>
+                                <h4 className="font-extrabold text-xs text-slate-900">
+                                  {item.titulo || item.itemable?.titulo || item.nombre}
+                                </h4>
+                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                  {isDesafio ? `Desafío (${item.dificultad || item.itemable?.dificultad || 'Práctico'})` : `Material (${item.tipo || 'Lectura'})`}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {isMaterial && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenSecureViewer(item)}
+                                    className="px-3 py-1.5 bg-[#2c5364]/10 hover:bg-[#2c5364]/20 text-[#2c5364] font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <Eye size={14} />
+                                    <span>Ver Documento</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDownloadMaterial(item)}
+                                    className="p-2 text-slate-500 hover:text-slate-900 bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                                    title="Descargar Material"
+                                  >
+                                    <Download size={14} />
+                                  </button>
+                                </>
+                              )}
+
+                              {isDesafio && (
+                                <button
+                                  type="button"
+                                  onClick={() => navigate(`/desafios/${item.idDesafio || item.itemable_id}`)}
+                                  className="px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+                                >
+                                  <Play size={14} fill="currentColor" />
+                                  <span>Resolver Desafío</span>
+                                </button>
+                              )}
+
+                              {canManage && (
+                                <div className="flex items-center gap-1 border-l border-slate-200 pl-2">
+                                  {isMaterial && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteMaterial(item.idMaterial)}
+                                      className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                                      title="Eliminar Material"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  )}
+                                  {isDesafio && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteDesafio(item.idDesafio || item.itemable_id)}
+                                      className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                                      title="Eliminar Desafío"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </>
+    );
+  };
+
   return (
     <DashboardContainer activeSection="Cursos" title={curso.titulo}>
       <div className="space-y-6">
@@ -500,203 +706,7 @@ const CursoDetallePage = () => {
         </div>
 
         {/* Renderizado Condicional por Pestaña */}
-        {activeTab === 'foro' ? (
-          <ForoSeccion idCurso={id} user={user} />
-        ) : activeTab === 'quizzes' ? (
-          <QuizSeccion idCurso={id} user={user} temas={curso.temas} onQuizCompleted={fetchCurso} />
-        ) : (
-          <>
-            {/* Secciones de Contenido */}
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Temas del Curso</h2>
-              {canManage && (
-                <button
-                  type="button"
-                  onClick={() => handleOpenTemaModal()}
-                  className="flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2.5 rounded-xl font-extrabold shadow-sm transition-all hover:shadow-md cursor-pointer text-xs"
-                >
-                  <Plus size={18} />
-                  <span>Nuevo Tema</span>
-                </button>
-              )}
-            </div>
-
-            {curso.temas?.length === 0 ? (
-              <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-xs">
-                <FileText className="mx-auto h-12 w-12 text-slate-300 mb-4" />
-                <h3 className="text-lg font-extrabold text-slate-900">No hay contenido disponible</h3>
-                <p className="text-slate-500 text-xs mt-1 max-w-sm mx-auto font-medium">Este curso aún no tiene temas ni módulos cargados por el profesor.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {curso.temas?.map((tema) => (
-                  <div key={tema.idTema} className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden transition-all duration-300">
-                    {/* Header Tema */}
-                    <div className="p-5 flex justify-between items-center hover:bg-slate-50 transition-colors select-none">
-                      <button 
-                        type="button"
-                        onClick={() => toggleTema(tema.idTema)}
-                        className="flex items-center gap-4 flex-1 text-left focus:outline-none cursor-pointer"
-                      >
-                        <div className="p-2.5 bg-slate-100 text-[#2c5364] rounded-2xl">
-                          <BookOpen size={20} />
-                        </div>
-                        <div>
-                          <h3 className="font-extrabold text-slate-900 text-base md:text-lg">{tema.nombre}</h3>
-                          {tema.descripcion && (
-                            <p className="text-slate-500 text-xs font-medium">{tema.descripcion}</p>
-                          )}
-                        </div>
-                      </button>
-
-                      <div className="flex items-center gap-3">
-                        {canManage && (
-                          <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-xl p-1">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenMaterialModal(tema.idTema)}
-                              className="p-1.5 text-slate-700 hover:text-[#2c5364] hover:bg-white rounded-lg transition-colors cursor-pointer"
-                              title="Subir Material"
-                            >
-                              <Plus size={16} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleOpenDesafioModal(tema.idTema)}
-                              className="p-1.5 text-slate-700 hover:text-[#2c5364] hover:bg-white rounded-lg transition-colors cursor-pointer"
-                              title="Crear Desafío Práctico"
-                            >
-                              <Code size={16} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleOpenTemaModal(tema)}
-                              className="p-1.5 text-slate-700 hover:text-[#2c5364] hover:bg-white rounded-lg transition-colors cursor-pointer"
-                              title="Editar Tema"
-                            >
-                              <Pencil size={16} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteTema(tema.idTema)}
-                              className="p-1.5 text-slate-700 hover:text-red-600 hover:bg-white rounded-lg transition-colors cursor-pointer"
-                              title="Eliminar Tema"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={() => toggleTema(tema.idTema)}
-                          className="p-2 text-slate-400 hover:text-slate-700 cursor-pointer"
-                        >
-                          {expandedTemas[tema.idTema] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Contenido Expandible */}
-                    {expandedTemas[tema.idTema] && (
-                      <div className="border-t border-slate-100 p-5 bg-slate-50/50 space-y-3">
-                        {tema.items?.length === 0 ? (
-                          <p className="text-xs text-slate-400 font-medium italic text-center py-4">No hay ítems cargados en este tema.</p>
-                        ) : (
-                          tema.items?.map((item) => {
-                            const isDesafio = item.itemable_type?.includes('Desafio') || Boolean(item.dificultad);
-                            const isMaterial = item.itemable_type?.includes('Material') || Boolean(item.tipo_archivo);
-
-                            return (
-                              <div key={item.idItem || item.idMaterial || item.idDesafio} className="p-4 bg-white rounded-2xl border border-slate-200 flex justify-between items-center gap-4 hover:border-slate-300 transition-all">
-                                <div className="flex items-center gap-3">
-                                  <div className={`p-2 rounded-xl text-xs font-black ${
-                                    isDesafio ? 'bg-amber-100 text-amber-900' : 'bg-slate-100 text-[#2c5364]'
-                                  }`}>
-                                    {isDesafio ? <Code size={18} /> : <FileText size={18} />}
-                                  </div>
-
-                                  <div>
-                                    <h4 className="font-extrabold text-xs text-slate-900">
-                                      {item.titulo || item.itemable?.titulo || item.nombre}
-                                    </h4>
-                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                                      {isDesafio ? `Desafío (${item.dificultad || item.itemable?.dificultad || 'Práctico'})` : `Material (${item.tipo || 'Lectura'})`}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                  {isMaterial && (
-                                    <>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleOpenSecureViewer(item)}
-                                        className="px-3 py-1.5 bg-[#2c5364]/10 hover:bg-[#2c5364]/20 text-[#2c5364] font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
-                                      >
-                                        <Eye size={14} />
-                                        <span>Ver Documento</span>
-                                      </button>
-
-                                      <button
-                                        type="button"
-                                        onClick={() => handleDownloadMaterial(item)}
-                                        className="p-2 text-slate-500 hover:text-slate-900 bg-slate-100 rounded-xl transition-colors cursor-pointer"
-                                        title="Descargar Material"
-                                      >
-                                        <Download size={14} />
-                                      </button>
-                                    </>
-                                  )}
-
-                                  {isDesafio && (
-                                    <button
-                                      type="button"
-                                      onClick={() => navigate(`/desafios/${item.idDesafio || item.itemable_id}`)}
-                                      className="px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
-                                    >
-                                      <Play size={14} fill="currentColor" />
-                                      <span>Resolver Desafío</span>
-                                    </button>
-                                  )}
-
-                                  {canManage && (
-                                    <div className="flex items-center gap-1 border-l border-slate-200 pl-2">
-                                      {isMaterial && (
-                                        <button
-                                          type="button"
-                                          onClick={() => handleDeleteMaterial(item.idMaterial)}
-                                          className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
-                                          title="Eliminar Material"
-                                        >
-                                          <Trash2 size={14} />
-                                        </button>
-                                      )}
-                                      {isDesafio && (
-                                        <button
-                                          type="button"
-                                          onClick={() => handleDeleteDesafio(item.idDesafio || item.itemable_id)}
-                                          className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
-                                          title="Eliminar Desafío"
-                                        >
-                                          <Trash2 size={14} />
-                                        </button>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+        {renderActiveTabContent()}
 
       </div>
 
@@ -717,8 +727,9 @@ const CursoDetallePage = () => {
 
             <form onSubmit={handleSaveTema} className="space-y-4">
               <div>
-                <label className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Nombre del Tema</label>
+                <label htmlFor="tema-form-nombre" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Nombre del Tema</label>
                 <input 
+                  id="tema-form-nombre"
                   type="text"
                   required
                   placeholder="Ej. Introducción a Funciones"
@@ -729,8 +740,9 @@ const CursoDetallePage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Descripción</label>
+                <label htmlFor="tema-form-descripcion" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Descripción</label>
                 <textarea 
+                  id="tema-form-descripcion"
                   rows="3"
                   placeholder="Breve explicación de los objetivos del tema..."
                   value={temaDescripcion}
@@ -765,8 +777,9 @@ const CursoDetallePage = () => {
 
             <form onSubmit={handleSaveMaterial} className="space-y-4">
               <div>
-                <label className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Nombre del Material</label>
+                <label htmlFor="mat-form-nombre" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Nombre del Material</label>
                 <input 
+                  id="mat-form-nombre"
                   type="text"
                   required
                   placeholder="Ej. Guía Teórica de Condicionales PDF"
@@ -777,8 +790,9 @@ const CursoDetallePage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Tipo de Recurso</label>
+                <label htmlFor="mat-form-tipo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Tipo de Recurso</label>
                 <select 
+                  id="mat-form-tipo"
                   value={materialTipo}
                   onChange={(e) => setMaterialTipo(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-bold text-xs"
@@ -791,8 +805,9 @@ const CursoDetallePage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Archivo de Origen</label>
+                <label htmlFor="mat-form-archivo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Archivo de Origen</label>
                 <input 
+                  id="mat-form-archivo"
                   type="file"
                   required
                   onChange={(e) => setMaterialFile(e.target.files[0])}
@@ -826,8 +841,9 @@ const CursoDetallePage = () => {
 
             <form onSubmit={handleSaveDesafio} className="space-y-4">
               <div>
-                <label className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Título del Desafío</label>
+                <label htmlFor="des-form-titulo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Título del Desafío</label>
                 <input 
+                  id="des-form-titulo"
                   type="text"
                   required
                   placeholder="Ej. Suma de Elementos de una Lista"
@@ -838,8 +854,9 @@ const CursoDetallePage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Enunciado y Problema</label>
+                <label htmlFor="des-form-descripcion" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Enunciado y Problema</label>
                 <textarea 
+                  id="des-form-descripcion"
                   rows="3"
                   required
                   placeholder="Explica detalladamente qué debe realizar la función o algoritmo..."
@@ -851,8 +868,9 @@ const CursoDetallePage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Dificultad</label>
+                  <label htmlFor="des-form-dificultad" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Dificultad</label>
                   <select 
+                    id="des-form-dificultad"
                     value={desafioDificultad}
                     onChange={(e) => setDesafioDificultad(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-bold text-xs bg-white"
@@ -864,8 +882,9 @@ const CursoDetallePage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Lenguaje de Programación</label>
+                  <label htmlFor="des-form-lenguaje" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Lenguaje de Programación</label>
                   <select 
+                    id="des-form-lenguaje"
                     value={desafioLenguaje}
                     onChange={(e) => setDesafioLenguaje(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-bold text-xs bg-white"
@@ -876,8 +895,9 @@ const CursoDetallePage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Plantilla Inicial de Código</label>
+                <label htmlFor="des-form-plantilla" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Plantilla Inicial de Código</label>
                 <textarea 
+                  id="des-form-plantilla"
                   rows="3"
                   value={desafioPlantillaCodigo}
                   onChange={(e) => setDesafioPlantillaCodigo(e.target.value)}

@@ -23,6 +23,9 @@ if (! defined('ROUTE_FORO_ID')) {
 if (! defined('ROUTE_PREGUNTA_ID')) {
     define('ROUTE_PREGUNTA_ID', '/preguntas/{idPregunta}');
 }
+if (! defined('ROUTE_QUIZ_ID')) {
+    define('ROUTE_QUIZ_ID', '/quizzes/{idQuiz}');
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -69,9 +72,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Rutas de Quizzes (Evaluaciones / Cuestionarios)
     Route::get('/cursos/{idCurso}/quizzes', [QuizController::class, 'indexByCurso']);
-    Route::get('/quizzes/{idQuiz}', [QuizController::class, 'show']);
-    Route::post('/quizzes/{idQuiz}/intentos', [QuizController::class, 'enviarIntento']);
-    Route::get('/quizzes/{idQuiz}/intentos', [QuizController::class, 'listarIntentos']);
+    Route::get(ROUTE_QUIZ_ID, [QuizController::class, 'show']);
+    Route::post(ROUTE_QUIZ_ID.'/intentos', [QuizController::class, 'enviarIntento']);
+    Route::get(ROUTE_QUIZ_ID.'/intentos', [QuizController::class, 'listarIntentos']);
 
     // FORO ACADÉMICO
     Route::get(ROUTE_FORO_ID, [ForoController::class, 'show']);
@@ -111,9 +114,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Gestión de Quizzes por Instructores
         Route::post('/cursos/{idCurso}/quizzes', [QuizController::class, 'store']);
-        Route::put('/quizzes/{idQuiz}', [QuizController::class, 'update']);
-        Route::delete('/quizzes/{idQuiz}', [QuizController::class, 'destroy']);
-        Route::post('/quizzes/{idQuiz}/reiniciar-intentos', [QuizController::class, 'reiniciarIntentos']);
+        Route::put(ROUTE_QUIZ_ID, [QuizController::class, 'update']);
+        Route::delete(ROUTE_QUIZ_ID, [QuizController::class, 'destroy']);
+        Route::post(ROUTE_QUIZ_ID.'/reiniciar-intentos', [QuizController::class, 'reiniciarIntentos']);
     });
 
     Route::middleware('role:Administrador,Profesor')->group(function () {
