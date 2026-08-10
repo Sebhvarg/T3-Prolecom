@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\DesafioController;
 use App\Http\Controllers\Api\ForoController;
 use App\Http\Controllers\Api\MaterialController;
 use App\Http\Controllers\Api\PerfilController;
+use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\TemaController;
 use App\Http\Controllers\Api\UserController;
 use App\Models\LenguajeProgramacion;
@@ -69,6 +70,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/preguntas/{idPregunta}', [ForoController::class, 'showPregunta']);
     Route::post('/preguntas/{idPregunta}/respuestas', [ForoController::class, 'storeRespuesta']);
 
+    // Rutas de Quizzes (Evaluaciones / Cuestionarios)
+    Route::get('/cursos/{idCurso}/quizzes', [QuizController::class, 'indexByCurso']);
+    Route::get('/quizzes/{idQuiz}', [QuizController::class, 'show']);
+    Route::post('/quizzes/{idQuiz}/intentos', [QuizController::class, 'enviarIntento']);
+    Route::get('/quizzes/{idQuiz}/intentos', [QuizController::class, 'listarIntentos']);
+
     Route::middleware('role:Administrador,Profesor,Ayudante')->group(function () {
         Route::post('/temas/{idTema}/desafios', [DesafioController::class, 'store']);
         Route::put(ROUTE_DESAFIO_ID, [DesafioController::class, 'update']);
@@ -76,6 +83,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Validación de respuestas por Instructores / Ayudantes (PB16)
         Route::put('/respuestas/{idRespuesta}/validar', [ForoController::class, 'toggleValidarRespuesta']);
+
+        // Gestión de Quizzes por Instructores
+        Route::post('/cursos/{idCurso}/quizzes', [QuizController::class, 'store']);
+        Route::put('/quizzes/{idQuiz}', [QuizController::class, 'update']);
+        Route::delete('/quizzes/{idQuiz}', [QuizController::class, 'destroy']);
+        Route::post('/quizzes/{idQuiz}/reiniciar-intentos', [QuizController::class, 'reiniciarIntentos']);
     });
 
     Route::middleware('role:Administrador,Profesor')->group(function () {

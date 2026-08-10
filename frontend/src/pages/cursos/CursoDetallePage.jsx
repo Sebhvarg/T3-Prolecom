@@ -6,10 +6,11 @@ import { cursosService } from '../../api/cursosService';
 import { desafiosService } from '../../api/desafiosService';
 import { storage } from '../../utils/crypto';
 import ForoSeccion from '../../components/foro/ForoSeccion';
+import QuizSeccion from '../../components/quizzes/QuizSeccion';
 import { 
   ArrowLeft, Plus, Trash2, FileText, Video, Play, Download, Eye, 
   X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code, Pencil, User, Sparkles, RotateCcw, CheckCircle, Trophy,
-  MessageSquare, BookOpen
+  MessageSquare, BookOpen, HelpCircle
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
@@ -75,9 +76,15 @@ const CursoDetallePage = () => {
         if (!isMounted) return;
 
         if (data.temas) {
-          data.temas.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { numeric: true }));
+          data.temas.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { numeric: true }));
           data.temas.forEach((t) => {
-            if (t.items) t.items.sort((a, b) => a.titulo.localeCompare(b.titulo, 'es', { numeric: true }));
+            if (t.items) {
+              t.items.sort((a, b) => {
+                const titleA = a.titulo || a.itemable?.titulo || a.nombre || '';
+                const titleB = b.titulo || b.itemable?.titulo || b.nombre || '';
+                return titleA.localeCompare(titleB, 'es', { numeric: true });
+              });
+            }
           });
         }
 
@@ -527,12 +534,12 @@ const CursoDetallePage = () => {
           </div>
         )}
 
-        {/* Navegación por pestañas (Temas vs Foro) */}
-        <div className="flex border-b border-gray-200">
+        {/* Navegación por pestañas (Temas vs Quizzes vs Foro) */}
+        <div className="flex border-b border-gray-200 overflow-x-auto">
           <button
             type="button"
             onClick={() => setActiveTab('temas')}
-            className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all ${
+            className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all shrink-0 cursor-pointer ${
               activeTab === 'temas'
                 ? 'border-[#2c5364] text-[#2c5364]'
                 : 'border-transparent text-gray-500 hover:text-gray-900'
@@ -543,8 +550,20 @@ const CursoDetallePage = () => {
           </button>
           <button
             type="button"
+            onClick={() => setActiveTab('quizzes')}
+            className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all shrink-0 cursor-pointer ${
+              activeTab === 'quizzes'
+                ? 'border-[#2c5364] text-[#2c5364]'
+                : 'border-transparent text-gray-500 hover:text-gray-900'
+            }`}
+          >
+            <HelpCircle size={18} />
+            <span>Cuestionarios & Quizzes</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab('foro')}
-            className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all ${
+            className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all shrink-0 cursor-pointer ${
               activeTab === 'foro'
                 ? 'border-[#2c5364] text-[#2c5364]'
                 : 'border-transparent text-gray-500 hover:text-gray-900'
@@ -557,6 +576,8 @@ const CursoDetallePage = () => {
 
         {activeTab === 'foro' ? (
           <ForoSeccion idCurso={id} user={user} />
+        ) : activeTab === 'quizzes' ? (
+          <QuizSeccion idCurso={id} user={user} temas={curso.temas} onQuizCompleted={fetchCurso} />
         ) : (
           <>
             {/* Secciones de Contenido */}
