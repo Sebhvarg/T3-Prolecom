@@ -128,11 +128,7 @@ class QuizController extends Controller
 
         DB::beginTransaction();
         try {
-            $sumPuntos = array_reduce($request->preguntas, function ($c, $p) {
-                return $c + (float) ($p['puntos'] ?? 1.00);
-            }, 0.00);
-
-            $calificacionMaxima = $sumPuntos > 0 ? $sumPuntos : ($request->calificacion_maxima ?? 10.00);
+            $calificacionMaxima = $this->calcularCalificacionMaxima($request->preguntas, $request->calificacion_maxima);
 
             $quiz = Quiz::create([
                 'titulo' => $request->titulo,
@@ -159,36 +155,8 @@ class QuizController extends Controller
                 ]);
             }
 
-            // Registrar preguntas y opciones
-            foreach ($request->preguntas as $idxP => $pData) {
-                $pregunta = QuizPregunta::create([
-                    'idQuiz' => $quiz->idQuiz,
-                    'enunciado' => $pData['enunciado'],
-                    'tipo' => $pData['tipo'] ?? 'opcion_multiple',
-                    'puntos' => $pData['puntos'] ?? 1.00,
-                    'explicacion' => $pData['explicacion'] ?? null,
-                    'orden' => $idxP + 1,
-                ]);
-
-                foreach ($pData['opciones'] as $idxO => $oData) {
-                    QuizOpcion::create([
-                        'idPreguntaQuiz' => $pregunta->idPreguntaQuiz,
-                        'texto_opcion' => $oData['texto_opcion'],
-                        'es_correcta' => $oData['es_correcta'],
-                        'orden' => $idxO + 1,
-                    ]);
-                }
-            }
-
-            // Registrar asignaciones si es específico
-            if (! $quiz->asignar_a_todos && $request->has('estudiantes')) {
-                foreach ($request->estudiantes as $idEst) {
-                    QuizAsignacion::create([
-                        'idQuiz' => $quiz->idQuiz,
-                        'idEstudiante' => $idEst,
-                    ]);
-                }
-            }
+            $this->guardarPreguntasYOpciones($quiz->idQuiz, $request->preguntas);
+            $this->guardarAsignaciones($quiz, $request->estudiantes);
 
             DB::commit();
 
@@ -226,11 +194,7 @@ class QuizController extends Controller
 
         DB::beginTransaction();
         try {
-            $sumPuntos = array_reduce($request->preguntas, function ($c, $p) {
-                return $c + (float) ($p['puntos'] ?? 1.00);
-            }, 0.00);
-
-            $calificacionMaxima = $sumPuntos > 0 ? $sumPuntos : ($request->calificacion_maxima ?? 10.00);
+            $calificacionMaxima = $this->calcularCalificacionMaxima($request->preguntas, $request->calificacion_maxima);
             $oldTemaId = $quiz->idTema;
 
             $quiz->update([
@@ -258,39 +222,8 @@ class QuizController extends Controller
                 }
             }
 
-            // Eliminar preguntas anteriores y recrear
-            QuizPregunta::where('idQuiz', $quiz->idQuiz)->delete();
-
-            foreach ($request->preguntas as $idxP => $pData) {
-                $pregunta = QuizPregunta::create([
-                    'idQuiz' => $quiz->idQuiz,
-                    'enunciado' => $pData['enunciado'],
-                    'tipo' => $pData['tipo'] ?? 'opcion_multiple',
-                    'puntos' => $pData['puntos'] ?? 1.00,
-                    'explicacion' => $pData['explicacion'] ?? null,
-                    'orden' => $idxP + 1,
-                ]);
-
-                foreach ($pData['opciones'] as $idxO => $oData) {
-                    QuizOpcion::create([
-                        'idPreguntaQuiz' => $pregunta->idPreguntaQuiz,
-                        'texto_opcion' => $oData['texto_opcion'],
-                        'es_correcta' => $oData['es_correcta'],
-                        'orden' => $idxO + 1,
-                    ]);
-                }
-            }
-
-            // Actualizar asignaciones
-            QuizAsignacion::where('idQuiz', $quiz->idQuiz)->delete();
-            if (! $quiz->asignar_a_todos && $request->has('estudiantes')) {
-                foreach ($request->estudiantes as $idEst) {
-                    QuizAsignacion::create([
-                        'idQuiz' => $quiz->idQuiz,
-                        'idEstudiante' => $idEst,
-                    ]);
-                }
-            }
+            $this->guardarPreguntasYOpciones($quiz->idQuiz, $request->preguntas);
+            $this->guardarAsignaciones($quiz, $request->estudiantes);
 
             DB::commit();
 
@@ -299,6 +232,54 @@ class QuizController extends Controller
             DB::rollBack();
 
             return response()->json(['message' => 'Error al actualizar el quiz.', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    private function calcularCalificacionMaxima(array $preguntas, $fallback = 10.00): float
+    {
+        $sumPuntos = array_reduce($preguntas, function ($c, $p) {
+            return $c + (float) ($p['puntos'] ?? 1.00);
+        }, 0.00);
+
+        return $sumPuntos > 0 ? $sumPuntos : (float) ($fallback ?? 10.00);
+    }
+
+    private function guardarPreguntasYOpciones(int $idQuiz, array $preguntas): void
+    {
+        QuizPregunta::where('idQuiz', $idQuiz)->delete();
+
+        foreach ($preguntas as $idxP => $pData) {
+            $pregunta = QuizPregunta::create([
+                'idQuiz' => $idQuiz,
+                'enunciado' => $pData['enunciado'],
+                'tipo' => $pData['tipo'] ?? 'opcion_multiple',
+                'puntos' => $pData['puntos'] ?? 1.00,
+                'explicacion' => $pData['explicacion'] ?? null,
+                'orden' => $idxP + 1,
+            ]);
+
+            foreach ($pData['opciones'] as $idxO => $oData) {
+                QuizOpcion::create([
+                    'idPreguntaQuiz' => $pregunta->idPreguntaQuiz,
+                    'texto_opcion' => $oData['texto_opcion'],
+                    'es_correcta' => $oData['es_correcta'],
+                    'orden' => $idxO + 1,
+                ]);
+            }
+        }
+    }
+
+    private function guardarAsignaciones(Quiz $quiz, ?array $estudiantes): void
+    {
+        QuizAsignacion::where('idQuiz', $quiz->idQuiz)->delete();
+
+        if (! $quiz->asignar_a_todos && $estudiantes) {
+            foreach ($estudiantes as $idEst) {
+                QuizAsignacion::create([
+                    'idQuiz' => $quiz->idQuiz,
+                    'idEstudiante' => $idEst,
+                ]);
+            }
         }
     }
 

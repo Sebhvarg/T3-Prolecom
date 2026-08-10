@@ -25,49 +25,27 @@ return new class extends Migration
 
     private function createQuizzesTable(): void
     {
-        if (! Schema::hasTable('quizzes')) {
-            Schema::create('quizzes', function (Blueprint $table) {
-                $table->id('idQuiz');
-                $table->string('titulo', 150);
-                $table->text('descripcion')->nullable();
-                $table->unsignedBigInteger('idCurso');
-                $table->unsignedBigInteger('idTema')->nullable();
-                $table->unsignedBigInteger('idCreador');
-                $table->integer('limite_tiempo_minutos')->default(0);
-                $table->decimal('calificacion_maxima', 8, 2)->default(10.00);
-                $table->boolean('mostrar_retroalimentacion')->default(true);
-                $table->string('estado', 20)->default('publicado');
-                $table->boolean('asignar_a_todos')->default(true);
-                $table->timestamps();
-
-                $table->foreign('idCurso')->references('idCurso')->on('cursos')->onDelete(self::ACTION_CASCADE);
-                $table->foreign('idTema')->references('idTema')->on('temas')->onDelete(self::ACTION_SET_NULL);
-                $table->foreign('idCreador')->references('idUsuario')->on('usuarios')->onDelete(self::ACTION_CASCADE);
-            });
-
+        if (Schema::hasTable('quizzes')) {
             return;
         }
 
-        Schema::table('quizzes', function (Blueprint $table) {
-            if (! Schema::hasColumn('quizzes', 'idTema')) {
-                $table->unsignedBigInteger('idTema')->nullable()->after('idCurso');
-                $table->foreign('idTema')->references('idTema')->on('temas')->onDelete(self::ACTION_SET_NULL);
-            }
-            if (! Schema::hasColumn('quizzes', 'limite_tiempo_minutos')) {
-                $table->integer('limite_tiempo_minutos')->default(0)->after('idCreador');
-            }
-            if (! Schema::hasColumn('quizzes', 'calificacion_maxima')) {
-                $table->decimal('calificacion_maxima', 8, 2)->default(10.00)->after('limite_tiempo_minutos');
-            }
-            if (! Schema::hasColumn('quizzes', 'mostrar_retroalimentacion')) {
-                $table->boolean('mostrar_retroalimentacion')->default(true)->after('calificacion_maxima');
-            }
-            if (! Schema::hasColumn('quizzes', 'estado')) {
-                $table->string('estado', 20)->default('publicado')->after('mostrar_retroalimentacion');
-            }
-            if (! Schema::hasColumn('quizzes', 'asignar_a_todos')) {
-                $table->boolean('asignar_a_todos')->default(true)->after('estado');
-            }
+        Schema::create('quizzes', function (Blueprint $table) {
+            $table->id('idQuiz');
+            $table->string('titulo', 150);
+            $table->text('descripcion')->nullable();
+            $table->unsignedBigInteger('idCurso');
+            $table->unsignedBigInteger('idTema')->nullable();
+            $table->unsignedBigInteger('idCreador');
+            $table->integer('limite_tiempo_minutos')->default(0);
+            $table->decimal('calificacion_maxima', 8, 2)->default(10.00);
+            $table->boolean('mostrar_retroalimentacion')->default(true);
+            $table->string('estado', 20)->default('publicado');
+            $table->boolean('asignar_a_todos')->default(true);
+            $table->timestamps();
+
+            $table->foreign('idCurso')->references('idCurso')->on('cursos')->onDelete(self::ACTION_CASCADE);
+            $table->foreign('idTema')->references('idTema')->on('temas')->onDelete(self::ACTION_SET_NULL);
+            $table->foreign('idCreador')->references('idUsuario')->on('usuarios')->onDelete(self::ACTION_CASCADE);
         });
     }
 
