@@ -14,7 +14,7 @@ import EditRespuestaModal from './EditRespuestaModal';
 import ReporteModal from './ReporteModal';
 import ForoEmptyState from './ForoEmptyState';
 
-const ForoSeccion = ({ idForo, user, onBack }) => {
+const ForoSeccion = ({ idForo, user, temas, onBack }) => {
   const [searchParams] = useSearchParams();
   const initialPreguntaId = searchParams.get('preguntaId');
 
@@ -68,16 +68,33 @@ const ForoSeccion = ({ idForo, user, onBack }) => {
     }
   }, []);
 
+  const resolveTargetForoId = useCallback(() => {
+    if (idForo) return idForo;
+    if (temas && temas.length > 0) {
+      for (const tema of temas) {
+        if (tema.items && tema.items.length > 0) {
+          for (const item of tema.items) {
+            if (item.itemable_type?.includes('Foro') || item.idForo) {
+              return item.idForo || item.itemable_id;
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }, [idForo, temas]);
+
   const fetchForoData = useCallback(async () => {
-    if (!idForo) {
+    const targetForoId = resolveTargetForoId();
+    if (!targetForoId) {
       setLoading(false);
-      setError('No se ha especificado un ID de foro válido.');
+      setError('No hay un foro de discusión activo en los temas de este curso.');
       return;
     }
     try {
       const [foroData, preguntasData] = await Promise.all([
-        foroService.getForo(idForo),
-        foroService.getPreguntasForo(idForo),
+        foroService.getForo(targetForoId),
+        foroService.getPreguntasForo(targetForoId),
       ]);
       setForo(foroData);
       setPreguntas(preguntasData);
@@ -87,7 +104,7 @@ const ForoSeccion = ({ idForo, user, onBack }) => {
     } finally {
       setLoading(false);
     }
-  }, [idForo]);
+  }, [resolveTargetForoId]);
 
   useEffect(() => {
     let ignore = false;

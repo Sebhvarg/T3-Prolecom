@@ -75,8 +75,8 @@ class ProfesorDashboard extends BaseDashboard
                     'estudiante' => $primerNombre,
                     'detalle' => 'hizo una pregunta',
                     'titulo_actividad' => $pregunta->titulo,
-                    'curso' => $curso->titulo ?? 'Curso',
-                    'paralelo' => 10 + (($curso->idCurso ?? 0) % 5),
+                    'curso' => $curso?->titulo ?? 'Curso',
+                    'paralelo' => 10 + (($curso?->idCurso ?? 0) % 5),
                     'fecha' => $pregunta->created_at ? $pregunta->created_at->toISOString() : now()->toISOString(),
                     'timestamp' => $pregunta->created_at ? $pregunta->created_at->timestamp : now()->timestamp,
                 ];
@@ -94,14 +94,14 @@ class ProfesorDashboard extends BaseDashboard
             ->map(function ($solucion) {
                 $nombreCompleto = $solucion->estudiante->nombreCompleto ?? 'Estudiante';
                 $primerNombre = explode(' ', $nombreCompleto)[0];
-                $cursoId = $solucion->desafio->idCurso ?? 0;
-                $cursoTitulo = $solucion->desafio->curso->titulo ?? 'Curso';
+                $cursoId = $solucion->desafio?->idCurso ?? 0;
+                $cursoTitulo = $solucion->desafio?->curso?->titulo ?? 'Curso';
 
                 return [
                     'tipo' => 'desafio',
                     'estudiante' => $primerNombre,
                     'detalle' => 'completó',
-                    'titulo_actividad' => $solucion->desafio->titulo ?? 'Actividad',
+                    'titulo_actividad' => $solucion->desafio?->titulo ?? 'Actividad',
                     'curso' => $cursoTitulo,
                     'paralelo' => 10 + ($cursoId % 5),
                     'fecha' => $solucion->created_at ? $solucion->created_at->toISOString() : now()->toISOString(),

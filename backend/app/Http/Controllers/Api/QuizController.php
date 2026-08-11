@@ -28,8 +28,8 @@ class QuizController extends Controller
         $query = Quiz::with(['creador:idUsuario,nombreCompleto', 'tema:idTema,nombre'])
             ->where('idCurso', $idCurso);
 
-        // Si el usuario es Estudiante, solo mostrar los quizzes asignados a todos o asignados específicamente a él
-        if ($user && $user->rol === 'Estudiante') {
+        $userRole = $user ? $user->roles->pluck('rol')->first() : null;
+        if ($userRole === 'Estudiante') {
             $query->where(function ($q) use ($user) {
                 $q->where('asignar_a_todos', true)
                     ->orWhereHas('asignaciones', function ($sub) use ($user) {

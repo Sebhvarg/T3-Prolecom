@@ -408,7 +408,7 @@ const CursoDetallePage = () => {
 
   const renderActiveTabContent = () => {
     if (activeTab === 'foro') {
-      return <ForoSeccion idCurso={id} user={user} />;
+      return <ForoSeccion idCurso={id} user={user} temas={curso.temas} />;
     }
 
     if (activeTab === 'quizzes') {

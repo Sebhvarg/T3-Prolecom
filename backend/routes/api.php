@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CursoController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DesafioController;
 use App\Http\Controllers\Api\ForoController;
 use App\Http\Controllers\Api\MaterialController;
@@ -40,9 +41,10 @@ Route::post('/register', [AuthController::class, 'register']);
 // Rutas Protegidas (Autenticadas por Sanctum)
 Route::middleware('auth:sanctum')->group(function () {
 
-    // Auth & Perfil
+    // Auth, Perfil & Dashboard
     Route::get('/me', [AuthController::class, 'me']);
     Route::get('/user', [AuthController::class, 'me']);
+    Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // Cursos — lectura, exploración y matriculación (PB08/PB10)
