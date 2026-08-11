@@ -88,6 +88,13 @@ export const cursosService = {
     });
   },
 
+  uploadMaterial: async (temaId, formData) => {
+    return await authService.apiFetch(`/temas/${temaId}/materiales`, {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
   deleteMaterial: async (id) => {
     return await authService.apiFetch(`/materiales/${id}`, {
       method: 'DELETE',

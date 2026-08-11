@@ -210,7 +210,7 @@ const CursoDetallePage = () => {
     formData.append('archivo', materialFile);
 
     try {
-      await cursosService.uploadMaterial(activeTemaId, formData);
+      await (cursosService.createMaterial || cursosService.uploadMaterial)(activeTemaId, formData);
       setSuccess('Material cargado exitosamente.');
       setIsMaterialModalOpen(false);
       fetchCurso();
