@@ -49,6 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Cursos — lectura, exploración y matriculación (PB08/PB10)
     Route::get('/cursos', [CursoController::class, 'index']);
+    Route::get('/lenguajes', [CursoController::class, 'getLenguajes']);
     Route::get(ROUTE_CURSO_ID, [CursoController::class, 'show']);
     Route::get('/mis-cursos', [CursoController::class, 'misCursos']);
     Route::post(ROUTE_CURSO_ID.'/inscribir', [CursoController::class, 'inscribir']);

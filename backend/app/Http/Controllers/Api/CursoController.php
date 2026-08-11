@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Curso;
+use App\Models\LenguajeProgramacion;
 use App\Models\Solucion;
 use App\Models\User;
 use App\Strategies\CourseTemplate\CursoTemplateFactory;
@@ -284,5 +285,14 @@ class CursoController extends Controller
             'puntos' => $puntos,
             'completado' => $isCompleted,
         ];
+    }
+
+    public function getLenguajes()
+    {
+        $lenguajes = LenguajeProgramacion::where('activo', true)
+            ->orderBy('nombre')
+            ->get();
+
+        return response()->json($lenguajes);
     }
 }
