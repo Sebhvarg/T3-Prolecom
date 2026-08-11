@@ -32,7 +32,11 @@ class MaterialController extends Controller
 
     private function resolveItemAndCurso(int $id): array
     {
-        $material = MaterialAprendizaje::findOrFail($id);
+        $material = MaterialAprendizaje::find($id);
+        if (! $material) {
+            abort(404, 'El material solicitado no existe.');
+        }
+
         $itemTema = $material->itemTema;
         if (! $itemTema) {
             abort(404, self::MSG_NO_TEMA);

@@ -236,15 +236,20 @@ const CursoDetallePage = () => {
   };
 
   // --- Handlers Secure Viewer ---
-  const handleOpenSecureViewer = async (material) => {
-    setActiveViewerMaterial(material);
+  const handleOpenSecureViewer = async (item) => {
+    const idMaterial = item?.idMaterial || item?.itemable_id || item?.itemable?.idMaterial || item?.resource?.idMaterial;
+    if (!idMaterial) {
+      setViewerError('ID de material no encontrado.');
+      return;
+    }
+    setActiveViewerMaterial(item.itemable || item.resource || item);
     setViewerLoading(true);
     setViewerError('');
     setViewerBlobUrl('');
 
     try {
       const token = storage.get('auth_token');
-      const response = await fetch(`${API_URL}/materiales/${material.idMaterial}/stream`, {
+      const response = await fetch(`${API_URL}/materiales/${idMaterial}/stream`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': '*/*',
@@ -275,10 +280,15 @@ const CursoDetallePage = () => {
     setViewerError('');
   };
 
-  const handleDownloadMaterial = async (material) => {
+  const handleDownloadMaterial = async (item) => {
+    const idMaterial = item?.idMaterial || item?.itemable_id || item?.itemable?.idMaterial || item?.resource?.idMaterial;
+    if (!idMaterial) {
+      alert('ID de material no encontrado.');
+      return;
+    }
     try {
       const token = storage.get('auth_token');
-      const response = await fetch(`${API_URL}/materiales/${material.idMaterial}/download`, {
+      const response = await fetch(`${API_URL}/materiales/${idMaterial}/download`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -289,7 +299,7 @@ const CursoDetallePage = () => {
       const downloadUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = downloadUrl;
-      a.download = material.nombre_archivo_original || material.nombre || 'material';
+      a.download = item.titulo || item.nombre_archivo_original || item.nombre || 'material';
       document.body.appendChild(a);
       a.click();
       a.remove();
