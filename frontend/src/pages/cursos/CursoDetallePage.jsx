@@ -223,7 +223,13 @@ const CursoDetallePage = () => {
     }
   };
 
-  const handleDeleteMaterial = async (idMaterial) => {
+  const handleDeleteMaterial = async (item) => {
+    const idMaterial = typeof item === 'object' ? (item?.idMaterial || item?.itemable_id || item?.itemable?.idMaterial || item?.resource?.idMaterial) : item;
+    if (!idMaterial) {
+      setError('ID de material no encontrado para eliminar.');
+      return;
+    }
+
     if (!window.confirm('¿Deseas eliminar este material?')) return;
     try {
       await cursosService.deleteMaterial(idMaterial);
@@ -590,7 +596,7 @@ const CursoDetallePage = () => {
                                   {isMaterial && (
                                     <button
                                       type="button"
-                                      onClick={() => handleDeleteMaterial(item.idMaterial)}
+                                      onClick={() => handleDeleteMaterial(item)}
                                       className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
                                       title="Eliminar Material"
                                     >

@@ -106,6 +106,10 @@ class MaterialController extends Controller
 
     public function destroy(Request $request, $id)
     {
+        if (! is_numeric($id)) {
+            return response()->json(['message' => 'ID de material no válido'], 404);
+        }
+
         [$material, $itemTema, $curso] = $this->resolveItemAndCurso((int) $id);
         $user = $request->user();
 
@@ -129,6 +133,10 @@ class MaterialController extends Controller
     // STREAMING SEGURO (Para reproducir video o cargar PDF en visor seguro)
     public function stream(Request $request, $id)
     {
+        if (! is_numeric($id)) {
+            return response()->json(['message' => 'ID de material no válido'], 404);
+        }
+
         [$material, , $curso] = $this->resolveItemAndCurso((int) $id);
         $user = $request->user();
 
@@ -149,6 +157,10 @@ class MaterialController extends Controller
     // DESCARGA SEGURA
     public function download(Request $request, $id)
     {
+        if (! is_numeric($id)) {
+            return response()->json(['message' => 'ID de material no válido'], 404);
+        }
+
         [$material, , $curso] = $this->resolveItemAndCurso((int) $id);
         $user = $request->user();
 
