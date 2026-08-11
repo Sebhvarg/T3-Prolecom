@@ -199,10 +199,27 @@ const CursoDetallePage = () => {
       setError('Debes seleccionar un archivo para el material.');
       return;
     }
+
+    const fileName = materialFile.name.toLowerCase();
+    const isVideoType = materialTipo === 'video';
+
+    if (isVideoType) {
+      const videoExts = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
+      if (!videoExts.some(ext => fileName.endsWith(ext))) {
+        setError('El archivo seleccionado debe ser un video válido (.mp4, .mov, .avi, .mkv, .webm).');
+        return;
+      }
+    } else {
+      if (!fileName.endsWith('.pdf')) {
+        setError('El archivo seleccionado para un documento debe ser estrictamente en formato PDF (.pdf).');
+        return;
+      }
+    }
+
     setSubmitting(true);
     setError('');
 
-    const backendTipo = materialTipo === 'video' ? 'video' : 'PDF';
+    const backendTipo = isVideoType ? 'video' : 'PDF';
 
     const formData = new FormData();
     formData.append('titulo', materialNombre);
@@ -832,6 +849,7 @@ const CursoDetallePage = () => {
                   id="mat-form-archivo"
                   type="file"
                   required
+                  accept={materialTipo === 'video' ? '.mp4,.mov,.avi,.mkv,.webm,video/*' : '.pdf,application/pdf'}
                   onChange={(e) => setMaterialFile(e.target.files[0])}
                   className="w-full text-xs font-semibold text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#2c5364]/10 file:text-[#2c5364] hover:file:bg-[#2c5364]/20 cursor-pointer"
                 />

@@ -60,7 +60,9 @@ class MaterialController extends Controller
 
         $titulo = $request->titulo ?? $request->nombre;
         $tipoInput = strtolower((string) $request->tipo);
-        $tipo = in_array($tipoInput, ['video', 'mp4', 'mov', 'mkv', 'webm']) ? 'video' : 'PDF';
+        $isVideo = in_array($tipoInput, ['video', 'mp4', 'mov', 'mkv', 'webm']);
+        $tipo = $isVideo ? 'video' : 'PDF';
+        $mimes = $isVideo ? 'mp4,mov,avi,mkv,webm' : 'pdf';
 
         $payload = array_merge($request->all(), [
             'titulo' => $titulo,
@@ -71,7 +73,13 @@ class MaterialController extends Controller
             'titulo' => 'required|string|max:150',
             'descripcion' => 'nullable|string',
             'tipo' => 'required|in:PDF,video',
-            'archivo' => "required|file|mimes:{$allowedMimes}|max:{$maxSize}",
+            'archivo' => "required|file|mimes:{$mimes}|max:{$maxSize}",
+        ], [
+            'archivo.mimes' => $isVideo
+                ? 'El archivo de video debe tener un formato válido (MP4, MOV, AVI, MKV o WEBM).'
+                : 'El documento debe estar estrictamente en formato PDF.',
+            'archivo.max' => 'El tamaño máximo permitido para archivos de material es 30 MB.',
+            'titulo.required' => 'El título del material es obligatorio.',
         ]);
 
         if ($validator->fails()) {
