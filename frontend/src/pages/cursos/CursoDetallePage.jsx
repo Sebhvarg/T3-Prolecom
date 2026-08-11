@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { cursosService } from '../../api/cursosService';
+import { authService } from '../../api/authService';
 import { desafiosService } from '../../api/desafiosService';
 import { storage } from '../../utils/crypto';
 import ForoSeccion from '../../components/foro/ForoSeccion';
@@ -254,11 +255,11 @@ const CursoDetallePage = () => {
     setViewerBlobUrl('');
 
     try {
-      const token = storage.get('auth_token');
+      const token = authService.getToken() || storage.get('token') || storage.get('auth_token');
       const response = await fetch(`${API_URL}/materiales/${idMaterial}/stream`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Accept': '*/*',
+          'Accept': 'application/json, */*',
         }
       });
 
@@ -293,10 +294,11 @@ const CursoDetallePage = () => {
       return;
     }
     try {
-      const token = storage.get('auth_token');
+      const token = authService.getToken() || storage.get('token') || storage.get('auth_token');
       const response = await fetch(`${API_URL}/materiales/${idMaterial}/download`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json, */*'
         }
       });
       if (!response.ok) throw new Error('Error al descargar el archivo.');
