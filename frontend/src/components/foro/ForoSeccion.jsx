@@ -69,13 +69,16 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
   }, []);
 
   const resolveTargetForoId = useCallback(() => {
-    if (idForo) return idForo;
+    const isValidId = (val) => Boolean(val && val !== 'undefined' && val !== 'null' && !isNaN(Number(val)));
+    if (isValidId(idForo)) return Number(idForo);
+
     if (temas && temas.length > 0) {
       for (const tema of temas) {
         if (tema.items && tema.items.length > 0) {
           for (const item of tema.items) {
-            if (item.itemable_type?.includes('Foro') || item.idForo) {
-              return item.idForo || item.itemable_id;
+            const possibleId = item.idForo || (item.itemable_type?.includes('Foro') ? item.itemable_id : null);
+            if (isValidId(possibleId)) {
+              return Number(possibleId);
             }
           }
         }
