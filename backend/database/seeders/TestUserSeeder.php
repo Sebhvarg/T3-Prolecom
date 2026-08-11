@@ -45,7 +45,10 @@ class TestUserSeeder extends Seeder
         // 8. Questions & Answers in Foros
         $this->seedQuestionsAndAnswers($foros, $users);
 
-        // 9. Extra students to reach ~35 students
+        // 9. Quizzes de prueba (PB19-Quizzes)
+        $this->seedQuizzes($users, $courses['course1'], $temas['tema1']);
+
+        // 10. Extra students to reach ~35 students
         $this->seedExtraStudents($courses['course1'], $courses['course2']);
     }
 
@@ -556,5 +559,63 @@ class TestUserSeeder extends Seeder
                 'fechaInscripcion' => now(),
             ]);
         }
+    }
+
+    private function seedQuizzes(array $users, int $courseId, int $temaId): void
+    {
+        $quizId = DB::table('quizzes')->insertGetId([
+            'titulo' => 'Evaluación Diagnóstica: Variables y Sintaxis Python',
+            'descripcion' => 'Cuestionario interactivo de opción múltiple sobre conceptos fundamentales de Python.',
+            'idCurso' => $courseId,
+            'idTema' => $temaId,
+            'idCreador' => $users['profesor'],
+            'limite_tiempo_minutos' => 15,
+            'intentos_maximos' => 3,
+            'calificacion_maxima' => 20.00,
+            'mostrar_retroalimentacion' => true,
+            'estado' => 'publicado',
+            'asignar_a_todos' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('items_tema')->insert([
+            'idTema' => $temaId,
+            'itemable_type' => 'App\Models\Quiz',
+            'itemable_id' => $quizId,
+            'orden' => 4,
+        ]);
+
+        $q1Id = DB::table('quiz_preguntas')->insertGetId([
+            'idQuiz' => $quizId,
+            'enunciado' => '¿Cuál de las siguientes es la función estándar de Python para imprimir en consola?',
+            'puntos' => 10.00,
+            'explicacion' => 'print() es la función incorporada estándar de Python.',
+            'orden' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('quiz_opciones')->insert([
+            ['idPreguntaQuiz' => $q1Id, 'texto_opcion' => 'print()', 'es_correcta' => true, 'orden' => 1],
+            ['idPreguntaQuiz' => $q1Id, 'texto_opcion' => 'console.log()', 'es_correcta' => false, 'orden' => 2],
+            ['idPreguntaQuiz' => $q1Id, 'texto_opcion' => 'System.out.println()', 'es_correcta' => false, 'orden' => 3],
+        ]);
+
+        $q2Id = DB::table('quiz_preguntas')->insertGetId([
+            'idQuiz' => $quizId,
+            'enunciado' => '¿Qué símbolo se utiliza para iniciar un comentario de una sola línea en Python?',
+            'puntos' => 10.00,
+            'explicacion' => 'El símbolo numeral # inicia un comentario en Python.',
+            'orden' => 2,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('quiz_opciones')->insert([
+            ['idPreguntaQuiz' => $q2Id, 'texto_opcion' => '#', 'es_correcta' => true, 'orden' => 1],
+            ['idPreguntaQuiz' => $q2Id, 'texto_opcion' => '//', 'es_correcta' => false, 'orden' => 2],
+            ['idPreguntaQuiz' => $q2Id, 'texto_opcion' => '/*', 'es_correcta' => false, 'orden' => 3],
+        ]);
     }
 }
