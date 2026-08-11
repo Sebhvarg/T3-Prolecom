@@ -201,9 +201,12 @@ const CursoDetallePage = () => {
     setSubmitting(true);
     setError('');
 
+    const backendTipo = materialTipo === 'video' ? 'video' : 'PDF';
+
     const formData = new FormData();
+    formData.append('titulo', materialNombre);
     formData.append('nombre', materialNombre);
-    formData.append('tipo', materialTipo);
+    formData.append('tipo', backendTipo);
     formData.append('archivo', materialFile);
 
     try {
@@ -213,7 +216,8 @@ const CursoDetallePage = () => {
       fetchCurso();
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || 'Error al subir el material.');
+      const backendErr = err.response?.data?.errors ? Object.values(err.response.data.errors).flat().join(', ') : null;
+      setError(backendErr || err.response?.data?.message || 'Error al subir el material.');
     } finally {
       setSubmitting(false);
     }

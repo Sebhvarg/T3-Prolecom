@@ -54,7 +54,16 @@ class MaterialController extends Controller
         $allowedMimes = config('media.allowed_mimes', 'pdf,mp4,mov,avi,mkv,webm');
         $maxSize = config('media.max_size', 30720);
 
-        $validator = Validator::make($request->all(), [
+        $titulo = $request->titulo ?? $request->nombre;
+        $tipoInput = strtolower((string) $request->tipo);
+        $tipo = in_array($tipoInput, ['video', 'mp4', 'mov', 'mkv', 'webm']) ? 'video' : 'PDF';
+
+        $payload = array_merge($request->all(), [
+            'titulo' => $titulo,
+            'tipo' => $tipo,
+        ]);
+
+        $validator = Validator::make($payload, [
             'titulo' => 'required|string|max:150',
             'descripcion' => 'nullable|string',
             'tipo' => 'required|in:PDF,video',
@@ -69,9 +78,9 @@ class MaterialController extends Controller
         $path = $request->file('archivo')->store('materials', 'local');
 
         $material = MaterialAprendizaje::create([
-            'titulo' => $request->titulo,
+            'titulo' => $titulo,
             'descripcion' => $request->descripcion,
-            'tipo' => $request->tipo,
+            'tipo' => $tipo,
             'enlaceArchivo' => $path,
             'idUsuarioCreador' => $user->idUsuario,
         ]);
