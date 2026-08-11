@@ -183,8 +183,8 @@ class TemaAndMaterialApiTest extends TestCase
         ]);
         $response->assertStatus(400);
 
-        // Test file too large (config default max_size is 30720 KB = 30MB)
-        $largeFile = UploadedFile::fake()->create('huge_video.mp4', 40000, 'video/mp4'); // 40MB
+        // Test file too large (config max_size is 102400 KB = 100MB)
+        $largeFile = UploadedFile::fake()->create('huge_video.mp4', 150000, 'video/mp4'); // 150MB
         $response = $this->postJson("/api/temas/{$tema->idTema}/materiales", [
             'titulo' => 'Large Video',
             'tipo' => 'video',
