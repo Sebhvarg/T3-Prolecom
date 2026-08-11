@@ -88,10 +88,12 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
     const targetForoId = resolveTargetForoId();
     if (!targetForoId) {
       setLoading(false);
-      setError('No hay un foro de discusión activo en los temas de este curso.');
+      setError('');
       return;
     }
     try {
+      setLoading(true);
+      setError('');
       const [foroData, preguntasData] = await Promise.all([
         foroService.getForo(targetForoId),
         foroService.getPreguntasForo(targetForoId),
@@ -274,6 +276,22 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
           targetId={reportModalData.targetId || 0}
           targetType={reportModalData.targetType}
         />
+      </div>
+    );
+  }
+
+  const targetForoId = resolveTargetForoId();
+
+  if (!loading && !targetForoId) {
+    return (
+      <div className="text-center py-16 bg-white rounded-3xl border border-gray-100 shadow-xs p-8 max-w-lg mx-auto my-6">
+        <div className="w-16 h-16 bg-blue-50 text-[#2c5364] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
+          <MessageSquare className="w-8 h-8" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900">Sin Foro de Discusión Activo</h3>
+        <p className="text-gray-500 text-sm mt-2 max-w-sm mx-auto leading-relaxed">
+          Este curso aún no cuenta con un foro de preguntas agregado a sus temas. Los profesores pueden crear uno agregando una actividad de tipo Foro en cualquier tema.
+        </p>
       </div>
     );
   }
