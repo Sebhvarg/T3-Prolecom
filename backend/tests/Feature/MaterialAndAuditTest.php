@@ -6,6 +6,7 @@ use App\Models\Curso;
 use App\Models\MaterialAprendizaje;
 use App\Models\Tema;
 use App\Models\User;
+use App\Services\AuditLogService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -78,7 +79,7 @@ class MaterialAndAuditTest extends TestCase
     {
         $moderador = User::where('usuario', 'moderador')->first();
 
-        \App\Services\AuditLogService::log('test_accion', 'TestEntity', 1, 'Detalles de prueba');
+        AuditLogService::log('test_accion', 'TestEntity', 1, 'Detalles de prueba');
 
         $response = $this->actingAs($moderador)
             ->getJson('/api/moderacion/auditoria');

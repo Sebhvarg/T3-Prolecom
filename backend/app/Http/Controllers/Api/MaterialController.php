@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ItemTema;
 use App\Models\MaterialAprendizaje;
 use App\Models\Tema;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -107,7 +108,7 @@ class MaterialController extends Controller
             'orden' => $maxOrden + 1,
         ]);
 
-        \App\Services\AuditLogService::log('subir_material', 'MaterialAprendizaje', $material->idMaterial, "Material: {$material->titulo}");
+        AuditLogService::log('subir_material', 'MaterialAprendizaje', $material->idMaterial, "Material: {$material->titulo}");
 
         return response()->json([
             'message' => 'Material subido con éxito',
@@ -163,7 +164,7 @@ class MaterialController extends Controller
         $material->tipo = $tipo;
         $material->save();
 
-        \App\Services\AuditLogService::log('editar_material', 'MaterialAprendizaje', $material->idMaterial, "Material actualizado: {$material->titulo}");
+        AuditLogService::log('editar_material', 'MaterialAprendizaje', $material->idMaterial, "Material actualizado: {$material->titulo}");
 
         return response()->json([
             'message' => 'Material actualizado con éxito',
@@ -197,7 +198,7 @@ class MaterialController extends Controller
 
         $material->delete();
 
-        \App\Services\AuditLogService::log('eliminar_material', 'MaterialAprendizaje', $materialId, "Material eliminado: {$materialTitulo}");
+        AuditLogService::log('eliminar_material', 'MaterialAprendizaje', $materialId, "Material eliminado: {$materialTitulo}");
 
         return response()->json(['message' => 'Material eliminado con éxito']);
     }

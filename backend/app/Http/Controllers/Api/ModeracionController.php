@@ -7,6 +7,7 @@ use App\Models\MaterialAprendizaje;
 use App\Models\Pregunta;
 use App\Models\Respuesta;
 use App\Models\User;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -188,7 +189,7 @@ class ModeracionController extends Controller
             default => 'Modificado',
         };
 
-        \App\Services\AuditLogService::log('moderacion_usuario', 'User', $user->idUsuario, "Usuario {$user->usuario} estado cambiado a {$estadoNombre}");
+        AuditLogService::log('moderacion_usuario', 'User', $user->idUsuario, "Usuario {$user->usuario} estado cambiado a {$estadoNombre}");
 
         return response()->json([
             'message' => "El usuario {$user->usuario} ha sido marcado como {$estadoNombre}.",

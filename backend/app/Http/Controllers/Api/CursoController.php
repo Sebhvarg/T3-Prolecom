@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\CategoriaCurso;
 use App\Models\Curso;
+use App\Models\Desafio;
 use App\Models\LenguajeProgramacion;
 use App\Models\Solucion;
 use App\Models\User;
+use App\Services\AuditLogService;
 use App\Strategies\CourseTemplate\CursoTemplateFactory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -62,7 +65,7 @@ class CursoController extends Controller
 
     public function getCategorias()
     {
-        return response()->json(\App\Models\CategoriaCurso::all());
+        return response()->json(CategoriaCurso::all());
     }
 
     public function show(Request $request, $id)
@@ -98,7 +101,7 @@ class CursoController extends Controller
 
         foreach ($curso->temas as $tema) {
             foreach ($tema->items as $item) {
-                if ($item->itemable_type === \App\Models\Desafio::class) {
+                if ($item->itemable_type === Desafio::class) {
                     $desafiosCount++;
                     if ($user) {
                         $aprobado = Solucion::where('idDesafio', $item->itemable_id)
@@ -150,7 +153,7 @@ class CursoController extends Controller
         $strategy = CursoTemplateFactory::getStrategy($curso->lp);
         $strategy->loadTemplate($curso);
 
-        \App\Services\AuditLogService::log('crear_curso', 'Curso', $curso->idCurso, "Curso creado: {$curso->titulo}");
+        AuditLogService::log('crear_curso', 'Curso', $curso->idCurso, "Curso creado: {$curso->titulo}");
 
         return response()->json([
             'message' => 'Curso creado con éxito',
@@ -182,7 +185,7 @@ class CursoController extends Controller
 
         $curso->update($request->only('titulo', 'descripcion', 'lp', 'tipo', 'idCategoria'));
 
-        \App\Services\AuditLogService::log('editar_curso', 'Curso', $curso->idCurso, "Curso actualizado: {$curso->titulo}");
+        AuditLogService::log('editar_curso', 'Curso', $curso->idCurso, "Curso actualizado: {$curso->titulo}");
 
         return response()->json([
             'message' => 'Curso actualizado con éxito',
