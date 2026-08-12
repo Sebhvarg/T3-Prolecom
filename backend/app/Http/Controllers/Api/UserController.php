@@ -72,7 +72,7 @@ class UserController extends Controller
             $rolesToSync = $request->roles;
         }
 
-        if (! empty($rolesToSync)) {
+        if (!empty($rolesToSync)) {
             $user->roles()->sync($rolesToSync);
         }
 
@@ -81,7 +81,9 @@ class UserController extends Controller
                 'accion' => "Cambio de rol efectuado para el usuario @{$user->usuario}",
                 'idUsuario' => $request->user()->idUsuario ?? $user->idUsuario,
             ]);
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+            //
+        }
 
         return response()->json([
             'message' => 'Rol de usuario actualizado exitosamente',
@@ -108,7 +110,9 @@ class UserController extends Controller
                 'accion' => "Cambio de estado de cuenta para el usuario @{$user->usuario}",
                 'idUsuario' => $request->user()->idUsuario ?? $user->idUsuario,
             ]);
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+            //
+        }
 
         return response()->json([
             'message' => 'Estado de cuenta actualizado exitosamente',
@@ -137,7 +141,9 @@ class UserController extends Controller
                 'accion' => "Restablecimiento de contraseña efectuado para el usuario @{$user->usuario}",
                 'idUsuario' => $request->user()->idUsuario ?? $user->idUsuario,
             ]);
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+            //
+        }
 
         return response()->json([
             'message' => 'Contraseña del usuario restablecida exitosamente',
