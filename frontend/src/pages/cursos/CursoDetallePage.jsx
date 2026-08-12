@@ -3,8 +3,8 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { cursosService } from '../../api/cursosService';
-import { desafiosService } from '../../api/desafiosService';
 import { useSecureViewer } from '../../hooks/useSecureViewer';
+import { useCursoHandlers } from '../../hooks/useCursoHandlers';
 import ForoSeccion from '../../components/foro/ForoSeccion';
 import QuizSeccion from '../../components/quizzes/QuizSeccion';
 import { 
@@ -36,26 +36,6 @@ const sortCursoTemasEItems = (temas) => {
   });
 };
 
-const validateMaterialFile = (file, materialTipo) => {
-  if (!file) return 'Debes seleccionar un archivo para el material.';
-  const fileName = file.name.toLowerCase();
-  const isVideoType = materialTipo === 'video';
-
-  if (isVideoType) {
-    const videoExts = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
-    if (!videoExts.some(ext => fileName.endsWith(ext))) {
-      return 'El archivo seleccionado debe ser un video válido (.mp4, .mov, .avi, .mkv, .webm).';
-    }
-  } else if (!fileName.endsWith('.pdf')) {
-    return 'El archivo seleccionado para un documento debe ser estrictamente en formato PDF (.pdf).';
-  }
-
-  if (file.size > 500 * 1024 * 1024) {
-    return 'El archivo seleccionado supera el límite máximo permitido de 500 MB.';
-  }
-
-  return null;
-};
 
 const renderItemMetadata = (item) => {
   const typeStr = item.itemable_type || '';
@@ -307,195 +287,70 @@ const CursoDetallePage = () => {
     }));
   };
 
-  // --- Handlers Tema ---
-  const handleOpenTemaModal = (tema = null) => {
-    if (tema) {
-      setTemaEditId(tema.idTema);
-      setTemaNombre(tema.nombre);
-      setTemaDescripcion(tema.descripcion || '');
-    } else {
-      setTemaEditId(null);
-      setTemaNombre('');
-      setTemaDescripcion('');
-    }
-    setIsTemaModalOpen(true);
-  };
-
-  const handleSaveTema = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError('');
-    try {
-      if (temaEditId) {
-        await cursosService.updateTema(temaEditId, { nombre: temaNombre, descripcion: temaDescripcion });
-        setSuccess('Tema actualizado exitosamente.');
-      } else {
-        await cursosService.createTema(id, { nombre: temaNombre, descripcion: temaDescripcion });
-        setSuccess('Tema creado exitosamente.');
-      }
-      setIsTemaModalOpen(false);
-      fetchCurso();
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || 'Error al guardar el tema.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDeleteTema = async (idTema) => {
-    if (!window.confirm('¿Estás seguro de eliminar este tema y todo su contenido?')) return;
-    try {
-      await cursosService.deleteTema(idTema);
-      setSuccess('Tema eliminado exitosamente.');
-      fetchCurso();
-    } catch (err) {
-      console.error(err);
-      setError('Error al eliminar el tema.');
-    }
-  };
-
-  // --- Handlers Material ---
-  const handleOpenMaterialModal = (idTema) => {
-    setActiveTemaId(idTema);
-    setMaterialNombre('');
-    setMaterialTipo('documento');
-    setMaterialFile(null);
-    setIsMaterialModalOpen(true);
-  };
-
-  const handleSaveMaterial = async (e) => {
-    e.preventDefault();
-    const valErr = validateMaterialFile(materialFile, materialTipo);
-    if (valErr) {
-      setError(valErr);
-      return;
-    }
-
-    setSubmitting(true);
-    setError('');
-
-    const isVideoType = materialTipo === 'video';
-    const backendTipo = isVideoType ? 'video' : 'PDF';
-
-    const formData = new FormData();
-    formData.append('titulo', materialNombre);
-    formData.append('nombre', materialNombre);
-    formData.append('tipo', backendTipo);
-    formData.append('archivo', materialFile);
-
-    try {
-      await (cursosService.createMaterial || cursosService.uploadMaterial)(activeTemaId, formData);
-      setSuccess('Material cargado exitosamente.');
-      setIsMaterialModalOpen(false);
-      fetchCurso();
-    } catch (err) {
-      console.error(err);
-      const backendErr = err.response?.data?.errors ? Object.values(err.response.data.errors).flat().join(', ') : null;
-      setError(backendErr || err.response?.data?.message || 'Error al subir el material.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDeleteMaterial = async (item) => {
-    const idMaterial = typeof item === 'object' ? (item?.idMaterial || item?.itemable_id || item?.itemable?.idMaterial || item?.resource?.idMaterial) : item;
-    if (!idMaterial) {
-      setError('ID de material no encontrado para eliminar.');
-      return;
-    }
-
-    if (!window.confirm('¿Deseas eliminar este material?')) return;
-    try {
-      await cursosService.deleteMaterial(idMaterial);
-      setSuccess('Material eliminado exitosamente.');
-      fetchCurso();
-    } catch (err) {
-      console.error(err);
-      setError('Error al eliminar el material.');
-    }
-  };
-
-  // Handlers Secure Viewer delegados a useSecureViewer hook
-
-  // --- Handlers Desafío ---
-  const handleOpenDesafioModal = (idTema) => {
-    setActiveTemaId(idTema);
-    setDesafioTitulo('');
-    setDesafioDescripcion('');
-    setDesafioDificultad('Facil');
-    setDesafioLenguaje('python');
-    setDesafioPlantillaCodigo('# Escribe tu solución aquí\ndef solucion():\n    pass\n');
-    setDesafioTestCases([
-      { id: generateTestCaseId(), input: '', expected_output: '', is_public: true }
-    ]);
-    setIsDesafioModalOpen(true);
-  };
+  const {
+    handleOpenTemaModal,
+    handleSaveTema,
+    handleDeleteTema,
+    handleOpenMaterialModal,
+    handleSaveMaterial,
+    handleDeleteMaterial,
+    handleOpenDesafioModal,
+    handleSaveDesafio,
+    handleDeleteDesafio,
+  } = useCursoHandlers({
+    id,
+    temaEditId,
+    temaNombre,
+    temaDescripcion,
+    materialFile,
+    materialTipo,
+    materialNombre,
+    activeTemaId,
+    desafioTitulo,
+    desafioDescripcion,
+    desafioDificultad,
+    desafioLenguaje,
+    desafioPlantillaCodigo,
+    desafioTestCases,
+    setSubmitting,
+    setError,
+    setSuccess,
+    setIsTemaModalOpen,
+    setTemaEditId,
+    setTemaNombre,
+    setTemaDescripcion,
+    setActiveTemaId,
+    setMaterialNombre,
+    setMaterialTipo,
+    setMaterialFile,
+    setIsMaterialModalOpen,
+    setIsDesafioModalOpen,
+    setDesafioTitulo,
+    setDesafioDescripcion,
+    setDesafioDificultad,
+    setDesafioLenguaje,
+    setDesafioPlantillaCodigo,
+    setDesafioTestCases,
+    generateTestCaseId,
+    fetchCurso,
+  });
 
   const handleAddTestCase = () => {
-    setDesafioTestCases(prev => [
+    setDesafioTestCases((prev) => [
       ...prev,
-      { id: generateTestCaseId(), input: '', expected_output: '', is_public: true }
+      { id: generateTestCaseId(), input: '', expected_output: '', is_public: true },
     ]);
   };
 
   const handleRemoveTestCase = (tcId) => {
     if (desafioTestCases.length <= 1) return;
-    setDesafioTestCases(prev => prev.filter(tc => tc.id !== tcId));
+    setDesafioTestCases((prev) => prev.filter((tc) => tc.id !== tcId));
   };
 
   const handleTestCaseChange = (tcId, field, value) => {
-    setDesafioTestCases(prev => prev.map(tc => {
-      if (tc.id === tcId) {
-        return { ...tc, [field]: value };
-      }
-      return tc;
-    }));
-  };
-
-  const handleSaveDesafio = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError('');
-
-    const formattedTestCases = desafioTestCases.map(tc => ({
-      input: tc.input,
-      expected_output: tc.expected_output,
-      is_public: Boolean(tc.is_public)
-    }));
-
-    const payload = {
-      titulo: desafioTitulo,
-      descripcion: desafioDescripcion,
-      dificultad: desafioDificultad,
-      lenguaje_permitido: desafioLenguaje,
-      plantilla_codigo: desafioPlantillaCodigo,
-      test_cases: formattedTestCases
-    };
-
-    try {
-      await desafiosService.createDesafio(activeTemaId, payload);
-      setSuccess('Desafío práctico creado exitosamente.');
-      setIsDesafioModalOpen(false);
-      fetchCurso();
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || 'Error al crear el desafío.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDeleteDesafio = async (idDesafio) => {
-    if (!window.confirm('¿Estás seguro de eliminar este desafío?')) return;
-    try {
-      await desafiosService.deleteDesafio(idDesafio);
-      setSuccess('Desafío eliminado exitosamente.');
-      fetchCurso();
-    } catch (err) {
-      console.error(err);
-      setError('Error al eliminar el desafío.');
-    }
+    setDesafioTestCases((prev) =>
+      prev.map((tc) => (tc.id === tcId ? { ...tc, [field]: value } : tc))
+    );
   };
 
   if (loading && !curso) {

@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useForoHandlers } from '../../hooks/useForoHandlers';
+import { useForoData } from '../../hooks/useForoData';
 import PropTypes from 'prop-types';
 import {
   MessageSquare, Plus, Search,
   Loader2, AlertCircle, ShieldCheck, Lock, Unlock, ArrowLeft
 } from 'lucide-react';
-import { foroService } from '../../api/foroService';
 import PreguntaCard from './PreguntaCard';
 import HiloRespuestas from './HiloRespuestas';
 import NuevaPreguntaModal from './NuevaPreguntaModal';
@@ -71,10 +71,6 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
   const [searchParams] = useSearchParams();
   const initialPreguntaId = searchParams.get('preguntaId');
 
-  const [foro, setForo] = useState(null);
-  const [preguntas, setPreguntas] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [filtro, setFiltro] = useState('todas');
   const [orden, setOrden] = useState('recientes');
@@ -90,60 +86,23 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
 
   const [reportModalData, setReportModalData] = useState({ isOpen: false, targetId: null, targetType: 'pregunta' });
 
-  const [selectedPreguntaId, setSelectedPreguntaId] = useState(initialPreguntaId ? Number(initialPreguntaId) : null);
-  const [preguntaDetalle, setPreguntaDetalle] = useState(null);
-
   const isAuthorizedToValidate = checkAuthToValidate(user);
   const canManageForo = checkCanManageForo(user);
 
-  const loadPreguntaDetalle = useCallback(async (idPregunta) => {
-    setSelectedPreguntaId(idPregunta);
-    try {
-      const data = await foroService.getPreguntaDetalle(idPregunta);
-      setPreguntaDetalle(data);
-    } catch (err) {
-      console.error(err);
-      alert('Error al cargar el detalle de la pregunta.');
-    }
-  }, []);
-
   const resolveTargetForoId = useCallback(() => resolveTargetForoIdHelper(idForo, temas), [idForo, temas]);
 
-  const fetchForoData = useCallback(async () => {
-    const targetForoId = resolveTargetForoId();
-    if (!targetForoId) {
-      setLoading(false);
-      setError('');
-      return;
-    }
-    try {
-      setLoading(true);
-      setError('');
-      const [foroData, preguntasData] = await Promise.all([
-        foroService.getForo(targetForoId),
-        foroService.getPreguntasForo(targetForoId),
-      ]);
-      setForo(foroData);
-      setPreguntas(preguntasData);
-    } catch (err) {
-      console.error(err);
-      setError(err.message || 'Error al cargar los datos del foro.');
-    } finally {
-      setLoading(false);
-    }
-  }, [resolveTargetForoId]);
-
-  useEffect(() => {
-    let ignore = false;
-    async function init() {
-      await fetchForoData();
-      if (initialPreguntaId && !ignore) {
-        await loadPreguntaDetalle(Number(initialPreguntaId));
-      }
-    }
-    init();
-    return () => { ignore = true; };
-  }, [fetchForoData, initialPreguntaId, loadPreguntaDetalle]);
+  const {
+    foro,
+    preguntas,
+    loading,
+    error,
+    selectedPreguntaId,
+    setSelectedPreguntaId,
+    preguntaDetalle,
+    setPreguntaDetalle,
+    loadPreguntaDetalle,
+    fetchForoData,
+  } = useForoData({ resolveTargetForoId, initialPreguntaId });
 
   const {
     handleCreatePregunta,

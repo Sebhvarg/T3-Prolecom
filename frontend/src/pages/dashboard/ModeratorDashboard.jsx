@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardContainer from '../../components/layout/DashboardContainer';
-import { moderacionService } from '../../api/moderacionService';
+import { useModeracionActions } from '../../hooks/useModeracionActions';
 import { 
   ShieldAlert, AlertCircle, CheckCircle2, Eye, EyeOff, Ban, 
   Loader2, Filter, RefreshCw, X, MessageSquare, FileText, HelpCircle, Check 
@@ -17,125 +17,36 @@ const ModeratorDashboard = () => {
 
   const [reportes, setReportes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   // Tabs
-  const [activeTab, setActiveTab] = useState('reportes'); // 'reportes' | 'auditoria'
+  const [activeTab, setActiveTab] = useState('reportes');
   const [auditorias, setAuditorias] = useState([]);
 
   // Filtros
-  const [filtroEstado, setFiltroEstado] = useState('pendiente'); // 'pendiente' | 'resuelto' | 'todos'
-  const [filtroTipo, setFiltroTipo] = useState('todos'); // 'todos' | 'pregunta' | 'respuesta' | 'material'
+  const [filtroEstado, setFiltroEstado] = useState('pendiente');
+  const [filtroTipo, setFiltroTipo] = useState('todos');
 
-  // Modal Confirmación Baneo
-  const [banModal, setBanModal] = useState({ isOpen: false, user: null });
-  const [actionLoading, setActionLoading] = useState(false);
-
-  const fetchModeracionData = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const [statsData, reportesData, auditoriaData] = await Promise.all([
-        moderacionService.getStats(),
-        moderacionService.getReportes({ estado: filtroEstado, tipo: filtroTipo }),
-        moderacionService.getAuditoria(),
-      ]);
-      setStats(statsData);
-      setReportes(reportesData);
-      setAuditorias(auditoriaData || []);
-    } catch (err) {
-      console.error(err);
-      setError('Error al cargar la información de moderación.');
-    } finally {
-      setLoading(false);
-    }
-  }, [filtroEstado, filtroTipo]);
+  const {
+    actionLoading,
+    error, setError,
+    success, setSuccess,
+    banModal, setBanModal,
+    fetchModeracionData,
+    handleResolver,
+    handleOcultar,
+    handleUnban,
+    handleBanearConfirm,
+  } = useModeracionActions({ filtroEstado, filtroTipo, setStats, setReportes, setAuditorias, setLoading });
 
   useEffect(() => {
-    let isMounted = true;
-    const loadData = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const [statsData, reportesData] = await Promise.all([
-          moderacionService.getStats(),
-          moderacionService.getReportes({ estado: filtroEstado, tipo: filtroTipo }),
-        ]);
-        if (isMounted) {
-          setStats(statsData);
-          setReportes(reportesData);
-        }
-      } catch (err) {
-        if (isMounted) {
-          console.error(err);
-          setError('Error al cargar la información de moderación.');
-        }
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-    loadData();
-    return () => {
-      isMounted = false;
-    };
-  }, [filtroEstado, filtroTipo]);
+    fetchModeracionData();
+  }, [fetchModeracionData]);
 
-  // Auto-dismiss toast notification
   useEffect(() => {
-    if (error || success) {
-      const timer = setTimeout(() => {
-        setError('');
-        setSuccess('');
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [error, success]);
-
-  // Acciones de Moderación
-  const handleResolver = async (idReporte) => {
-    setActionLoading(true);
-    try {
-      await moderacionService.resolverReporte(idReporte);
-      setSuccess('Reporte marcado como resuelto exitosamente.');
-      fetchModeracionData();
-    } catch (err) {
-      console.error(err);
-      setError('No se pudo resolver el reporte.');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleOcultar = async (idReporte) => {
-    setActionLoading(true);
-    try {
-      const res = await moderacionService.ocultarPublicacion(idReporte);
-      setSuccess(res.message || 'Estado de publicación actualizado.');
-      fetchModeracionData();
-    } catch (err) {
-      console.error(err);
-      setError('No se pudo modificar la visibilidad de la publicación.');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleBanearConfirm = async () => {
-    if (!banModal.user) return;
-    setActionLoading(true);
-    try {
-      const res = await moderacionService.banearUsuario(banModal.user.idUsuario, 4); // 4 = Baneado
-      setSuccess(res.message || 'Usuario sancionado exitosamente.');
-      setBanModal({ isOpen: false, user: null });
-      fetchModeracionData();
-    } catch (err) {
-      console.error(err);
-      setError('Error al aplicar sanción al usuario.');
-    } finally {
-      setActionLoading(false);
-    }
-  };
+    if (!error && !success) return undefined;
+    const timer = setTimeout(() => { setError(''); setSuccess(''); }, 5000);
+    return () => clearTimeout(timer);
+  }, [error, success, setError, setSuccess]);
 
   const renderOcultarButton = (rep, isOculto) => {
     if (!rep.contenido) return null;
@@ -144,7 +55,6 @@ const ModeratorDashboard = () => {
       : 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs';
     const btnIcon = isOculto ? <Eye size={14} /> : <EyeOff size={14} />;
     const btnText = isOculto ? 'Restaurar Contenido' : 'Ocultar Contenido';
-
     return (
       <button
         type="button"
@@ -184,20 +94,6 @@ const ModeratorDashboard = () => {
         <span>Banear Usuario</span>
       </button>
     );
-  };
-
-  const handleUnban = async (idUsuario) => {
-    setActionLoading(true);
-    try {
-      const res = await moderacionService.banearUsuario(idUsuario, 1); // 1 = Activo
-      setSuccess(res.message || 'Usuario reactivado exitosamente.');
-      fetchModeracionData();
-    } catch (err) {
-      console.error(err);
-      setError('Error al reactivar cuenta del usuario.');
-    } finally {
-      setActionLoading(false);
-    }
   };
 
   const getTipoBadge = (tipo) => {
