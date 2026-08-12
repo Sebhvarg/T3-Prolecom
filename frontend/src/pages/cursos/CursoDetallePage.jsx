@@ -37,6 +37,27 @@ const sortCursoTemasEItems = (temas) => {
   });
 };
 
+const validateMaterialFile = (file, materialTipo) => {
+  if (!file) return 'Debes seleccionar un archivo para el material.';
+  const fileName = file.name.toLowerCase();
+  const isVideoType = materialTipo === 'video';
+
+  if (isVideoType) {
+    const videoExts = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
+    if (!videoExts.some(ext => fileName.endsWith(ext))) {
+      return 'El archivo seleccionado debe ser un video válido (.mp4, .mov, .avi, .mkv, .webm).';
+    }
+  } else if (!fileName.endsWith('.pdf')) {
+    return 'El archivo seleccionado para un documento debe ser estrictamente en formato PDF (.pdf).';
+  }
+
+  if (file.size > 500 * 1024 * 1024) {
+    return 'El archivo seleccionado supera el límite máximo permitido de 500 MB.';
+  }
+
+  return null;
+};
+
 const CursoDetallePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -196,34 +217,16 @@ const CursoDetallePage = () => {
 
   const handleSaveMaterial = async (e) => {
     e.preventDefault();
-    if (!materialFile) {
-      setError('Debes seleccionar un archivo para el material.');
-      return;
-    }
-
-    const fileName = materialFile.name.toLowerCase();
-    const isVideoType = materialTipo === 'video';
-
-    if (isVideoType) {
-      const videoExts = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
-      if (!videoExts.some(ext => fileName.endsWith(ext))) {
-        setError('El archivo seleccionado debe ser un video válido (.mp4, .mov, .avi, .mkv, .webm).');
-        return;
-      }
-    } else if (!fileName.endsWith('.pdf')) {
-      setError('El archivo seleccionado para un documento debe ser strictly en formato PDF (.pdf).');
-      return;
-    }
-
-    const maxSizeBytes = 500 * 1024 * 1024; // 500 MB
-    if (materialFile.size > maxSizeBytes) {
-      setError('El archivo seleccionado supera el límite máximo permitido de 500 MB.');
+    const valErr = validateMaterialFile(materialFile, materialTipo);
+    if (valErr) {
+      setError(valErr);
       return;
     }
 
     setSubmitting(true);
     setError('');
 
+    const isVideoType = materialTipo === 'video';
     const backendTipo = isVideoType ? 'video' : 'PDF';
 
     const formData = new FormData();

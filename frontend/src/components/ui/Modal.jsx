@@ -38,10 +38,10 @@ const Modal = ({
   };
 
   return (
-    <div
-      role="dialog"
+    <dialog
+      open
       aria-modal="true"
-      className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[100] flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+      className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[100] flex items-center justify-center p-4 overflow-y-auto animate-fade-in border-0 max-w-none w-full h-full m-0 bg-transparent"
     >
       <button
         type="button"
@@ -77,7 +77,7 @@ const Modal = ({
         {/* Body */}
         <div className="p-6 max-h-[80vh] overflow-y-auto">{children}</div>
       </div>
-    </div>
+    </dialog>
   );
 };
 

@@ -306,31 +306,21 @@ const ModeratorDashboard = () => {
           </div>
         </div>
 
-        {/* Pestañas Principales: Reportes vs Auditoría */}
-        <div className="flex bg-slate-200/60 p-1.5 rounded-2xl w-fit border border-slate-300/60 text-xs font-black">
+        {/* Pestañas de Moderación vs Auditoría */}
+        <div className="flex border-b border-slate-200">
           <button
             type="button"
             onClick={() => setActiveTab('reportes')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all cursor-pointer ${
-              activeTab === 'reportes' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-600 hover:text-slate-900'
+            className={`px-6 py-3 font-extrabold text-xs transition-all border-b-2 cursor-pointer ${
+              activeTab === 'reportes'
+                ? 'border-[#2c5364] text-[#2c5364] bg-slate-50/50'
+                : 'border-transparent text-slate-400 hover:text-slate-700'
             }`}
           >
-            <ShieldAlert size={16} className="text-red-500" />
-            <span>Reportes de Contenido ({reportes.length})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('auditoria')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all cursor-pointer ${
-              activeTab === 'auditoria' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <FileText size={16} className="text-[#2c5364]" />
-            <span>Historial de Auditoría ({auditorias.length})</span>
           </button>
         </div>
 
-        {activeTab === 'auditoria' ? (
+        {activeTab === 'auditoria' && (
           /* TABLA DE REGISTROS DE AUDITORÍA */
           <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
@@ -388,7 +378,9 @@ const ModeratorDashboard = () => {
               </div>
             )}
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'reportes' && (
           <>
             {/* Barra de Filtros */}
             <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-xs flex flex-col sm:flex-row justify-between items-center gap-4">
