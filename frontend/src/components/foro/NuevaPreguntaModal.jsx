@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { Loader2, Code, HelpCircle, Eye, Edit3 } from 'lucide-react';
+import { Code, HelpCircle, Eye, Edit3 } from 'lucide-react';
 import CodeBlock from './CodeBlock';
 import Modal from '../ui/Modal';
 import ModalActions from '../ui/ModalActions';
@@ -107,23 +107,13 @@ const NuevaPreguntaModal = ({ isOpen, onClose, onSubmit, submitting }) => {
           )}
         </div>
 
-        <div className="flex gap-2 justify-end pt-3 border-t border-slate-100">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={submitting || !form.titulo.trim() || !form.descripcion.trim()}
-            className="inline-flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] disabled:opacity-50 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer"
-          >
-            {submitting && <Loader2 size={14} className="animate-spin" />}
-            <span>Publicar Pregunta</span>
-          </button>
-        </div>
+        <ModalActions
+          onCancel={onClose}
+          cancelText="Cancelar"
+          submitText="Publicar Pregunta"
+          submitting={submitting}
+          disabled={!form.titulo.trim() || !form.descripcion.trim()}
+        />
       </form>
     </Modal>
   );
