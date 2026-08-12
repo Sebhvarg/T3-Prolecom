@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
-import { Clock, Users, Database, Shield, AlertTriangle, BookOpen } from 'lucide-react';
+import { Clock, Users, Database, Shield, BookOpen, Activity, UserCheck } from 'lucide-react';
 
 import StatCard from '../../components/dashboard/StatCard';
-import LogItem from '../../components/dashboard/LogItem';
 import { getAdminDashboardData } from '../../api/dashboardService';
+import UserManagementTable from '../../components/admin/UserManagementTable';
+import SystemHealthMonitor from '../../components/admin/SystemHealthMonitor';
 
-// Mapa de iconos para renderizarlos dinámicamente como componentes
 const ICON_MAP = {
   'Clock': <Clock size={24} />,
   'Users': <Users size={24} />,
@@ -20,6 +20,7 @@ const AdminDashboard = () => {
   const { user } = useAuth();
   const [data, setData] = useState({ stats: [], logs: [] });
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('users'); // 'users' | 'health'
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,10 +38,40 @@ const AdminDashboard = () => {
   }, []);
 
   return (
-    <DashboardContainer title="Principal" user={user}>
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-800">¡Bienvenido, {user?.nombreCompleto || user?.usuario?.toUpperCase() || 'Administrador'}!</h2>
-        <p className="text-gray-500">Supervisa la seguridad, estabilidad y rendimiento de Prolecom</p>
+    <DashboardContainer title="Panel de Administración y Soporte" user={user}>
+      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">
+            ¡Bienvenido, {user?.nombreCompleto || user?.usuario?.toUpperCase() || 'Administrador'}!
+          </h2>
+          <p className="text-gray-500 text-sm">
+            Herramientas de soporte, gestión de usuarios y monitoreo de salud del sistema
+          </p>
+        </div>
+
+        {/* Pestañas de navegación interna */}
+        <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+              activeTab === 'users'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <UserCheck size={16} /> Gestión de Usuarios
+          </button>
+          <button
+            onClick={() => setActiveTab('health')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+              activeTab === 'health'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Activity size={16} /> Salud & Logs del Sistema
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -49,6 +80,7 @@ const AdminDashboard = () => {
         </div>
       ) : (
         <>
+          {/* Tarjetas de Estadísticas Globales */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {data.stats.map((stat) => (
               <StatCard
@@ -62,18 +94,22 @@ const AdminDashboard = () => {
             ))}
           </div>
 
-          <div className="bg-white p-8 rounded-xl border border-gray-100 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-gray-800">Logs del Sistema</h3>
-              <AlertTriangle size={20} className="text-yellow-500" />
+          {/* Renderizado condicional de Pestañas */}
+          {activeTab === 'users' ? (
+            <div>
+              <div className="mb-4">
+                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                  <Shield size={20} className="text-blue-600" /> Administración de Cuentas de Usuario
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Modifica roles, cambia estado de cuenta (activar/deshabilitar) y restablece contraseñas.
+                </p>
+              </div>
+              <UserManagementTable />
             </div>
-            <div className="space-y-6">
-              {data.logs.map((log) => (
-                <LogItem key={log.id} title={log.title} time={log.time} color={log.color} />
-              ))}
-            </div>
-          </div>
-
+          ) : (
+            <SystemHealthMonitor />
+          )}
         </>
       )}
     </DashboardContainer>

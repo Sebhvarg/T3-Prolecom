@@ -24,8 +24,9 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           
           {/* Rutas protegidas */}
-          <Route element={<PrivateRoute allowedRoles={[1]} />}>
+          <Route element={<PrivateRoute allowedRoles={[1, 4]} />}>
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/soporte/dashboard" element={<AdminDashboard />} />
           </Route>
           
           <Route element={<PrivateRoute allowedRoles={[1, 2]} />}>
@@ -36,10 +37,6 @@ function App() {
 
           <Route element={<PrivateRoute allowedRoles={[3]} />}>
             <Route path="/profesor/dashboard" element={<ProfesorDashboard />} />
-          </Route>
-
-          <Route element={<PrivateRoute allowedRoles={[4]} />}>
-            <Route path="/soporte/dashboard" element={<h1>Panel de Soporte</h1>} />
           </Route>
 
           <Route element={<PrivateRoute allowedRoles={[5]} />}>

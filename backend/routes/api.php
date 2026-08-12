@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\CursoController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DesafioController;
 use App\Http\Controllers\Api\ForoController;
+use App\Http\Controllers\Api\HealthLogController;
 use App\Http\Controllers\Api\MaterialController;
 use App\Http\Controllers\Api\ModeracionController;
 use App\Http\Controllers\Api\NotificacionController;
@@ -52,6 +53,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/cursos', [CursoController::class, 'index']);
     Route::get('/lenguajes', [CursoController::class, 'getLenguajes']);
     Route::get('/categorias', [CursoController::class, 'getCategorias']);
+    Route::get('/cursos/total', [CursoController::class, 'cursosTotal']);
     Route::get(ROUTE_CURSO_ID, [CursoController::class, 'show']);
     Route::get('/mis-cursos', [CursoController::class, 'misCursos']);
     Route::post(ROUTE_CURSO_ID.'/inscribir', [CursoController::class, 'inscribir']);
@@ -143,5 +145,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/moderacion/reportes/{id}/resolver', [ModeracionController::class, 'resolverReporte']);
         Route::post('/moderacion/reportes/{id}/ocultar', [ModeracionController::class, 'ocultarPublicacion']);
         Route::post('/moderacion/usuarios/{id}/banear', [ModeracionController::class, 'banearUsuario']);
+    });
+
+    // Rutas exclusivas de Administrador / Soporte (PB22 - SCRUM-60 & SCRUM-61)
+    Route::middleware('role:Administrador,Soporte')->group(function () {
+        Route::get('/admin/usuarios', [UserController::class, 'index']);
+        Route::put('/admin/usuarios/{id}/roles', [UserController::class, 'updateRoles']);
+        Route::put('/admin/usuarios/{id}/estado', [UserController::class, 'updateEstado']);
+        Route::put('/admin/usuarios/{id}/reset-password', [UserController::class, 'resetPassword']);
+
+        // Monitor de salud del sistema y logs de errores (SCRUM-61)
+        Route::get('/admin/logs', [HealthLogController::class, 'index']);
     });
 });

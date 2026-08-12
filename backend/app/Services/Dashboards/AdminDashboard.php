@@ -2,23 +2,27 @@
 
 namespace App\Services\Dashboards;
 
+use App\Models\Curso;
+use App\Models\User;
+
 class AdminDashboard extends BaseDashboard
 {
     protected function getSidebar(): array
     {
         return [
             ['name' => 'Gestión de Usuarios', 'route' => '/admin/usuarios'],
-            ['name' => 'Gestión de Roles', 'route' => '/admin/roles'],
-            ['name' => 'Reportes Financieros', 'route' => '/admin/reportes'],
+            ['name' => 'Salud del Sistema', 'route' => '/admin/logs'],
         ];
     }
 
     protected function getWidgets(): array
     {
         return [
-            'total_usuarios' => 150, // TODO
-            'ingresos_mes' => 5000,
-            'sesiones_activas' => 12,
+            'total_usuarios' => User::count(),
+            'usuarios_activos' => User::whereHas('estado', function ($q) {
+                $q->where('estado', 'Activo');
+            })->count(),
+            'total_cursos' => Curso::count(),
         ];
     }
 }
