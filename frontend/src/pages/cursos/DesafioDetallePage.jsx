@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import DashboardContainer from '../../components/layout/DashboardContainer';
@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { desafiosService } from '../../api/desafiosService';
 import { cursosService } from '../../api/cursosService';
 import { 
-  ArrowLeft, Code, Play, CheckCircle2, AlertCircle, Loader2, Sparkles, Terminal, ShieldAlert 
+  ArrowLeft, Code, Play, AlertCircle, Loader2, Terminal, CheckCircle2, ShieldAlert, Sparkles 
 } from 'lucide-react';
 
 const DesafioDetallePage = () => {
@@ -75,7 +75,7 @@ const DesafioDetallePage = () => {
     }
   };
 
-  const startPolling = (idSolucion) => {
+  const startPolling = useCallback((idSolucion) => {
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     
     let attemptsCount = 0;
@@ -101,9 +101,9 @@ const DesafioDetallePage = () => {
         setError('La evaluación tardó demasiado. Por favor, revisa tus intentos más tarde.');
       }
     }, 1500);
-  };
+  }, [idDesafio]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!selectedLanguage) return;
     
     setError('');
@@ -124,7 +124,22 @@ const DesafioDetallePage = () => {
       setError(err.message || 'Error al enviar la solución.');
       setEvaluating(false);
     }
-  };
+  }, [idDesafio, code, selectedLanguage, startPolling]);
+
+  // Atajo de teclado (Ctrl + Enter / Cmd + Enter) para ejecutar código
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        if (!evaluating && selectedLanguage) {
+          e.preventDefault();
+          handleSubmit();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [evaluating, selectedLanguage, handleSubmit]);
 
   if (loading) {
     return (
@@ -217,9 +232,12 @@ const DesafioDetallePage = () => {
         <div className="mt-8 border border-gray-200 rounded-3xl overflow-hidden shadow-xs">
           {/* Header del Editor */}
           <div className="bg-gray-50 border-b border-gray-200 px-5 py-4 flex flex-wrap justify-between items-center gap-3 select-none">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Code size={18} className="text-[#2c5364]" />
               <span className="font-bold text-gray-700 text-sm">Editor de Código</span>
+              <span className="text-[10px] text-slate-500 font-mono bg-slate-200/70 px-2 py-0.5 rounded-md font-semibold hidden sm:inline-block">
+                Ctrl + Enter para ejecutar
+              </span>
             </div>
             
             <div className="flex items-center gap-2">

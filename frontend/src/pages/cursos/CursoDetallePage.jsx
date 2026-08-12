@@ -14,6 +14,7 @@ import {
   MessageSquare, BookOpen, HelpCircle
 } from 'lucide-react';
 import CourseProgressBar from '../../components/cursos/CourseProgressBar';
+import Modal from '../../components/ui/Modal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -916,139 +917,135 @@ const CursoDetallePage = () => {
       )}
 
       {/* Modal Desafío Práctico */}
-      {isDesafioModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full my-8 space-y-4 shadow-xl border border-slate-200">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="font-black text-slate-900 text-base">Crear Desafío Práctico de Código</h3>
-              <button type="button" onClick={() => setIsDesafioModalOpen(false)} className="text-slate-400 hover:text-slate-700">
-                <X size={20} />
+      <Modal
+        isOpen={isDesafioModalOpen}
+        onClose={() => setIsDesafioModalOpen(false)}
+        title="Crear Desafío Práctico de Código"
+        icon={Code}
+        maxWidth="max-w-2xl"
+      >
+        <form onSubmit={handleSaveDesafio} className="space-y-4">
+          <div>
+            <label htmlFor="des-form-titulo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Título del Desafío</label>
+            <input 
+              id="des-form-titulo"
+              type="text"
+              required
+              placeholder="Ej. Suma de Elementos de una Lista"
+              value={desafioTitulo}
+              onChange={(e) => setDesafioTitulo(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="des-form-descripcion" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Enunciado y Problema</label>
+            <textarea 
+              id="des-form-descripcion"
+              rows="3"
+              required
+              placeholder="Explica detalladamente qué debe realizar la función o algoritmo..."
+              value={desafioDescripcion}
+              onChange={(e) => setDesafioDescripcion(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs resize-none focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="des-form-dificultad" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Dificultad</label>
+              <select 
+                id="des-form-dificultad"
+                value={desafioDificultad}
+                onChange={(e) => setDesafioDificultad(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-bold text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+              >
+                <option value="Facil">Fácil</option>
+                <option value="Medio">Medio</option>
+                <option value="Dificil">Difícil</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="des-form-lenguaje" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Lenguaje de Programación</label>
+              <select 
+                id="des-form-lenguaje"
+                value={desafioLenguaje}
+                onChange={(e) => setDesafioLenguaje(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-bold text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+              >
+                <option value="python">Python 3</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="des-form-plantilla" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Plantilla Inicial de Código</label>
+            <textarea 
+              id="des-form-plantilla"
+              rows="3"
+              value={desafioPlantillaCodigo}
+              onChange={(e) => setDesafioPlantillaCodigo(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-mono text-xs resize-none bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
+
+          {/* Casos de Prueba */}
+          <div className="space-y-3 pt-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-black text-slate-900 uppercase">Casos de Prueba ({desafioTestCases.length})</span>
+              <button 
+                type="button" 
+                onClick={handleAddTestCase}
+                className="text-xs font-bold text-[#2c5364] hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <Plus size={14} /> Añadir Caso
               </button>
             </div>
 
-            <form onSubmit={handleSaveDesafio} className="space-y-4">
-              <div>
-                <label htmlFor="des-form-titulo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Título del Desafío</label>
-                <input 
-                  id="des-form-titulo"
-                  type="text"
-                  required
-                  placeholder="Ej. Suma de Elementos de una Lista"
-                  value={desafioTitulo}
-                  onChange={(e) => setDesafioTitulo(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="des-form-descripcion" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Enunciado y Problema</label>
-                <textarea 
-                  id="des-form-descripcion"
-                  rows="3"
-                  required
-                  placeholder="Explica detalladamente qué debe realizar la función o algoritmo..."
-                  value={desafioDescripcion}
-                  onChange={(e) => setDesafioDescripcion(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs resize-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="des-form-dificultad" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Dificultad</label>
-                  <select 
-                    id="des-form-dificultad"
-                    value={desafioDificultad}
-                    onChange={(e) => setDesafioDificultad(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-bold text-xs bg-white"
-                  >
-                    <option value="Facil">Fácil</option>
-                    <option value="Medio">Medio</option>
-                    <option value="Dificil">Difícil</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="des-form-lenguaje" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Lenguaje de Programación</label>
-                  <select 
-                    id="des-form-lenguaje"
-                    value={desafioLenguaje}
-                    onChange={(e) => setDesafioLenguaje(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-bold text-xs bg-white"
-                  >
-                    <option value="python">Python 3</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="des-form-plantilla" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Plantilla Inicial de Código</label>
-                <textarea 
-                  id="des-form-plantilla"
-                  rows="3"
-                  value={desafioPlantillaCodigo}
-                  onChange={(e) => setDesafioPlantillaCodigo(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-mono text-xs resize-none bg-slate-50"
-                />
-              </div>
-
-              {/* Casos de Prueba */}
-              <div className="space-y-3 pt-2">
+            {desafioTestCases.map((tc, idx) => (
+              <div key={tc.id} className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-black text-slate-900 uppercase">Casos de Prueba ({desafioTestCases.length})</span>
-                  <button 
-                    type="button" 
-                    onClick={handleAddTestCase}
-                    className="text-xs font-bold text-[#2c5364] hover:underline flex items-center gap-1"
-                  >
-                    <Plus size={14} /> Añadir Caso
-                  </button>
+                  <span className="text-[11px] font-bold text-slate-700">Caso #{idx + 1}</span>
+                  {desafioTestCases.length > 1 && (
+                    <button type="button" onClick={() => handleRemoveTestCase(tc.id)} className="text-slate-400 hover:text-red-600 cursor-pointer">
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
 
-                {desafioTestCases.map((tc, idx) => (
-                  <div key={tc.id} className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[11px] font-bold text-slate-700">Caso #{idx + 1}</span>
-                      {desafioTestCases.length > 1 && (
-                        <button type="button" onClick={() => handleRemoveTestCase(tc.id)} className="text-slate-400 hover:text-red-600">
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <input 
-                        type="text"
-                        placeholder="Entrada (Input)..."
-                        value={tc.input}
-                        onChange={(e) => handleTestCaseChange(tc.id, 'input', e.target.value)}
-                        className="px-3 py-1.5 text-xs rounded-xl border border-slate-300 font-mono"
-                      />
-                      <input 
-                        type="text"
-                        required
-                        placeholder="Salida Esperada (Expected Output)..."
-                        value={tc.expected_output}
-                        onChange={(e) => handleTestCaseChange(tc.id, 'expected_output', e.target.value)}
-                        className="px-3 py-1.5 text-xs rounded-xl border border-slate-300 font-mono"
-                      />
-                    </div>
-                  </div>
-                ))}
+                <div className="grid grid-cols-2 gap-2">
+                  <input 
+                    type="text"
+                    placeholder="Entrada (Input)..."
+                    value={tc.input}
+                    onChange={(e) => handleTestCaseChange(tc.id, 'input', e.target.value)}
+                    className="px-3 py-1.5 text-xs rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+                  />
+                  <input 
+                    type="text"
+                    required
+                    placeholder="Salida Esperada (Expected Output)..."
+                    value={tc.expected_output}
+                    onChange={(e) => handleTestCaseChange(tc.id, 'expected_output', e.target.value)}
+                    className="px-3 py-1.5 text-xs rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+                  />
+                </div>
               </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setIsDesafioModalOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-600">
-                  Cancelar
-                </button>
-                <button type="submit" disabled={submitting} className="px-5 py-2 bg-[#2c5364] hover:bg-[#203a43] text-white text-xs font-bold rounded-xl shadow-xs">
-                  {submitting ? 'Creando...' : 'Crear Desafío'}
-                </button>
-              </div>
-            </form>
+            ))}
           </div>
-        </div>
-      )}
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button type="button" onClick={() => setIsDesafioModalOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">
+              Cancelar
+            </button>
+            <button type="submit" disabled={submitting} className="px-5 py-2.5 bg-[#2c5364] hover:bg-[#203a43] text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5">
+              {submitting ? <Loader2 size={14} className="animate-spin" /> : null}
+              <span>{submitting ? 'Creando...' : 'Crear Desafío'}</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Modal Secure Viewer */}
       {activeViewerMaterial && (
