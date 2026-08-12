@@ -16,7 +16,8 @@ class AuditLogService
             if ($user) {
                 try {
                     $rolName = $user->roles?->pluck('rol')->first() ?? 'Usuario';
-                } catch (\Throwable) {
+                } catch (\Throwable $e) {
+                    logger()->debug('Audit role resolution notice: '.$e->getMessage());
                     $rolName = 'Usuario';
                 }
             }
