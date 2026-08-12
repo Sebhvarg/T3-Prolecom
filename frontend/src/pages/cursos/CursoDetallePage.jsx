@@ -217,6 +217,12 @@ const CursoDetallePage = () => {
       }
     }
 
+    const maxSizeBytes = 500 * 1024 * 1024; // 500 MB
+    if (materialFile.size > maxSizeBytes) {
+      setError('El archivo seleccionado supera el límite máximo permitido de 500 MB.');
+      return;
+    }
+
     setSubmitting(true);
     setError('');
 
@@ -852,69 +858,65 @@ const CursoDetallePage = () => {
       )}
 
       {/* Modal Material */}
-      {isMaterialModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full space-y-4 shadow-xl border border-slate-200">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="font-black text-slate-900 text-base">Cargar Material de Aprendizaje</h3>
-              <button type="button" onClick={() => setIsMaterialModalOpen(false)} className="text-slate-400 hover:text-slate-700">
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveMaterial} className="space-y-4">
-              <div>
-                <label htmlFor="mat-form-nombre" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Nombre del Material</label>
-                <input 
-                  id="mat-form-nombre"
-                  type="text"
-                  required
-                  placeholder="Ej. Guía Teórica de Condicionales PDF"
-                  value={materialNombre}
-                  onChange={(e) => setMaterialNombre(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="mat-form-tipo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Tipo de Recurso</label>
-                <select 
-                  id="mat-form-tipo"
-                  value={materialTipo}
-                  onChange={(e) => setMaterialTipo(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-bold text-xs"
-                >
-                  <option value="documento">Documento / Guía (PDF)</option>
-                  <option value="video">Video Explicativo (MP4)</option>
-                  <option value="presentacion">Presentación / Diapositivas</option>
-                  <option value="codigo">Código de Ejemplo (.py)</option>
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="mat-form-archivo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Archivo de Origen</label>
-                <input 
-                  id="mat-form-archivo"
-                  type="file"
-                  required
-                  accept={materialTipo === 'video' ? '.mp4,.mov,.avi,.mkv,.webm,video/*' : '.pdf,application/pdf'}
-                  onChange={(e) => setMaterialFile(e.target.files[0])}
-                  className="w-full text-xs font-semibold text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#2c5364]/10 file:text-[#2c5364] hover:file:bg-[#2c5364]/20 cursor-pointer"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setIsMaterialModalOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-600">
-                  Cancelar
-                </button>
-                <button type="submit" disabled={submitting} className="px-5 py-2 bg-[#2c5364] hover:bg-[#203a43] text-white text-xs font-bold rounded-xl shadow-xs">
-                  {submitting ? 'Subiendo...' : 'Cargar Material'}
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={isMaterialModalOpen}
+        onClose={() => setIsMaterialModalOpen(false)}
+        title="Cargar Material de Aprendizaje"
+        icon={FileText}
+        maxWidth="max-w-md"
+      >
+        <form onSubmit={handleSaveMaterial} className="space-y-4">
+          <div>
+            <label htmlFor="mat-form-nombre" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Nombre del Material</label>
+            <input 
+              id="mat-form-nombre"
+              type="text"
+              required
+              placeholder="Ej. Guía Teórica de Condicionales PDF"
+              value={materialNombre}
+              onChange={(e) => setMaterialNombre(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
           </div>
-        </div>
-      )}
+
+          <div>
+            <label htmlFor="mat-form-tipo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Tipo de Recurso</label>
+            <select 
+              id="mat-form-tipo"
+              value={materialTipo}
+              onChange={(e) => setMaterialTipo(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-bold text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            >
+              <option value="documento">Documento / Guía (PDF)</option>
+              <option value="video">Video Explicativo (MP4)</option>
+              <option value="presentacion">Presentación / Diapositivas</option>
+              <option value="codigo">Código de Ejemplo (.py)</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="mat-form-archivo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Archivo de Origen (Máx 500 MB)</label>
+            <input 
+              id="mat-form-archivo"
+              type="file"
+              required
+              accept={materialTipo === 'video' ? '.mp4,.mov,.avi,.mkv,.webm,video/*' : '.pdf,application/pdf'}
+              onChange={(e) => setMaterialFile(e.target.files[0])}
+              className="w-full text-xs font-semibold text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#2c5364]/10 file:text-[#2c5364] hover:file:bg-[#2c5364]/20 cursor-pointer"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button type="button" onClick={() => setIsMaterialModalOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">
+              Cancelar
+            </button>
+            <button type="submit" disabled={submitting} className="px-5 py-2.5 bg-[#2c5364] hover:bg-[#203a43] text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5">
+              {submitting ? <Loader2 size={14} className="animate-spin" /> : null}
+              <span>{submitting ? 'Subiendo...' : 'Cargar Material'}</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Modal Desafío Práctico */}
       <Modal
