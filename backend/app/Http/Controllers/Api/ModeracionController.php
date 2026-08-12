@@ -130,13 +130,15 @@ class ModeracionController extends Controller
             $preg = Pregunta::find($reporte->idPublicacionReportada);
             if ($preg) {
                 $nuevoEstado = ($preg->estado === 'oculta') ? 'abierta' : 'oculta';
-                $preg->update(['estado' => $nuevoEstado]);
+                $preg->estado = $nuevoEstado;
+                $preg->save();
                 $nuevoEstadoOculto = ($nuevoEstado === 'oculta');
             }
         } elseif ($reporte->tipoPublicacion === 'respuesta') {
             $resp = Respuesta::find($reporte->idPublicacionReportada);
             if ($resp) {
-                $resp->update(['oculta' => ! $resp->oculta]);
+                $resp->oculta = ! $resp->oculta;
+                $resp->save();
                 $nuevoEstadoOculto = (bool) $resp->oculta;
             }
         }
