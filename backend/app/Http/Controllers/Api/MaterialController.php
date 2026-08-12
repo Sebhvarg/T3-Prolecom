@@ -16,9 +16,10 @@ class MaterialController extends Controller
 
     private function checkPermission($curso, $user)
     {
-        $isAdmin = $user->roles->pluck('rol')->contains('Administrador');
+        $roles = $user->roles->pluck('rol');
+        $isAdminOrTA = $roles->contains('Administrador') || $roles->contains('Ayudante');
 
-        return $isAdmin || $curso->idProfeCreador === $user->idUsuario;
+        return $isAdminOrTA || $curso->idProfeCreador === $user->idUsuario;
     }
 
     private function isAuthorizedToView($curso, $user)

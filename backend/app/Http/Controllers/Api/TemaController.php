@@ -14,9 +14,10 @@ class TemaController extends Controller
 {
     private function checkPermission(Curso $curso, $user)
     {
-        $isAdmin = $user->roles->pluck('rol')->contains('Administrador');
+        $roles = $user->roles->pluck('rol');
+        $isAdminOrTA = $roles->contains('Administrador') || $roles->contains('Ayudante');
 
-        return $isAdmin || $curso->idProfeCreador === $user->idUsuario;
+        return $isAdminOrTA || $curso->idProfeCreador === $user->idUsuario;
     }
 
     public function store(Request $request, $cursoId)

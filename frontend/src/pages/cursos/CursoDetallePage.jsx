@@ -90,7 +90,7 @@ const CursoDetallePage = () => {
   const [viewerLoading, setViewerLoading] = useState(false);
   const [viewerError, setViewerError] = useState('');
 
-  const canManage = user?.rol === 'Administrador' || user?.rol === 'Profesor';
+  const canManage = user?.rol === 'Administrador' || user?.rol === 'Profesor' || user?.rol === 'Ayudante';
 
   const [reloadKey, setReloadKey] = useState(0);
   const fetchCurso = useCallback(() => setReloadKey((k) => k + 1), []);
