@@ -131,6 +131,18 @@ const RespuestaItem = ({
           miVoto={respuesta.mi_voto}
           isAuthor={isAuthor}
         />
+
+        {!isAuthor && (
+          <button
+            type="button"
+            onClick={() => onReport(respuesta.idRespuesta)}
+            className="flex items-center gap-1 text-xs text-slate-400 hover:text-amber-600 font-semibold px-2.5 py-1 rounded-xl transition-colors cursor-pointer"
+            title="Reportar esta respuesta"
+          >
+            <Flag size={13} />
+            <span>Reportar</span>
+          </button>
+        )}
       </div>
     </div>
   );

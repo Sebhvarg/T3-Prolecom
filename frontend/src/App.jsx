@@ -11,7 +11,8 @@ import CursoDetallePage from './pages/cursos/CursoDetallePage';
 import DesafioDetallePage from './pages/cursos/DesafioDetallePage';
 import PerfilPage from './pages/perfil/PerfilPage';
 
-const ModeradorDashboard = () => <h1>Panel de Moderador</h1>;
+import ModeratorDashboard from './pages/dashboard/ModeratorDashboard';
+
 const AyudanteDashboard = () => <h1>Panel de Ayudante</h1>;
 
 function App() {
@@ -27,8 +28,10 @@ function App() {
             <Route path="/admin" element={<AdminDashboard />} />
           </Route>
           
-          <Route element={<PrivateRoute allowedRoles={[2]} />}>
-            <Route path="/moderador/dashboard" element={<ModeradorDashboard />} />
+          <Route element={<PrivateRoute allowedRoles={[1, 2]} />}>
+            <Route path="/moderador/dashboard" element={<ModeratorDashboard />} />
+            <Route path="/dashboard/moderador" element={<ModeratorDashboard />} />
+            <Route path="/moderacion" element={<ModeratorDashboard />} />
           </Route>
 
           <Route element={<PrivateRoute allowedRoles={[3]} />}>
