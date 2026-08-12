@@ -18,13 +18,13 @@ class HealthLogController extends Controller
         try {
             DB::connection()->getPdo();
         } catch (\Exception $e) {
-            $dbStatus = 'Error: '.$e->getMessage();
+            $dbStatus = 'Error: ' . $e->getMessage();
         }
 
         $health = [
             'database' => $dbStatus,
             'php_version' => PHP_VERSION,
-            'memory_usage' => round(memory_get_usage(true) / 1024 / 1024, 2).' MB',
+            'memory_usage' => round(memory_get_usage(true) / 1024 / 1024, 2) . ' MB',
             'server_time' => now()->toIso8601String(),
         ];
 
