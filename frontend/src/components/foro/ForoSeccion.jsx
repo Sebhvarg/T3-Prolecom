@@ -35,6 +35,37 @@ const filterAndSortPreguntas = (preguntas, search, filtro, orden, userId) => {
   });
 };
 
+const checkAuthToValidate = (user) => Boolean(
+  user?.rol === 'Administrador' ||
+  user?.rol === 'Profesor' ||
+  user?.rol === 'Ayudante' ||
+  user?.roles?.some(r => ['Administrador', 'Profesor', 'Ayudante'].includes(r.rol || r))
+);
+
+const checkCanManageForo = (user) => Boolean(
+  user?.rol === 'Administrador' ||
+  user?.rol === 'Moderador' ||
+  user?.rol === 'Profesor' ||
+  user?.roles?.some(r => ['Administrador', 'Moderador', 'Profesor'].includes(r.rol || r))
+);
+
+const resolveTargetForoIdHelper = (idForo, temas) => {
+  const isValidId = (val) => Boolean(val && val !== 'undefined' && val !== 'null' && !Number.isNaN(Number(val)));
+  if (isValidId(idForo)) return Number(idForo);
+
+  const items = (temas || []).flatMap(t => t.items || []);
+  const match = items.find(item => {
+    const pid = item.idForo || (item.itemable_type?.includes('Foro') ? item.itemable_id : null);
+    return isValidId(pid);
+  });
+
+  if (match) {
+    const pid = match.idForo || (match.itemable_type?.includes('Foro') ? match.itemable_id : null);
+    return Number(pid);
+  }
+  return null;
+};
+
 const ForoSeccion = ({ idForo, user, temas, onBack }) => {
   const [searchParams] = useSearchParams();
   const initialPreguntaId = searchParams.get('preguntaId');
@@ -44,10 +75,9 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [filtro, setFiltro] = useState('todas'); // 'todas' | 'oficial' | 'abiertas' | 'fijadas'
-  const [orden, setOrden] = useState('recientes'); // 'recientes' | 'respuestas' | 'vistas'
+  const [filtro, setFiltro] = useState('todas');
+  const [orden, setOrden] = useState('recientes');
 
-  // Modales
   const [isModalNuevaOpen, setIsModalNuevaOpen] = useState(false);
   const [submittingPregunta, setSubmittingPregunta] = useState(false);
 
@@ -59,24 +89,11 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
 
   const [reportModalData, setReportModalData] = useState({ isOpen: false, targetId: null, targetType: 'pregunta' });
 
-  // Detalle Pregunta seleccionada (Hilo)
   const [selectedPreguntaId, setSelectedPreguntaId] = useState(initialPreguntaId ? Number(initialPreguntaId) : null);
   const [preguntaDetalle, setPreguntaDetalle] = useState(null);
 
-  // Verificación RBAC para validar respuestas y gestionar el foro
-  const isAuthorizedToValidate = Boolean(
-    user?.rol === 'Administrador' ||
-    user?.rol === 'Profesor' ||
-    user?.rol === 'Ayudante' ||
-    user?.roles?.some(r => ['Administrador', 'Profesor', 'Ayudante'].includes(r.rol || r))
-  );
-
-  const canManageForo = Boolean(
-    user?.rol === 'Administrador' ||
-    user?.rol === 'Moderador' ||
-    user?.rol === 'Profesor' ||
-    user?.roles?.some(r => ['Administrador', 'Moderador', 'Profesor'].includes(r.rol || r))
-  );
+  const isAuthorizedToValidate = checkAuthToValidate(user);
+  const canManageForo = checkCanManageForo(user);
 
   const loadPreguntaDetalle = useCallback(async (idPregunta) => {
     setSelectedPreguntaId(idPregunta);
@@ -89,22 +106,7 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
     }
   }, []);
 
-  const resolveTargetForoId = useCallback(() => {
-    const isValidId = (val) => Boolean(val && val !== 'undefined' && val !== 'null' && !Number.isNaN(Number(val)));
-    if (isValidId(idForo)) return Number(idForo);
-
-    const items = (temas || []).flatMap(t => t.items || []);
-    const match = items.find(item => {
-      const pid = item.idForo || (item.itemable_type?.includes('Foro') ? item.itemable_id : null);
-      return isValidId(pid);
-    });
-
-    if (match) {
-      const pid = match.idForo || (match.itemable_type?.includes('Foro') ? match.itemable_id : null);
-      return Number(pid);
-    }
-    return null;
-  }, [idForo, temas]);
+  const resolveTargetForoId = useCallback(() => resolveTargetForoIdHelper(idForo, temas), [idForo, temas]);
 
   const fetchForoData = useCallback(async () => {
     const targetForoId = resolveTargetForoId();

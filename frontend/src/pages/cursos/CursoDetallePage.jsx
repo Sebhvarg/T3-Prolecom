@@ -86,6 +86,124 @@ const renderItemMetadata = (item) => {
   return { icon, iconBg, subtitle, isDesafio, isForo, isQuiz, isMaterial };
 };
 
+const TemaItemCard = ({
+  item,
+  itemIdx,
+  canManage,
+  handleOpenSecureViewer,
+  handleDownloadMaterial,
+  handleDeleteMaterial,
+  handleDeleteDesafio,
+  navigate,
+  idCurso,
+  setActiveTab,
+}) => {
+  const { icon, iconBg, subtitle, isDesafio, isForo, isQuiz, isMaterial } = renderItemMetadata(item);
+  const itemKey = item.idItem || item.idMaterial || item.idDesafio || item.idForo || item.idQuiz || `item-${itemIdx}`;
+
+  return (
+    <div key={itemKey} className="p-4 bg-white rounded-2xl border border-slate-200 flex justify-between items-center gap-4 hover:border-slate-300 transition-all">
+      <div className="flex items-center gap-3">
+        <div className={`p-2 rounded-xl text-xs font-black ${iconBg}`}>
+          {icon}
+        </div>
+        <div>
+          <h4 className="font-extrabold text-xs text-slate-900">
+            {item.titulo || item.itemable?.titulo || item.nombre}
+          </h4>
+          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+            {subtitle}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        {isMaterial && (
+          <>
+            <button
+              type="button"
+              onClick={() => handleOpenSecureViewer(item)}
+              className="px-3 py-1.5 bg-[#2c5364]/10 hover:bg-[#2c5364]/20 text-[#2c5364] font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              <Eye size={14} />
+              <span>Ver Documento</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDownloadMaterial(item)}
+              className="p-2 text-slate-500 hover:text-slate-900 bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              title="Descargar Material"
+            >
+              <Download size={14} />
+            </button>
+          </>
+        )}
+
+        {isDesafio && (
+          <button
+            type="button"
+            onClick={() => {
+              const targetDesafioId = item.idDesafio || item.itemable_id || item.itemable?.idDesafio || item.idItem;
+              navigate(`/cursos/${idCurso}/desafios/${targetDesafioId}`);
+            }}
+            className="px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+          >
+            <Play size={14} fill="currentColor" />
+            <span>Resolver Desafío</span>
+          </button>
+        )}
+
+        {isForo && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('foro')}
+            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+          >
+            <MessageSquare size={14} />
+            <span>Ir al Foro</span>
+          </button>
+        )}
+
+        {isQuiz && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('quizzes')}
+            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+          >
+            <HelpCircle size={14} />
+            <span>Rendir Quiz</span>
+          </button>
+        )}
+
+        {canManage && (
+          <div className="flex items-center gap-1 border-l border-slate-200 pl-2">
+            {isMaterial && (
+              <button
+                type="button"
+                onClick={() => handleDeleteMaterial(item)}
+                className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                title="Eliminar Material"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+            {isDesafio && (
+              <button
+                type="button"
+                onClick={() => handleDeleteDesafio(item.idDesafio || item.itemable_id)}
+                className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                title="Eliminar Desafío"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const CursoDetallePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -589,114 +707,21 @@ const CursoDetallePage = () => {
                     {tema.items?.length === 0 ? (
                       <p className="text-xs text-slate-400 font-medium italic text-center py-4">No hay ítems cargados en este tema.</p>
                     ) : (
-                      tema.items?.map((item, itemIdx) => {
-                        const { icon, iconBg, subtitle, isDesafio, isForo, isQuiz, isMaterial } = renderItemMetadata(item);
-                        const itemKey = item.idItem || item.idMaterial || item.idDesafio || item.idForo || item.idQuiz || `item-${itemIdx}`;
-
-                        return (
-                          <div key={itemKey} className="p-4 bg-white rounded-2xl border border-slate-200 flex justify-between items-center gap-4 hover:border-slate-300 transition-all">
-                            <div className="flex items-center gap-3">
-                              <div className={`p-2 rounded-xl text-xs font-black ${iconBg}`}>
-                                {icon}
-                              </div>
-
-                              <div>
-                                <h4 className="font-extrabold text-xs text-slate-900">
-                                  {item.titulo || item.itemable?.titulo || item.nombre}
-                                </h4>
-                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                                  {subtitle}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              {isMaterial && (
-                                <>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenSecureViewer(item)}
-                                    className="px-3 py-1.5 bg-[#2c5364]/10 hover:bg-[#2c5364]/20 text-[#2c5364] font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
-                                  >
-                                    <Eye size={14} />
-                                    <span>Ver Documento</span>
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDownloadMaterial(item)}
-                                    className="p-2 text-slate-500 hover:text-slate-900 bg-slate-100 rounded-xl transition-colors cursor-pointer"
-                                    title="Descargar Material"
-                                  >
-                                    <Download size={14} />
-                                  </button>
-                                </>
-                              )}
-
-                              {isDesafio && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const targetDesafioId = item.idDesafio || item.itemable_id || item.itemable?.idDesafio || item.idItem;
-                                    navigate(`/cursos/${id}/desafios/${targetDesafioId}`);
-                                  }}
-                                  className="px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
-                                >
-                                  <Play size={14} fill="currentColor" />
-                                  <span>Resolver Desafío</span>
-                                </button>
-                              )}
-
-                              {isForo && (
-                                <button
-                                  type="button"
-                                  onClick={() => setActiveTab('foro')}
-                                  className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
-                                >
-                                  <MessageSquare size={14} />
-                                  <span>Ir al Foro</span>
-                                </button>
-                              )}
-
-                              {isQuiz && (
-                                <button
-                                  type="button"
-                                  onClick={() => setActiveTab('quizzes')}
-                                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
-                                >
-                                  <HelpCircle size={14} />
-                                  <span>Rendir Quiz</span>
-                                </button>
-                              )}
-
-                              {canManage && (
-                                <div className="flex items-center gap-1 border-l border-slate-200 pl-2">
-                                  {isMaterial && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteMaterial(item)}
-                                      className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
-                                      title="Eliminar Material"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
-                                  )}
-                                  {isDesafio && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteDesafio(item.idDesafio || item.itemable_id)}
-                                      className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
-                                      title="Eliminar Desafío"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })
+                      tema.items?.map((item, itemIdx) => (
+                        <TemaItemCard
+                          key={item.idItem || item.idMaterial || item.idDesafio || item.idForo || item.idQuiz || `item-${itemIdx}`}
+                          item={item}
+                          itemIdx={itemIdx}
+                          canManage={canManage}
+                          handleOpenSecureViewer={handleOpenSecureViewer}
+                          handleDownloadMaterial={handleDownloadMaterial}
+                          handleDeleteMaterial={handleDeleteMaterial}
+                          handleDeleteDesafio={handleDeleteDesafio}
+                          navigate={navigate}
+                          idCurso={id}
+                          setActiveTab={setActiveTab}
+                        />
+                      ))
                     )}
                   </div>
                 )}
