@@ -188,6 +188,8 @@ class ModeracionController extends Controller
             default => 'Modificado',
         };
 
+        \App\Services\AuditLogService::log('moderacion_usuario', 'User', $user->idUsuario, "Usuario {$user->usuario} estado cambiado a {$estadoNombre}");
+
         return response()->json([
             'message' => "El usuario {$user->usuario} ha sido marcado como {$estadoNombre}.",
             'usuario' => [
@@ -215,5 +217,18 @@ class ModeracionController extends Controller
             'contenidosOcultos' => $preguntasOcultas + $respuestasOcultas,
             'usuariosSancionados' => $usuariosBaneados,
         ]);
+    }
+
+    /**
+     * Listar historial de auditoría del sistema.
+     */
+    public function indexAuditorias(Request $request)
+    {
+        $auditorias = DB::table('auditorias')
+            ->orderByDesc('created_at')
+            ->limit(100)
+            ->get();
+
+        return response()->json($auditorias);
     }
 }

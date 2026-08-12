@@ -63,6 +63,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Materiales de Aprendizaje
     Route::post('/temas/{id}/materiales', [MaterialController::class, 'store']);
+    Route::put('/materiales/{id}', [MaterialController::class, 'update']);
     Route::delete('/materiales/{id}', [MaterialController::class, 'destroy']);
     Route::get('/materiales/{id}/stream', [MaterialController::class, 'stream']);
     Route::get('/materiales/{id}/download', [MaterialController::class, 'download']);
@@ -137,6 +138,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:Administrador,Moderador')->group(function () {
         Route::get('/moderacion/stats', [ModeracionController::class, 'stats']);
         Route::get('/moderacion/reportes', [ModeracionController::class, 'indexReportes']);
+        Route::get('/moderacion/auditoria', [ModeracionController::class, 'indexAuditorias']);
         Route::post('/moderacion/reportes/{id}/resolver', [ModeracionController::class, 'resolverReporte']);
         Route::post('/moderacion/reportes/{id}/ocultar', [ModeracionController::class, 'ocultarPublicacion']);
         Route::post('/moderacion/usuarios/{id}/banear', [ModeracionController::class, 'banearUsuario']);

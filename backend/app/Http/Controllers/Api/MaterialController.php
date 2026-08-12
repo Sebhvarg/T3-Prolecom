@@ -106,10 +106,68 @@ class MaterialController extends Controller
             'orden' => $maxOrden + 1,
         ]);
 
+        \App\Services\AuditLogService::log('subir_material', 'MaterialAprendizaje', $material->idMaterial, "Material: {$material->titulo}");
+
         return response()->json([
             'message' => 'Material subido con éxito',
             'material' => $material,
         ], 201);
+    }
+
+    public function update(Request $request, $id)
+    {
+        if (! is_numeric($id)) {
+            return response()->json(['message' => 'ID de material no válido'], 404);
+        }
+
+        [$material, , $curso] = $this->resolveItemAndCurso((int) $id);
+        $user = $request->user();
+
+        if (! $this->checkPermission($curso, $user)) {
+            return response()->json(['message' => 'No tienes permisos para editar este material'], 403);
+        }
+
+        $titulo = $request->titulo ?? $request->nombre ?? $material->titulo;
+        $tipoInput = strtolower((string) ($request->tipo ?? $material->tipo));
+        $isVideo = in_array($tipoInput, ['video', 'mp4', 'mov', 'mkv', 'webm']);
+        $tipo = $isVideo ? 'video' : 'PDF';
+
+        $rules = [
+            'titulo' => 'sometimes|required|string|max:150',
+            'descripcion' => 'nullable|string',
+            'tipo' => 'nullable|in:PDF,video,documento,presentacion,codigo',
+        ];
+
+        if ($request->hasFile('archivo')) {
+            $maxSize = config('media.max_size', 512000);
+            $mimes = $isVideo ? 'mp4,mov,avi,mkv,webm' : 'pdf';
+            $rules['archivo'] = "file|mimes:{$mimes}|max:{$maxSize}";
+        }
+
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 400);
+        }
+
+        if ($request->hasFile('archivo')) {
+            if (Storage::disk('local')->exists($material->enlaceArchivo)) {
+                Storage::disk('local')->delete($material->enlaceArchivo);
+            }
+            $path = $request->file('archivo')->store('materials', 'local');
+            $material->enlaceArchivo = $path;
+        }
+
+        $material->titulo = $titulo;
+        $material->descripcion = $request->descripcion ?? $material->descripcion;
+        $material->tipo = $tipo;
+        $material->save();
+
+        \App\Services\AuditLogService::log('editar_material', 'MaterialAprendizaje', $material->idMaterial, "Material actualizado: {$material->titulo}");
+
+        return response()->json([
+            'message' => 'Material actualizado con éxito',
+            'material' => $material,
+        ]);
     }
 
     public function destroy(Request $request, $id)
@@ -130,10 +188,15 @@ class MaterialController extends Controller
             Storage::disk('local')->delete($material->enlaceArchivo);
         }
 
+        $materialId = $material->idMaterial;
+        $materialTitulo = $material->titulo;
+
         // Eliminar el item_tema asociado
         $itemTema->delete();
 
         $material->delete();
+
+        \App\Services\AuditLogService::log('eliminar_material', 'MaterialAprendizaje', $materialId, "Material eliminado: {$materialTitulo}");
 
         return response()->json(['message' => 'Material eliminado con éxito']);
     }

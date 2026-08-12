@@ -46,4 +46,11 @@ export const moderacionService = {
       body: JSON.stringify({ idEstado }),
     });
   },
+
+  /**
+   * Obtener registro de auditoría del sistema
+   */
+  getAuditoria: async () => {
+    return await authService.apiFetch('/moderacion/auditoria');
+  },
 };

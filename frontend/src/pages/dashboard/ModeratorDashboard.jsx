@@ -20,6 +20,10 @@ const ModeratorDashboard = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Tabs
+  const [activeTab, setActiveTab] = useState('reportes'); // 'reportes' | 'auditoria'
+  const [auditorias, setAuditorias] = useState([]);
+
   // Filtros
   const [filtroEstado, setFiltroEstado] = useState('pendiente'); // 'pendiente' | 'resuelto' | 'todos'
   const [filtroTipo, setFiltroTipo] = useState('todos'); // 'todos' | 'pregunta' | 'respuesta' | 'material'
@@ -32,12 +36,14 @@ const ModeratorDashboard = () => {
     setLoading(true);
     setError('');
     try {
-      const [statsData, reportesData] = await Promise.all([
+      const [statsData, reportesData, auditoriaData] = await Promise.all([
         moderacionService.getStats(),
         moderacionService.getReportes({ estado: filtroEstado, tipo: filtroTipo }),
+        moderacionService.getAuditoria(),
       ]);
       setStats(statsData);
       setReportes(reportesData);
+      setAuditorias(auditoriaData || []);
     } catch (err) {
       console.error(err);
       setError('Error al cargar la información de moderación.');
@@ -272,8 +278,92 @@ const ModeratorDashboard = () => {
           </div>
         </div>
 
-        {/* Barra de Filtros */}
-        <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-xs flex flex-col sm:flex-row justify-between items-center gap-4">
+        {/* Pestañas Principales: Reportes vs Auditoría */}
+        <div className="flex bg-slate-200/60 p-1.5 rounded-2xl w-fit border border-slate-300/60 text-xs font-black">
+          <button
+            type="button"
+            onClick={() => setActiveTab('reportes')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all cursor-pointer ${
+              activeTab === 'reportes' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <ShieldAlert size={16} className="text-red-500" />
+            <span>Reportes de Contenido ({reportes.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('auditoria')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all cursor-pointer ${
+              activeTab === 'auditoria' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <FileText size={16} className="text-[#2c5364]" />
+            <span>Historial de Auditoría ({auditorias.length})</span>
+          </button>
+        </div>
+
+        {activeTab === 'auditoria' ? (
+          /* TABLA DE REGISTROS DE AUDITORÍA */
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="font-extrabold text-slate-900 text-base">Registro de Auditoría de Acciones del Sistema</h3>
+                <p className="text-xs text-slate-500">Historial en tiempo real de operaciones de administradores, profesores y moderadores.</p>
+              </div>
+              <span className="text-xs font-mono font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-xl">
+                Total: {auditorias.length} registros
+              </span>
+            </div>
+
+            {auditorias.length === 0 ? (
+              <div className="p-12 text-center text-slate-400 font-semibold text-sm">
+                No hay registros de auditoría almacenados aún.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider font-extrabold border-b border-slate-100">
+                    <tr>
+                      <th className="px-6 py-3.5">Fecha y Hora</th>
+                      <th className="px-6 py-3.5">Usuario</th>
+                      <th className="px-6 py-3.5">Rol</th>
+                      <th className="px-6 py-3.5">Acción</th>
+                      <th className="px-6 py-3.5">Entidad</th>
+                      <th className="px-6 py-3.5">Detalles</th>
+                      <th className="px-6 py-3.5">IP</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                    {auditorias.map((aud) => (
+                      <tr key={aud.idAuditoria} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="px-6 py-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                          {timeAgo(aud.created_at)}
+                        </td>
+                        <td className="px-6 py-4 font-bold text-slate-900">{aud.nombreUsuario || 'Sistema'}</td>
+                        <td className="px-6 py-4">
+                          <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg font-bold text-[10px] uppercase">
+                            {aud.rolUsuario || 'Usuario'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg font-mono font-bold text-[10px]">
+                            {aud.accion}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 font-semibold text-slate-800">{aud.entidad} #{aud.entidad_id || '-'}</td>
+                        <td className="px-6 py-4 text-slate-600 max-w-xs truncate">{aud.detalles || '-'}</td>
+                        <td className="px-6 py-4 font-mono text-[11px] text-slate-400">{aud.ip_address || '127.0.0.1'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Barra de Filtros */}
+            <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-xs flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
             <span className="text-xs font-extrabold text-slate-700 flex items-center gap-1 mr-2">
               <Filter size={14} className="text-[#2c5364]" /> Filtros:
@@ -483,9 +573,8 @@ const ModeratorDashboard = () => {
             })}
           </div>
         )}
-
-      </div>
-
+      </>
+    )}
       {/* Modal Confirmación Banear Usuario */}
       {banModal.isOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-[130] flex items-center justify-center p-4">
@@ -519,7 +608,7 @@ const ModeratorDashboard = () => {
           </div>
         </div>
       )}
-
+      </div>
     </DashboardContainer>
   );
 };
