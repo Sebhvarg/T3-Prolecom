@@ -23,7 +23,7 @@ class AuditLogService
 
             return Auditoria::create([
                 'idUsuario' => $user?->idUsuario,
-                'nombreUsuario' => $user?->nombreCompleto ?? 'Sistema',
+                'nombreUsuario' => $user ? $user->nombreCompleto : 'Sistema',
                 'rolUsuario' => $rolName,
                 'accion' => $accion,
                 'entidad' => $entidad,

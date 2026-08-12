@@ -33,8 +33,9 @@ class ModeracionController extends Controller
         }
 
         $reportesRaw = $query->orderByDesc('created_at')->get();
+        $reportes = [];
 
-        $reportes = $reportesRaw->map(function ($rep) {
+        foreach ($reportesRaw as $rep) {
             $reportador = User::select('idUsuario', 'nombreCompleto', 'usuario', 'email')
                 ->find($rep->idUsuarioReportador);
 
@@ -78,7 +79,7 @@ class ModeracionController extends Controller
                 }
             }
 
-            return [
+            $reportes[] = [
                 'idReporte' => $rep->idReporte,
                 'motivo' => $rep->motivo,
                 'descripcion' => $rep->descripcion,
@@ -90,7 +91,7 @@ class ModeracionController extends Controller
                 'contenido' => $contenidoReportado,
                 'autor' => $autorContenido,
             ];
-        });
+        }
 
         return response()->json($reportes);
     }
