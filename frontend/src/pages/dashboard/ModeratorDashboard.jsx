@@ -131,6 +131,20 @@ const ModeratorDashboard = () => {
     }
   };
 
+  const handleUnban = async (idUsuario) => {
+    setActionLoading(true);
+    try {
+      const res = await moderacionService.banearUsuario(idUsuario, 1); // 1 = Activo
+      setSuccess(res.message || 'Usuario reactivado exitosamente.');
+      fetchModeracionData();
+    } catch (err) {
+      console.error(err);
+      setError('Error al reactivar cuenta del usuario.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const getTipoBadge = (tipo) => {
     switch (tipo) {
       case 'pregunta':
@@ -426,17 +440,29 @@ const ModeratorDashboard = () => {
                       </button>
                     )}
 
-                    {/* Botón Banear Usuario */}
-                    {rep.autor && !isAutorBaneado && (
-                      <button
-                        type="button"
-                        disabled={actionLoading}
-                        onClick={() => setBanModal({ isOpen: true, user: rep.autor })}
-                        className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                      >
-                        <Ban size={14} />
-                        <span>Banear Usuario</span>
-                      </button>
+                    {/* Botón Banear / Reactivar Usuario */}
+                    {rep.autor && (
+                      isAutorBaneado ? (
+                        <button
+                          type="button"
+                          disabled={actionLoading}
+                          onClick={() => handleUnban(rep.autor.idUsuario)}
+                          className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <CheckCircle2 size={14} />
+                          <span>Reactivar Usuario</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={actionLoading}
+                          onClick={() => setBanModal({ isOpen: true, user: rep.autor })}
+                          className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Ban size={14} />
+                          <span>Banear Usuario</span>
+                        </button>
+                      )
                     )}
 
                     {/* Botón Resolver Reporte */}
