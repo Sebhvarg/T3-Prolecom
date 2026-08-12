@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { foroService } from '../api/foroService';
+import { executeAsyncAction } from '../utils/asyncHandler';
 
 export const useForoHandlers = ({
   idForo,
@@ -16,98 +17,88 @@ export const useForoHandlers = ({
   setIsModalNuevaOpen,
 }) => {
   const handleCreatePregunta = useCallback(async (preguntaData) => {
-    setSubmittingPregunta(true);
-    try {
-      await foroService.createPregunta(idForo, preguntaData);
-      setIsModalNuevaOpen(false);
-      fetchForoData();
-    } catch (err) {
-      console.error(err);
-      alert(err.message || 'Error al publicar la pregunta.');
-    } finally {
-      setSubmittingPregunta(false);
-    }
+    await executeAsyncAction({
+      action: () => foroService.createPregunta(idForo, preguntaData),
+      setLoading: setSubmittingPregunta,
+      errorMessage: 'Error al publicar la pregunta.',
+      onSuccess: () => {
+        setIsModalNuevaOpen(false);
+        fetchForoData();
+      },
+    });
   }, [idForo, fetchForoData, setIsModalNuevaOpen, setSubmittingPregunta]);
 
   const handleEditPreguntaSubmit = useCallback(async (idPregunta, data) => {
-    setSubmittingEditPregunta(true);
-    try {
-      await foroService.updatePregunta(idPregunta, data);
-      setEditingPregunta(null);
-      fetchForoData();
-      if (selectedPreguntaId === idPregunta) {
-        loadPreguntaDetalle(idPregunta);
-      }
-    } catch (err) {
-      console.error(err);
-      alert(err.message || 'Error al actualizar la pregunta.');
-    } finally {
-      setSubmittingEditPregunta(false);
-    }
+    await executeAsyncAction({
+      action: () => foroService.updatePregunta(idPregunta, data),
+      setLoading: setSubmittingEditPregunta,
+      errorMessage: 'Error al actualizar la pregunta.',
+      onSuccess: () => {
+        setEditingPregunta(null);
+        fetchForoData();
+        if (selectedPreguntaId === idPregunta) {
+          loadPreguntaDetalle(idPregunta);
+        }
+      },
+    });
   }, [fetchForoData, selectedPreguntaId, loadPreguntaDetalle, setEditingPregunta, setSubmittingEditPregunta]);
 
   const handleDeletePregunta = useCallback(async (idPregunta) => {
     if (!window.confirm('¿Estás seguro de que deseas eliminar esta pregunta y todas sus respuestas?')) return;
-    try {
-      await foroService.deletePregunta(idPregunta);
-      if (selectedPreguntaId === idPregunta) {
-        setSelectedPreguntaId(null);
-        setPreguntaDetalle(null);
-      }
-      fetchForoData();
-    } catch (err) {
-      console.error(err);
-      alert(err.message || 'Error al eliminar la pregunta.');
-    }
+    await executeAsyncAction({
+      action: () => foroService.deletePregunta(idPregunta),
+      errorMessage: 'Error al eliminar la pregunta.',
+      onSuccess: () => {
+        if (selectedPreguntaId === idPregunta) {
+          setSelectedPreguntaId(null);
+          setPreguntaDetalle(null);
+        }
+        fetchForoData();
+      },
+    });
   }, [fetchForoData, selectedPreguntaId, setSelectedPreguntaId, setPreguntaDetalle]);
 
   const handleTogglePin = useCallback(async (idPregunta) => {
-    try {
-      await foroService.toggleFijarPregunta(idPregunta);
-      fetchForoData();
-    } catch (err) {
-      console.error(err);
-      alert(err.message || 'Error al cambiar el estado fijado.');
-    }
+    await executeAsyncAction({
+      action: () => foroService.toggleFijarPregunta(idPregunta),
+      errorMessage: 'Error al cambiar el estado fijado.',
+      onSuccess: fetchForoData,
+    });
   }, [fetchForoData]);
 
   const handleToggleEstadoForo = useCallback(async () => {
-    try {
-      await foroService.toggleEstadoForo(idForo);
-      fetchForoData();
-    } catch (err) {
-      console.error(err);
-      alert(err.message || 'Error al cambiar el estado del foro.');
-    }
+    await executeAsyncAction({
+      action: () => foroService.toggleEstadoForo(idForo),
+      errorMessage: 'Error al cambiar el estado del foro.',
+      onSuccess: fetchForoData,
+    });
   }, [idForo, fetchForoData]);
 
   const handleEditRespuestaSubmit = useCallback(async (idRespuesta, data) => {
-    setSubmittingEditRespuesta(true);
-    try {
-      await foroService.updateRespuesta(idRespuesta, data);
-      setEditingRespuesta(null);
-      if (selectedPreguntaId) {
-        loadPreguntaDetalle(selectedPreguntaId);
-      }
-    } catch (err) {
-      console.error(err);
-      alert(err.message || 'Error al editar la respuesta.');
-    } finally {
-      setSubmittingEditRespuesta(false);
-    }
+    await executeAsyncAction({
+      action: () => foroService.updateRespuesta(idRespuesta, data),
+      setLoading: setSubmittingEditRespuesta,
+      errorMessage: 'Error al editar la respuesta.',
+      onSuccess: () => {
+        setEditingRespuesta(null);
+        if (selectedPreguntaId) {
+          loadPreguntaDetalle(selectedPreguntaId);
+        }
+      },
+    });
   }, [selectedPreguntaId, loadPreguntaDetalle, setEditingRespuesta, setSubmittingEditRespuesta]);
 
   const handleDeleteRespuesta = useCallback(async (idRespuesta) => {
     if (!window.confirm('¿Estás seguro de que deseas eliminar esta respuesta?')) return;
-    try {
-      await foroService.deleteRespuesta(idRespuesta);
-      if (selectedPreguntaId) {
-        loadPreguntaDetalle(selectedPreguntaId);
-      }
-    } catch (err) {
-      console.error(err);
-      alert(err.message || 'Error al eliminar la respuesta.');
-    }
+    await executeAsyncAction({
+      action: () => foroService.deleteRespuesta(idRespuesta),
+      errorMessage: 'Error al eliminar la respuesta.',
+      onSuccess: () => {
+        if (selectedPreguntaId) {
+          loadPreguntaDetalle(selectedPreguntaId);
+        }
+      },
+    });
   }, [selectedPreguntaId, loadPreguntaDetalle]);
 
   return {
