@@ -806,56 +806,50 @@ const CursoDetallePage = () => {
       {/* --- MODAL FORMS --- */}
 
       {/* Modal Tema */}
-      {isTemaModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full space-y-4 shadow-xl border border-slate-200">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="font-black text-slate-900 text-base">
-                {temaEditId ? 'Editar Tema' : 'Nuevo Tema o Módulo'}
-              </h3>
-              <button type="button" onClick={() => setIsTemaModalOpen(false)} className="text-slate-400 hover:text-slate-700">
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveTema} className="space-y-4">
-              <div>
-                <label htmlFor="tema-form-nombre" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Nombre del Tema</label>
-                <input 
-                  id="tema-form-nombre"
-                  type="text"
-                  required
-                  placeholder="Ej. Introducción a Funciones"
-                  value={temaNombre}
-                  onChange={(e) => setTemaNombre(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="tema-form-descripcion" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Descripción</label>
-                <textarea 
-                  id="tema-form-descripcion"
-                  rows="3"
-                  placeholder="Breve explicación de los objetivos del tema..."
-                  value={temaDescripcion}
-                  onChange={(e) => setTemaDescripcion(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs resize-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setIsTemaModalOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-600">
-                  Cancelar
-                </button>
-                <button type="submit" disabled={submitting} className="px-5 py-2 bg-[#2c5364] hover:bg-[#203a43] text-white text-xs font-bold rounded-xl shadow-xs">
-                  {submitting ? 'Guardando...' : 'Guardar Tema'}
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={isTemaModalOpen}
+        onClose={() => setIsTemaModalOpen(false)}
+        title={temaEditId ? 'Editar Tema' : 'Nuevo Tema o Módulo'}
+        icon={BookOpen}
+        maxWidth="max-w-md"
+      >
+        <form onSubmit={handleSaveTema} className="space-y-4">
+          <div>
+            <label htmlFor="tema-form-nombre" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Nombre del Tema</label>
+            <input 
+              id="tema-form-nombre"
+              type="text"
+              required
+              placeholder="Ej. Introducción a Funciones"
+              value={temaNombre}
+              onChange={(e) => setTemaNombre(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
           </div>
-        </div>
-      )}
+
+          <div>
+            <label htmlFor="tema-form-descripcion" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Descripción</label>
+            <textarea 
+              id="tema-form-descripcion"
+              rows="3"
+              placeholder="Breve explicación de los objetivos del tema..."
+              value={temaDescripcion}
+              onChange={(e) => setTemaDescripcion(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs resize-none focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button type="button" onClick={() => setIsTemaModalOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">
+              Cancelar
+            </button>
+            <button type="submit" disabled={submitting} className="px-5 py-2.5 bg-[#2c5364] hover:bg-[#203a43] text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5">
+              {submitting ? <Loader2 size={14} className="animate-spin" /> : null}
+              <span>{submitting ? 'Guardando...' : 'Guardar Tema'}</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Modal Material */}
       <Modal

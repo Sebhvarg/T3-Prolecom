@@ -3,8 +3,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { cursosService } from '../../api/cursosService';
-import { BookOpen, Plus, Edit2, Trash2, X, AlertCircle, CheckCircle, Users, UserPlus, Filter } from 'lucide-react';
+import { BookOpen, Plus, Edit2, Trash2, X, AlertCircle, CheckCircle, Users, UserPlus, Filter, Loader2 } from 'lucide-react';
 import PropTypes from 'prop-types';
+import Modal from '../../components/ui/Modal';
 
 const CursosPage = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const CursosPage = () => {
   
   // Modal states for Create/Edit Curso
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [editingCurso, setEditingCurso] = useState(null);
   const [formData, setFormData] = useState({
     titulo: '',
@@ -115,6 +117,7 @@ const CursosPage = () => {
     setSuccess('');
 
     try {
+      setSubmitting(true);
       if (editingCurso) {
         await cursosService.updateCurso(editingCurso.idCurso, formData);
         setSuccess('Curso actualizado correctamente.');
@@ -127,6 +130,8 @@ const CursosPage = () => {
     } catch (err) {
       console.error(err);
       setError('Ocurrió un error al guardar el curso.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -419,99 +424,92 @@ const CursosPage = () => {
       {renderCursosList()}
 
       {/* Modal for Create/Edit */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm transition-opacity">
-          <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-zoom-in">
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
-            >
-              <X size={20} />
-            </button>
-
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">
-              {editingCurso ? 'Editar Curso' : 'Crear Nuevo Curso'}
-            </h3>
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="titulo" className="text-sm font-semibold text-gray-700">Título del Curso <span className="text-red-500">*</span></label>
-                <input
-                  id="titulo"
-                  type="text"
-                  required
-                  placeholder="Ej. Introducción a Python"
-                  className="w-full p-3 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white shadow-sm transition-all"
-                  value={formData.titulo}
-                  onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="descripcion" className="text-sm font-semibold text-gray-700">Descripción <span className="text-red-500">*</span></label>
-                <textarea
-                  id="descripcion"
-                  required
-                  rows={4}
-                  placeholder="Detalles sobre lo que aprenderán los estudiantes..."
-                  className="w-full p-3 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white shadow-sm transition-all"
-                  value={formData.descripcion}
-                  onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="lp" className="text-sm font-semibold text-gray-700">Lenguaje / LP <span className="text-red-500">*</span></label>
-                  <select
-                    id="lp"
-                    required
-                    className="w-full p-3 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white shadow-sm transition-all cursor-pointer"
-                    value={formData.lp}
-                    onChange={(e) => setFormData({ ...formData, lp: e.target.value })}
-                  >
-                    <option value="">Selecciona un lenguaje</option>
-                    {lps.map((lp) => (
-                      <option key={lp.idLenguaje} value={lp.nombre}>
-                        {lp.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="tipo" className="text-sm font-semibold text-gray-700">Tipo de Curso <span className="text-red-500">*</span></label>
-                  <select
-                    id="tipo"
-                    className="w-full p-3 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white shadow-sm transition-all cursor-pointer"
-                    value={formData.tipo}
-                    onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
-                  >
-                    <option value="público">Público</option>
-                    <option value="privado">Privado</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex gap-4 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 p-3 rounded-xl font-semibold transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 bg-[#2c5364] hover:bg-[#203a43] text-white p-3 rounded-xl font-semibold transition-colors"
-                >
-                  Guardar
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingCurso ? 'Editar Curso' : 'Crear Nuevo Curso'}
+        icon={BookOpen}
+        maxWidth="max-w-md"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex flex-col gap-1">
+            <label htmlFor="titulo" className="text-xs font-extrabold text-slate-700 uppercase">Título del Curso <span className="text-red-500">*</span></label>
+            <input
+              id="titulo"
+              type="text"
+              required
+              placeholder="Ej. Introducción a Python"
+              className="w-full p-2.5 border border-slate-300 focus:border-[#2c5364] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-slate-900 font-semibold text-xs transition-all"
+              value={formData.titulo}
+              onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
+            />
           </div>
-        </div>
-      )}
+
+          <div className="flex flex-col gap-1">
+            <label htmlFor="descripcion" className="text-xs font-extrabold text-slate-700 uppercase">Descripción <span className="text-red-500">*</span></label>
+            <textarea
+              id="descripcion"
+              required
+              rows={4}
+              placeholder="Detalles sobre lo que aprenderán los estudiantes..."
+              className="w-full p-2.5 border border-slate-300 focus:border-[#2c5364] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-slate-900 font-semibold text-xs resize-none transition-all"
+              value={formData.descripcion}
+              onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="lp" className="text-xs font-extrabold text-slate-700 uppercase">Lenguaje / LP <span className="text-red-500">*</span></label>
+              <select
+                id="lp"
+                required
+                className="w-full p-2.5 border border-slate-300 focus:border-[#2c5364] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-slate-900 font-bold text-xs bg-white cursor-pointer"
+                value={formData.lp}
+                onChange={(e) => setFormData({ ...formData, lp: e.target.value })}
+              >
+                <option value="">Selecciona un lenguaje</option>
+                {lps.map((lp) => (
+                  <option key={lp.idLenguaje} value={lp.nombre}>
+                    {lp.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label htmlFor="tipo" className="text-xs font-extrabold text-slate-700 uppercase">Tipo de Curso <span className="text-red-500">*</span></label>
+              <select
+                id="tipo"
+                className="w-full p-2.5 border border-slate-300 focus:border-[#2c5364] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-slate-900 font-bold text-xs bg-white cursor-pointer"
+                value={formData.tipo}
+                onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
+              >
+                <option value="público">Público</option>
+                <option value="privado">Privado</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-5 py-2.5 bg-[#2c5364] hover:bg-[#203a43] text-white rounded-xl text-xs font-bold transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
+            >
+              {submitting ? <Loader2 size={14} className="animate-spin" /> : null}
+              <span>{submitting ? 'Guardando...' : 'Guardar Curso'}</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Modal for Ver Alumnos */}
       {isAlumnosModalOpen && selectedCursoForAlumnos && (
