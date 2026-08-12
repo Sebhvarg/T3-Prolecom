@@ -72,7 +72,7 @@ class UserController extends Controller
             $rolesToSync = $request->roles;
         }
 
-        if (! empty($rolesToSync)) {
+        if ($rolesToSync !== []) {
             $user->roles()->sync($rolesToSync);
         }
 
@@ -168,4 +168,3 @@ class UserController extends Controller
         return response()->json(['count' => $count]);
     }
 }
-
