@@ -134,34 +134,23 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
   // Si hay una pregunta seleccionada, renderizar la Vista Completa del Hilo
   if (selectedPreguntaId && preguntaDetalle) {
     return (
-      <div className="space-y-6">
-        <HiloRespuestas
-          pregunta={preguntaDetalle}
-          currentUser={user}
-          isAuthorizedToValidate={isAuthorizedToValidate}
-          isForoClosed={isForoClosed}
-          onClose={() => { setSelectedPreguntaId(null); setPreguntaDetalle(null); }}
-          onRefresh={() => loadPreguntaDetalle(selectedPreguntaId)}
-          onEditRespuesta={(r) => setEditingRespuesta(r)}
-          onDeleteRespuesta={handleDeleteRespuesta}
-          onReportRespuesta={(id) => setReportModalData({ isOpen: true, targetId: id, targetType: 'respuesta' })}
-        />
-
-        <EditRespuestaModal
-          isOpen={Boolean(editingRespuesta)}
-          onClose={() => setEditingRespuesta(null)}
-          onSubmit={handleEditRespuestaSubmit}
-          respuesta={editingRespuesta}
-          submitting={submittingEditRespuesta}
-        />
-
-        <ReporteModal
-          isOpen={reportModalData.isOpen}
-          onClose={() => setReportModalData({ isOpen: false, targetId: null, targetType: 'pregunta' })}
-          targetId={reportModalData.targetId || 0}
-          targetType={reportModalData.targetType}
-        />
-      </div>
+      <ForoHiloSelectedView
+        preguntaDetalle={preguntaDetalle}
+        user={user}
+        isAuthorizedToValidate={isAuthorizedToValidate}
+        isForoClosed={isForoClosed}
+        onClose={() => { setSelectedPreguntaId(null); setPreguntaDetalle(null); }}
+        onRefresh={() => loadPreguntaDetalle(selectedPreguntaId)}
+        onEditRespuesta={(r) => setEditingRespuesta(r)}
+        onDeleteRespuesta={handleDeleteRespuesta}
+        onReportRespuesta={(id) => setReportModalData({ isOpen: true, targetId: id, targetType: 'respuesta' })}
+        editingRespuesta={editingRespuesta}
+        onCloseEditRespuesta={() => setEditingRespuesta(null)}
+        handleEditRespuestaSubmit={handleEditRespuestaSubmit}
+        submittingEditRespuesta={submittingEditRespuesta}
+        reportModalData={reportModalData}
+        onCloseReportModal={() => setReportModalData({ isOpen: false, targetId: null, targetType: 'pregunta' })}
+      />
     );
   }
 
@@ -179,40 +168,6 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
             Este curso aún no cuenta con un foro de preguntas agregado a sus temas. Los profesores pueden crear uno agregando una actividad de tipo Foro en cualquier tema.
           </p>
         </div>
-      </div>
-    );
-  }
-
-  let mainContent;
-  if (loading) {
-    mainContent = (
-      <div className="flex flex-col items-center justify-center py-16 gap-3">
-        <Loader2 className="w-10 h-10 text-[#2c5364] animate-spin" />
-        <p className="text-sm font-semibold text-gray-500">Cargando preguntas del foro...</p>
-      </div>
-    );
-  } else if (preguntasProcesadas.length === 0) {
-    mainContent = (
-      <ForoEmptyState
-        onOpenCreateModal={() => setIsModalNuevaOpen(true)}
-        isClosed={isForoClosed}
-      />
-    );
-  } else {
-    mainContent = (
-      <div className="space-y-4">
-        {preguntasProcesadas.map((preg) => (
-          <PreguntaCard
-            key={preg.idPregunta}
-            pregunta={preg}
-            currentUser={user}
-            onSelect={loadPreguntaDetalle}
-            onPinToggle={handleTogglePin}
-            onEdit={(p) => setEditingPregunta(p)}
-            onDelete={handleDeletePregunta}
-            onReport={(id) => setReportModalData({ isOpen: true, targetId: id, targetType: 'pregunta' })}
-          />
-        ))}
       </div>
     );
   }
@@ -373,7 +328,18 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
         </div>
       )}
 
-      {mainContent}
+      <ForoMainContent
+        loading={loading}
+        preguntasProcesadas={preguntasProcesadas}
+        isForoClosed={isForoClosed}
+        onOpenCreateModal={() => setIsModalNuevaOpen(true)}
+        user={user}
+        loadPreguntaDetalle={loadPreguntaDetalle}
+        handleTogglePin={handleTogglePin}
+        setEditingPregunta={setEditingPregunta}
+        handleDeletePregunta={handleDeletePregunta}
+        setReportModalData={setReportModalData}
+      />
 
       {/* Modal Nueva Pregunta */}
       <NuevaPreguntaModal
@@ -408,6 +374,101 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
         targetId={reportModalData.targetId || 0}
         targetType={reportModalData.targetType}
       />
+    </div>
+  );
+};
+
+const ForoHiloSelectedView = ({
+  preguntaDetalle,
+  user,
+  isAuthorizedToValidate,
+  isForoClosed,
+  onClose,
+  onRefresh,
+  onEditRespuesta,
+  onDeleteRespuesta,
+  onReportRespuesta,
+  editingRespuesta,
+  onCloseEditRespuesta,
+  handleEditRespuestaSubmit,
+  submittingEditRespuesta,
+  reportModalData,
+  onCloseReportModal,
+}) => (
+  <div className="space-y-6">
+    <HiloRespuestas
+      pregunta={preguntaDetalle}
+      currentUser={user}
+      isAuthorizedToValidate={isAuthorizedToValidate}
+      isForoClosed={isForoClosed}
+      onClose={onClose}
+      onRefresh={onRefresh}
+      onEditRespuesta={onEditRespuesta}
+      onDeleteRespuesta={onDeleteRespuesta}
+      onReportRespuesta={onReportRespuesta}
+    />
+
+    <EditRespuestaModal
+      isOpen={Boolean(editingRespuesta)}
+      onClose={onCloseEditRespuesta}
+      onSubmit={handleEditRespuestaSubmit}
+      respuesta={editingRespuesta}
+      submitting={submittingEditRespuesta}
+    />
+
+    <ReporteModal
+      isOpen={reportModalData.isOpen}
+      onClose={onCloseReportModal}
+      targetId={reportModalData.targetId || 0}
+      targetType={reportModalData.targetType}
+    />
+  </div>
+);
+
+const ForoMainContent = ({
+  loading,
+  preguntasProcesadas,
+  isForoClosed,
+  onOpenCreateModal,
+  user,
+  loadPreguntaDetalle,
+  handleTogglePin,
+  setEditingPregunta,
+  handleDeletePregunta,
+  setReportModalData,
+}) => {
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-3">
+        <Loader2 className="w-10 h-10 text-[#2c5364] animate-spin" />
+        <p className="text-sm font-semibold text-gray-500">Cargando preguntas del foro...</p>
+      </div>
+    );
+  }
+
+  if (preguntasProcesadas.length === 0) {
+    return (
+      <ForoEmptyState
+        onOpenCreateModal={onOpenCreateModal}
+        isClosed={isForoClosed}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {preguntasProcesadas.map((preg) => (
+        <PreguntaCard
+          key={preg.idPregunta}
+          pregunta={preg}
+          currentUser={user}
+          onSelect={loadPreguntaDetalle}
+          onPinToggle={handleTogglePin}
+          onEdit={(p) => setEditingPregunta(p)}
+          onDelete={handleDeletePregunta}
+          onReport={(id) => setReportModalData({ isOpen: true, targetId: id, targetType: 'pregunta' })}
+        />
+      ))}
     </div>
   );
 };

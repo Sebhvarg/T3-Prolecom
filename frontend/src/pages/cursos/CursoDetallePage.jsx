@@ -383,140 +383,6 @@ const CursoDetallePage = () => {
 
   const progreso = curso.progreso || { porcentaje: 0, itemsCompletados: 0, totalItems: 0, xpGanado: 0, xpTotal: 0 };
 
-  const renderActiveTabContent = () => {
-    if (activeTab === 'foro') {
-      return <ForoSeccion idCurso={id} user={user} temas={curso.temas} onBack={() => setActiveTab('temas')} />;
-    }
-
-    if (activeTab === 'quizzes') {
-      return <QuizSeccion idCurso={id} user={user} temas={curso.temas} onQuizCompleted={fetchCurso} />;
-    }
-
-    return (
-      <>
-        {/* Secciones de Contenido */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Temas del Curso</h2>
-          {canManage && (
-            <button
-              type="button"
-              onClick={() => handleOpenTemaModal()}
-              className="flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2.5 rounded-xl font-extrabold shadow-sm transition-all hover:shadow-md cursor-pointer text-xs"
-            >
-              <Plus size={18} />
-              <span>Nuevo Tema</span>
-            </button>
-          )}
-        </div>
-
-        {curso.temas?.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-xs">
-            <FileText className="mx-auto h-12 w-12 text-slate-300 mb-4" />
-            <h3 className="text-lg font-extrabold text-slate-900">No hay contenido disponible</h3>
-            <p className="text-slate-500 text-xs mt-1 max-w-sm mx-auto font-medium">Este curso aún no tiene temas ni módulos cargados por el profesor.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {curso.temas?.map((tema) => (
-              <div key={tema.idTema} className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden transition-all duration-300">
-                {/* Header Tema */}
-                <div className="p-5 flex justify-between items-center hover:bg-slate-50 transition-colors select-none">
-                  <button 
-                    type="button"
-                    onClick={() => toggleTema(tema.idTema)}
-                    className="flex items-center gap-4 flex-1 text-left focus:outline-none cursor-pointer"
-                  >
-                    <div className="p-2.5 bg-slate-100 text-[#2c5364] rounded-2xl">
-                      <BookOpen size={20} />
-                    </div>
-                    <div>
-                      <h3 className="font-extrabold text-slate-900 text-base md:text-lg">{tema.nombre}</h3>
-                      {tema.descripcion && (
-                        <p className="text-slate-500 text-xs font-medium">{tema.descripcion}</p>
-                      )}
-                    </div>
-                  </button>
-
-                  <div className="flex items-center gap-3">
-                    {canManage && (
-                      <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-xl p-1">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenMaterialModal(tema.idTema)}
-                          className="p-1.5 text-slate-700 hover:text-[#2c5364] hover:bg-white rounded-lg transition-colors cursor-pointer"
-                          title="Subir Material"
-                        >
-                          <Plus size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenDesafioModal(tema.idTema)}
-                          className="p-1.5 text-slate-700 hover:text-[#2c5364] hover:bg-white rounded-lg transition-colors cursor-pointer"
-                          title="Crear Desafío Práctico"
-                        >
-                          <Code size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenTemaModal(tema)}
-                          className="p-1.5 text-slate-700 hover:text-[#2c5364] hover:bg-white rounded-lg transition-colors cursor-pointer"
-                          title="Editar Tema"
-                        >
-                          <Pencil size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTema(tema.idTema)}
-                          className="p-1.5 text-slate-700 hover:text-red-600 hover:bg-white rounded-lg transition-colors cursor-pointer"
-                          title="Eliminar Tema"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => toggleTema(tema.idTema)}
-                      className="p-2 text-slate-400 hover:text-slate-700 cursor-pointer"
-                    >
-                      {expandedTemas[tema.idTema] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Contenido Expandible */}
-                {expandedTemas[tema.idTema] && (
-                  <div className="border-t border-slate-100 p-5 bg-slate-50/50 space-y-3">
-                    {tema.items?.length === 0 ? (
-                      <p className="text-xs text-slate-400 font-medium italic text-center py-4">No hay ítems cargados en este tema.</p>
-                    ) : (
-                      tema.items?.map((item, itemIdx) => (
-                        <TemaItemCard
-                          key={item.idItem || item.idMaterial || item.idDesafio || item.idForo || item.idQuiz || `item-${itemIdx}`}
-                          item={item}
-                          itemIdx={itemIdx}
-                          canManage={canManage}
-                          handleOpenSecureViewer={handleOpenSecureViewer}
-                          handleDownloadMaterial={handleDownloadMaterial}
-                          handleDeleteMaterial={handleDeleteMaterial}
-                          handleDeleteDesafio={handleDeleteDesafio}
-                          navigate={navigate}
-                          idCurso={id}
-                          setActiveTab={setActiveTab}
-                        />
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </>
-    );
-  };
-
   return (
     <DashboardContainer activeSection="Cursos" title={curso.titulo}>
       <div className="space-y-6">
@@ -608,12 +474,31 @@ const CursoDetallePage = () => {
             }`}
           >
             <MessageSquare size={18} />
-            <span>Foro de Preguntas & Q&A</span>
+            <span>Foro del Curso</span>
           </button>
         </div>
 
         {/* Renderizado Condicional por Pestaña */}
-        {renderActiveTabContent()}
+        <CursoTabContent
+          activeTab={activeTab}
+          id={id}
+          user={user}
+          curso={curso}
+          canManage={canManage}
+          setActiveTab={setActiveTab}
+          fetchCurso={fetchCurso}
+          handleOpenTemaModal={handleOpenTemaModal}
+          handleOpenMaterialModal={handleOpenMaterialModal}
+          handleOpenDesafioModal={handleOpenDesafioModal}
+          handleDeleteTema={handleDeleteTema}
+          toggleTema={toggleTema}
+          expandedTemas={expandedTemas}
+          handleOpenSecureViewer={handleOpenSecureViewer}
+          handleDownloadMaterial={handleDownloadMaterial}
+          handleDeleteMaterial={handleDeleteMaterial}
+          handleDeleteDesafio={handleDeleteDesafio}
+          navigate={navigate}
+        />
 
       </div>
 
@@ -896,6 +781,159 @@ const CursoDetallePage = () => {
       )}
 
     </DashboardContainer>
+  );
+};
+
+const CursoTabContent = ({
+  activeTab,
+  id,
+  user,
+  curso,
+  canManage,
+  setActiveTab,
+  fetchCurso,
+  handleOpenTemaModal,
+  handleOpenMaterialModal,
+  handleOpenDesafioModal,
+  handleDeleteTema,
+  toggleTema,
+  expandedTemas,
+  handleOpenSecureViewer,
+  handleDownloadMaterial,
+  handleDeleteMaterial,
+  handleDeleteDesafio,
+  navigate,
+}) => {
+  if (activeTab === 'foro') {
+    return <ForoSeccion idCurso={id} user={user} temas={curso.temas} onBack={() => setActiveTab('temas')} />;
+  }
+
+  if (activeTab === 'quizzes') {
+    return <QuizSeccion idCurso={id} user={user} temas={curso.temas} onQuizCompleted={fetchCurso} />;
+  }
+
+  return (
+    <>
+      {/* Secciones de Contenido */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Temas del Curso</h2>
+        {canManage && (
+          <button
+            type="button"
+            onClick={() => handleOpenTemaModal()}
+            className="flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2.5 rounded-xl font-extrabold shadow-sm transition-all hover:shadow-md cursor-pointer text-xs"
+          >
+            <Plus size={18} />
+            <span>Nuevo Tema</span>
+          </button>
+        )}
+      </div>
+
+      {curso.temas?.length === 0 ? (
+        <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-xs">
+          <FileText className="mx-auto h-12 w-12 text-slate-300 mb-4" />
+          <h3 className="text-lg font-extrabold text-slate-900">No hay contenido disponible</h3>
+          <p className="text-slate-500 text-xs mt-1 max-w-sm mx-auto font-medium">Este curso aún no tiene temas ni módulos cargados por el profesor.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {curso.temas?.map((tema) => (
+            <div key={tema.idTema} className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden transition-all duration-300">
+              {/* Header Tema */}
+              <div className="p-5 flex justify-between items-center hover:bg-slate-50 transition-colors select-none">
+                <button 
+                  type="button"
+                  onClick={() => toggleTema(tema.idTema)}
+                  className="flex items-center gap-4 flex-1 text-left focus:outline-none cursor-pointer"
+                >
+                  <div className="p-2.5 bg-slate-100 text-[#2c5364] rounded-2xl">
+                    <BookOpen size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-slate-900 text-base md:text-lg">{tema.nombre}</h3>
+                    {tema.descripcion && (
+                      <p className="text-slate-500 text-xs font-medium">{tema.descripcion}</p>
+                    )}
+                  </div>
+                </button>
+
+                <div className="flex items-center gap-3">
+                  {canManage && (
+                    <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-xl p-1">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenMaterialModal(tema.idTema)}
+                        className="p-1.5 text-slate-700 hover:text-[#2c5364] hover:bg-white rounded-lg transition-colors cursor-pointer"
+                        title="Subir Material"
+                      >
+                        <Plus size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDesafioModal(tema.idTema)}
+                        className="p-1.5 text-slate-700 hover:text-[#2c5364] hover:bg-white rounded-lg transition-colors cursor-pointer"
+                        title="Crear Desafío Práctico"
+                      >
+                        <Code size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenTemaModal(tema)}
+                        className="p-1.5 text-slate-700 hover:text-[#2c5364] hover:bg-white rounded-lg transition-colors cursor-pointer"
+                        title="Editar Tema"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTema(tema.idTema)}
+                        className="p-1.5 text-slate-700 hover:text-red-600 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                        title="Eliminar Tema"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => toggleTema(tema.idTema)}
+                    className="p-2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                  >
+                    {expandedTemas[tema.idTema] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Contenido Expandible */}
+              {expandedTemas[tema.idTema] && (
+                <div className="border-t border-slate-100 p-5 bg-slate-50/50 space-y-3">
+                  {tema.items?.length === 0 ? (
+                    <p className="text-xs text-slate-400 font-medium italic text-center py-4">No hay ítems cargados en este tema.</p>
+                  ) : (
+                    tema.items?.map((item, itemIdx) => (
+                      <TemaItemCard
+                        key={item.idItem || item.idMaterial || item.idDesafio || item.idForo || item.idQuiz || `item-${itemIdx}`}
+                        item={item}
+                        itemIdx={itemIdx}
+                        canManage={canManage}
+                        handleOpenSecureViewer={handleOpenSecureViewer}
+                        handleDownloadMaterial={handleDownloadMaterial}
+                        handleDeleteMaterial={handleDeleteMaterial}
+                        handleDeleteDesafio={handleDeleteDesafio}
+                        navigate={navigate}
+                        idCurso={id}
+                        setActiveTab={setActiveTab}
+                      />
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </>
   );
 };
 

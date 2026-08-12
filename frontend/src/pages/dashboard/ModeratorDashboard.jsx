@@ -117,8 +117,139 @@ const ModeratorDashboard = () => {
           </span>
         );
       default:
-        return null;
     }
+  };
+
+  const renderReportesContent = () => {
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-slate-200">
+          <Loader2 size={36} className="animate-spin text-[#2c5364] mb-3" />
+          <p className="text-xs font-bold text-slate-500">Cargando reporte de moderación...</p>
+        </div>
+      );
+    }
+
+    if (reportes.length === 0) {
+      return (
+        <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-xs p-8">
+          <CheckCircle2 size={48} className="text-emerald-500 mx-auto mb-3" />
+          <h3 className="text-lg font-black text-slate-900">No hay reportes pendientes</h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto font-medium">
+            Todo está bajo control. No se han encontrado publicaciones reportadas con los filtros seleccionados.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {reportes.map((rep) => {
+          const isResuelto = rep.estado === 'resuelto';
+          const isOculto = rep.contenido?.estado === 'oculta' || rep.contenido?.oculta;
+          const isAutorBaneado = rep.autor?.idEstado === 4;
+          const reporteCardClass = isResuelto
+            ? 'bg-slate-50/70 border-slate-200 opacity-80'
+            : 'bg-white border-slate-200 shadow-xs hover:border-slate-300';
+          const estadoLabel = isResuelto ? 'Resuelto' : 'Pendiente';
+          const estadoBadgeClass = isResuelto ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900';
+
+          return (
+            <div 
+              key={rep.idReporte}
+              className={`p-6 rounded-3xl border transition-all space-y-4 ${reporteCardClass}`}
+            >
+              {/* Encabezado del Reporte */}
+              <div className="flex flex-wrap justify-between items-start gap-3 border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {getTipoBadge(rep.tipoPublicacion)}
+
+                  <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase ${estadoBadgeClass}`}>
+                    {estadoLabel}
+                  </span>
+
+                  <span className="text-xs text-slate-400 font-medium">· Reportado {timeAgo(rep.fecha)}</span>
+                </div>
+
+                <span className="text-xs text-slate-500 font-medium">
+                  Reportado por: <strong className="text-slate-800 font-bold">{rep.reportador?.nombreCompleto || 'Usuario'}</strong>
+                </span>
+              </div>
+
+              {/* Detalle del Motivo y Descripción del Reporte */}
+              <div className="p-4 bg-amber-50/60 border border-amber-200/60 rounded-2xl space-y-1">
+                <p className="text-xs font-black text-amber-900 flex items-center gap-1.5">
+                  <ShieldAlert size={14} className="text-amber-700 shrink-0" />
+                  <span>Motivo del Reporte: {rep.motivo}</span>
+                </p>
+                {rep.descripcion && (
+                  <p className="text-xs text-amber-800 font-medium pl-5">{rep.descripcion}</p>
+                )}
+              </div>
+
+              {/* Contenido Reportado Original */}
+              {rep.contenido ? (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Contenido de la Publicación:</span>
+                    {isOculto && (
+                      <span className="text-[10px] font-black bg-red-100 text-red-700 px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <EyeOff size={10} /> Ocultado actualmente
+                      </span>
+                    )}
+                  </div>
+                  
+                  <h4 className="text-xs font-extrabold text-[#0f2027]">{rep.contenido.titulo}</h4>
+                  <p className="text-xs text-slate-700 font-mono bg-white p-3 rounded-xl border border-slate-200 max-h-32 overflow-y-auto whitespace-pre-wrap">
+                    {rep.contenido.texto}
+                  </p>
+
+                  {/* Info del Autor */}
+                  {rep.autor && (
+                    <div className="flex justify-between items-center pt-1 text-xs text-slate-500 font-medium">
+                      <span>Autor: <strong className="text-slate-900 font-bold">{rep.autor.nombreCompleto}</strong> (@{rep.autor.usuario})</span>
+                      {isAutorBaneado ? (
+                        <span className="text-red-600 font-black text-[10px] bg-red-50 px-2 py-0.5 rounded border border-red-200 flex items-center gap-1">
+                          <Ban size={10} /> Usuario Baneado
+                        </span>
+                      ) : (
+                        <span className="text-emerald-700 font-bold text-[10px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                          Cuenta Activa
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs italic text-slate-400">La publicación reportada ha sido eliminada o no se encuentra disponible.</p>
+              )}
+
+              {/* Botones de Acción Rápida */}
+              <div className="flex flex-wrap justify-end items-center gap-2 pt-2 border-t border-slate-100">
+                {/* Botón Ocultar / Mostrar */}
+                {renderOcultarButton(rep, isOculto)}
+
+                {/* Botón Banear / Reactivar Usuario */}
+                {renderUserActionBtn(rep, isAutorBaneado)}
+
+                {/* Botón Resolver Reporte */}
+                {!isResuelto && (
+                  <button
+                    type="button"
+                    disabled={actionLoading}
+                    onClick={() => handleResolver(rep.idReporte)}
+                    className="px-4 py-2 bg-[#2c5364] hover:bg-[#203a43] text-[#ffffff] rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                  >
+                    <Check size={14} />
+                    <span>Marcar Resuelto</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
@@ -352,129 +483,10 @@ const ModeratorDashboard = () => {
         </div>
 
         {/* Listado de Reportes */}
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-slate-200">
-            <Loader2 size={36} className="animate-spin text-[#2c5364] mb-3" />
-            <p className="text-xs font-bold text-slate-500">Cargando reporte de moderación...</p>
-          </div>
-        ) : reportes.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-xs p-8">
-            <CheckCircle2 size={48} className="text-emerald-500 mx-auto mb-3" />
-            <h3 className="text-lg font-black text-slate-900">No hay reportes pendientes</h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto font-medium">
-              Todo está bajo control. No se han encontrado publicaciones reportadas con los filtros seleccionados.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {reportes.map((rep) => {
-              const isResuelto = rep.estado === 'resuelto';
-              const isOculto = rep.contenido?.estado === 'oculta' || rep.contenido?.oculta;
-              const isAutorBaneado = rep.autor?.idEstado === 4;
-              const reporteCardClass = isResuelto
-                ? 'bg-slate-50/70 border-slate-200 opacity-80'
-                : 'bg-white border-slate-200 shadow-xs hover:border-slate-300';
-              const estadoLabel = isResuelto ? 'Resuelto' : 'Pendiente';
-              const estadoBadgeClass = isResuelto ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900';
-
-              return (
-                <div 
-                  key={rep.idReporte}
-                  className={`p-6 rounded-3xl border transition-all space-y-4 ${reporteCardClass}`}
-                >
-                  {/* Encabezado del Reporte */}
-                  <div className="flex flex-wrap justify-between items-start gap-3 border-b border-slate-100 pb-3">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {getTipoBadge(rep.tipoPublicacion)}
-
-                      <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase ${estadoBadgeClass}`}>
-                        {estadoLabel}
-                      </span>
-
-                      <span className="text-xs text-slate-400 font-medium">· Reportado {timeAgo(rep.fecha)}</span>
-                    </div>
-
-                    <span className="text-xs text-slate-500 font-medium">
-                      Reportado por: <strong className="text-slate-800 font-bold">{rep.reportador?.nombreCompleto || 'Usuario'}</strong>
-                    </span>
-                  </div>
-
-                  {/* Detalle del Motivo y Descripción del Reporte */}
-                  <div className="p-4 bg-amber-50/60 border border-amber-200/60 rounded-2xl space-y-1">
-                    <p className="text-xs font-black text-amber-900 flex items-center gap-1.5">
-                      <ShieldAlert size={14} className="text-amber-700 shrink-0" />
-                      <span>Motivo del Reporte: {rep.motivo}</span>
-                    </p>
-                    {rep.descripcion && (
-                      <p className="text-xs text-amber-800 font-medium pl-5">{rep.descripcion}</p>
-                    )}
-                  </div>
-
-                  {/* Contenido Reportado Original */}
-                  {rep.contenido ? (
-                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Contenido de la Publicación:</span>
-                        {isOculto && (
-                          <span className="text-[10px] font-black bg-red-100 text-red-700 px-2 py-0.5 rounded-md flex items-center gap-1">
-                            <EyeOff size={10} /> Ocultado actualmente
-                          </span>
-                        )}
-                      </div>
-                      
-                      <h4 className="text-xs font-extrabold text-slate-900">{rep.contenido.titulo}</h4>
-                      <p className="text-xs text-slate-700 font-mono bg-white p-3 rounded-xl border border-slate-200 max-h-32 overflow-y-auto whitespace-pre-wrap">
-                        {rep.contenido.texto}
-                      </p>
-
-                      {/* Info del Autor */}
-                      {rep.autor && (
-                        <div className="flex justify-between items-center pt-1 text-xs text-slate-500 font-medium">
-                          <span>Autor: <strong className="text-slate-900 font-bold">{rep.autor.nombreCompleto}</strong> (@{rep.autor.usuario})</span>
-                          {isAutorBaneado ? (
-                            <span className="text-red-600 font-black text-[10px] bg-red-50 px-2 py-0.5 rounded border border-red-200 flex items-center gap-1">
-                              <Ban size={10} /> Usuario Baneado
-                            </span>
-                          ) : (
-                            <span className="text-emerald-700 font-bold text-[10px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                              Cuenta Activa
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-xs italic text-slate-400">La publicación reportada ha sido eliminada o no se encuentra disponible.</p>
-                  )}
-
-                  {/* Botones de Acción Rápida */}
-                  <div className="flex flex-wrap justify-end items-center gap-2 pt-2 border-t border-slate-100">
-                    {/* Botón Ocultar / Mostrar */}
-                    {renderOcultarButton(rep, isOculto)}
-
-                    {/* Botón Banear / Reactivar Usuario */}
-                    {renderUserActionBtn(rep, isAutorBaneado)}
-
-                    {/* Botón Resolver Reporte */}
-                    {!isResuelto && (
-                      <button
-                        type="button"
-                        disabled={actionLoading}
-                        onClick={() => handleResolver(rep.idReporte)}
-                        className="px-4 py-2 bg-[#2c5364] hover:bg-[#203a43] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-                      >
-                        <Check size={14} />
-                        <span>Marcar Resuelto</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        {renderReportesContent()}
+        </>
         )}
-      </>
-    )}
+
       {/* Modal Confirmación Banear Usuario */}
       {banModal.isOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-[130] flex items-center justify-center p-4">
