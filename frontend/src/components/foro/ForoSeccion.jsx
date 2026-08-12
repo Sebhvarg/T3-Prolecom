@@ -14,6 +14,27 @@ import EditRespuestaModal from './EditRespuestaModal';
 import ReporteModal from './ReporteModal';
 import ForoEmptyState from './ForoEmptyState';
 
+const filterAndSortPreguntas = (preguntas, search, filtro, orden, userId) => {
+  const filtered = preguntas.filter((p) => {
+    const matchSearch = p.titulo.toLowerCase().includes(search.toLowerCase()) ||
+                        p.descripcion.toLowerCase().includes(search.toLowerCase());
+    if (!matchSearch) return false;
+
+    if (filtro === 'mis_preguntas') return p.idUsuarioCreador === userId;
+    if (filtro === 'sin_respuesta') return (p.respuestas_count ?? 0) === 0;
+    if (filtro === 'oficial') return p.tiene_respuesta_validada;
+    if (filtro === 'fijadas') return p.fijada;
+    return true;
+  });
+
+  return filtered.sort((a, b) => {
+    if (a.fijada !== b.fijada) return b.fijada ? 1 : -1;
+    if (orden === 'respuestas') return (b.respuestas_count ?? 0) - (a.respuestas_count ?? 0);
+    if (orden === 'vistas') return (b.vistas ?? 0) - (a.vistas ?? 0);
+    return new Date(b.created_at) - new Date(a.created_at);
+  });
+};
+
 const ForoSeccion = ({ idForo, user, temas, onBack }) => {
   const [searchParams] = useSearchParams();
   const initialPreguntaId = searchParams.get('preguntaId');
@@ -218,32 +239,7 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
     }
   };
 
-  // Filtrado y Ordenamiento
-  let preguntasProcesadas = preguntas.filter(p => {
-    const matchSearch = p.titulo.toLowerCase().includes(search.toLowerCase()) ||
-                        p.descripcion.toLowerCase().includes(search.toLowerCase());
-    if (!matchSearch) return false;
-
-    if (filtro === 'mis_preguntas') return p.idUsuarioCreador === user?.idUsuario;
-    if (filtro === 'sin_respuesta') return (p.respuestas_count ?? 0) === 0;
-    if (filtro === 'oficial') return p.tiene_respuesta_validada;
-    if (filtro === 'fijadas') return p.fijada;
-    return true;
-  });
-
-  // Ordenamiento adicional
-  preguntasProcesadas.sort((a, b) => {
-    // Las fijadas siempre primero
-    if (a.fijada !== b.fijada) return b.fijada ? 1 : -1;
-
-    if (orden === 'respuestas') {
-      return (b.respuestas_count ?? 0) - (a.respuestas_count ?? 0);
-    }
-    if (orden === 'vistas') {
-      return (b.vistas ?? 0) - (a.vistas ?? 0);
-    }
-    return new Date(b.created_at) - new Date(a.created_at);
-  });
+  const preguntasProcesadas = filterAndSortPreguntas(preguntas, search, filtro, orden, user?.idUsuario);
 
   const isForoClosed = foro?.estado === 'cerrado';
 

@@ -58,6 +58,34 @@ const validateMaterialFile = (file, materialTipo) => {
   return null;
 };
 
+const renderItemMetadata = (item) => {
+  const typeStr = item.itemable_type || '';
+  const isDesafio = typeStr.includes('Desafio') || Boolean(item.dificultad) || Boolean(item.itemable?.dificultad);
+  const isForo = typeStr.includes('Foro') || Boolean(item.itemable?.idForo) || Boolean(item.titulo?.includes('Foro'));
+  const isQuiz = typeStr.includes('Quiz') || Boolean(item.itemable?.idQuiz) || Boolean(item.titulo?.includes('Evaluación'));
+
+  let icon = <FileText size={18} />;
+  let iconBg = 'bg-slate-100 text-[#2c5364]';
+  let subtitle = `Material (${item.tipo || item.itemable?.tipo || 'Lectura'})`;
+
+  if (isDesafio) {
+    icon = <Code size={18} />;
+    iconBg = 'bg-amber-100 text-amber-900';
+    subtitle = `Desafío (${item.dificultad || item.itemable?.dificultad || 'Práctico'})`;
+  } else if (isForo) {
+    icon = <MessageSquare size={18} />;
+    iconBg = 'bg-purple-100 text-purple-900';
+    subtitle = 'Foro de Discusión';
+  } else if (isQuiz) {
+    icon = <HelpCircle size={18} />;
+    iconBg = 'bg-indigo-100 text-indigo-900';
+    subtitle = 'Evaluación / Quiz';
+  }
+
+  const isMaterial = !isDesafio && !isForo && !isQuiz;
+  return { icon, iconBg, subtitle, isDesafio, isForo, isQuiz, isMaterial };
+};
+
 const CursoDetallePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -562,40 +590,14 @@ const CursoDetallePage = () => {
                       <p className="text-xs text-slate-400 font-medium italic text-center py-4">No hay ítems cargados en este tema.</p>
                     ) : (
                       tema.items?.map((item, itemIdx) => {
-                        const typeStr = item.itemable_type || '';
-                        const isDesafio = typeStr.includes('Desafio') || Boolean(item.dificultad) || Boolean(item.itemable?.dificultad);
-                        const isForo = typeStr.includes('Foro') || Boolean(item.itemable?.idForo) || Boolean(item.titulo?.includes('Foro'));
-                        const isQuiz = typeStr.includes('Quiz') || Boolean(item.itemable?.idQuiz) || Boolean(item.titulo?.includes('Evaluación'));
-                        const isMaterial = !isDesafio && !isForo && !isQuiz;
-
-                        const getItemIcon = () => {
-                          if (isDesafio) return <Code size={18} />;
-                          if (isForo) return <MessageSquare size={18} />;
-                          if (isQuiz) return <HelpCircle size={18} />;
-                          return <FileText size={18} />;
-                        };
-
-                        const getIconBg = () => {
-                          if (isDesafio) return 'bg-amber-100 text-amber-900';
-                          if (isForo) return 'bg-purple-100 text-purple-900';
-                          if (isQuiz) return 'bg-indigo-100 text-indigo-900';
-                          return 'bg-slate-100 text-[#2c5364]';
-                        };
-
-                        const getItemSubtitle = () => {
-                          if (isDesafio) return `Desafío (${item.dificultad || item.itemable?.dificultad || 'Práctico'})`;
-                          if (isForo) return 'Foro de Discusión';
-                          if (isQuiz) return 'Evaluación / Quiz';
-                          return `Material (${item.tipo || item.itemable?.tipo || 'Lectura'})`;
-                        };
-
+                        const { icon, iconBg, subtitle, isDesafio, isForo, isQuiz, isMaterial } = renderItemMetadata(item);
                         const itemKey = item.idItem || item.idMaterial || item.idDesafio || item.idForo || item.idQuiz || `item-${itemIdx}`;
 
                         return (
                           <div key={itemKey} className="p-4 bg-white rounded-2xl border border-slate-200 flex justify-between items-center gap-4 hover:border-slate-300 transition-all">
                             <div className="flex items-center gap-3">
-                              <div className={`p-2 rounded-xl text-xs font-black ${getIconBg()}`}>
-                                {getItemIcon()}
+                              <div className={`p-2 rounded-xl text-xs font-black ${iconBg}`}>
+                                {icon}
                               </div>
 
                               <div>
@@ -603,7 +605,7 @@ const CursoDetallePage = () => {
                                   {item.titulo || item.itemable?.titulo || item.nombre}
                                 </h4>
                                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                                  {getItemSubtitle()}
+                                  {subtitle}
                                 </span>
                               </div>
                             </div>

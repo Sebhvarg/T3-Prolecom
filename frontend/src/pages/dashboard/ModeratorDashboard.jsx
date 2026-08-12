@@ -137,6 +137,27 @@ const ModeratorDashboard = () => {
     }
   };
 
+  const renderOcultarButton = (rep, isOculto) => {
+    if (!rep.contenido) return null;
+    const btnClass = isOculto
+      ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+      : 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs';
+    const btnIcon = isOculto ? <Eye size={14} /> : <EyeOff size={14} />;
+    const btnText = isOculto ? 'Restaurar Contenido' : 'Ocultar Contenido';
+
+    return (
+      <button
+        type="button"
+        disabled={actionLoading}
+        onClick={() => handleOcultar(rep.idReporte)}
+        className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${btnClass}`}
+      >
+        {btnIcon}
+        <span>{btnText}</span>
+      </button>
+    );
+  };
+
   const renderUserActionBtn = (rep, isAutorBaneado) => {
     if (!rep.autor) return null;
     if (isAutorBaneado) {
@@ -534,21 +555,7 @@ const ModeratorDashboard = () => {
                   {/* Botones de Acción Rápida */}
                   <div className="flex flex-wrap justify-end items-center gap-2 pt-2 border-t border-slate-100">
                     {/* Botón Ocultar / Mostrar */}
-                    {rep.contenido && (
-                      <button
-                        type="button"
-                        disabled={actionLoading}
-                        onClick={() => handleOcultar(rep.idReporte)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
-                          isOculto 
-                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' 
-                            : 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs'
-                        }`}
-                      >
-                        {isOculto ? <Eye size={14} /> : <EyeOff size={14} />}
-                        <span>{isOculto ? 'Restaurar Contenido' : 'Ocultar Contenido'}</span>
-                      </button>
-                    )}
+                    {renderOcultarButton(rep, isOculto)}
 
                     {/* Botón Banear / Reactivar Usuario */}
                     {renderUserActionBtn(rep, isAutorBaneado)}
