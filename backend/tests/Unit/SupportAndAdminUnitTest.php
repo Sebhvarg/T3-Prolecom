@@ -38,7 +38,7 @@ class SupportAndAdminUnitTest extends TestCase
         User::factory()->create(['idEstado' => 1]);
 
         $dashboard = new AdminDashboard;
-        $data = $dashboard->getData();
+        $data = $dashboard->render();
 
         $this->assertArrayHasKey('widgets', $data);
         $this->assertArrayHasKey('total_usuarios', $data['widgets']);

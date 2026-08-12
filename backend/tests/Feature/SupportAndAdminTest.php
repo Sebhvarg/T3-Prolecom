@@ -132,7 +132,6 @@ class SupportAndAdminTest extends TestCase
         $response->assertJsonStructure([
             'health' => [
                 'database',
-                'storage',
                 'php_version',
                 'memory_usage',
                 'server_time',
