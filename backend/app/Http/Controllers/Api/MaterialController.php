@@ -56,7 +56,7 @@ class MaterialController extends Controller
         }
 
         $allowedMimes = config('media.allowed_mimes', 'pdf,mp4,mov,avi,mkv,webm');
-        $maxSize = config('media.max_size', 102400);
+        $maxSize = config('media.max_size', 512000);
 
         $titulo = $request->titulo ?? $request->nombre;
         $tipoInput = strtolower((string) $request->tipo);
@@ -78,7 +78,7 @@ class MaterialController extends Controller
             'archivo.mimes' => $isVideo
                 ? 'El archivo de video debe tener un formato válido (MP4, MOV, AVI, MKV o WEBM).'
                 : 'El documento debe estar estrictamente en formato PDF.',
-            'archivo.max' => 'El tamaño máximo permitido para archivos de material es 100 MB.',
+            'archivo.max' => 'El tamaño máximo permitido para archivos de material es 500 MB.',
             'titulo.required' => 'El título del material es obligatorio.',
         ]);
 
