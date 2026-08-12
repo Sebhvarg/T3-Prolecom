@@ -287,14 +287,34 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
 
   if (!loading && !targetForoId) {
     return (
-      <div className="text-center py-16 bg-white rounded-3xl border border-gray-100 shadow-xs p-8 max-w-lg mx-auto my-6">
-        <div className="w-16 h-16 bg-blue-50 text-[#2c5364] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
+      <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-xs p-8 max-w-lg mx-auto my-6 space-y-4">
+        <div className="w-16 h-16 bg-purple-50 text-purple-700 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
           <MessageSquare className="w-8 h-8" />
         </div>
-        <h3 className="text-xl font-bold text-gray-900">Sin Foro de Discusión Activo</h3>
-        <p className="text-gray-500 text-sm mt-2 max-w-sm mx-auto leading-relaxed">
-          Este curso aún no cuenta con un foro de preguntas agregado a sus temas. Los profesores pueden crear uno agregando una actividad de tipo Foro en cualquier tema.
-        </p>
+        <div>
+          <h3 className="text-xl font-black text-slate-900">Sin Foro de Discusión Activo</h3>
+          <p className="text-slate-500 text-xs mt-2 max-w-sm mx-auto leading-relaxed font-medium">
+            Este curso aún no cuenta con un foro de preguntas agregado a sus temas. Los profesores pueden crear uno activando la opción de foro en cualquier tema.
+          </p>
+        </div>
+        {canManageForo ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white px-5 py-2.5 rounded-xl font-extrabold text-xs shadow-xs transition-all cursor-pointer"
+          >
+            <Plus size={16} />
+            <span>Crear Foro en un Tema</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl font-extrabold text-xs transition-all cursor-pointer"
+          >
+            <span>Ver Temas del Curso</span>
+          </button>
+        )}
       </div>
     );
   }
