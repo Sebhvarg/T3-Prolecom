@@ -10,7 +10,9 @@ import {
 } from 'lucide-react';
 
 const DesafioDetallePage = () => {
-  const { id: idCurso, idDesafio } = useParams();
+  const params = useParams();
+  const idDesafio = params.idDesafio || params.id;
+  const idCurso = params.idDesafio ? params.id : null;
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -143,7 +145,7 @@ const DesafioDetallePage = () => {
           <h3 className="text-xl font-bold text-gray-900">Ocurrió un error</h3>
           <p className="text-gray-500 mt-2">{error}</p>
           <button
-            onClick={() => navigate(`/cursos/${idCurso}`)}
+            onClick={() => navigate(idCurso ? `/cursos/${idCurso}` : '/cursos')}
             className="mt-6 inline-flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white px-5 py-2.5 rounded-xl font-semibold shadow"
           >
             <ArrowLeft size={18} />
@@ -167,8 +169,8 @@ const DesafioDetallePage = () => {
     <DashboardContainer title={`Desafío: ${desafio?.titulo}`} user={user}>
       {/* Botón Volver */}
       <button
-        onClick={() => navigate(`/cursos/${idCurso}`)}
-        className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors mb-6 font-semibold"
+        onClick={() => navigate(idCurso ? `/cursos/${idCurso}` : '/cursos')}
+        className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors mb-6 font-semibold cursor-pointer"
       >
         <ArrowLeft size={18} />
         <span>Volver a Desafíos</span>

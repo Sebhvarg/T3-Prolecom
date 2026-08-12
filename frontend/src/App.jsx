@@ -51,6 +51,8 @@ function App() {
             <Route path="/cursos" element={<CursosPage />} />
             <Route path="/cursos/:id" element={<CursoDetallePage />} />
             <Route path="/cursos/:id/desafios/:idDesafio" element={<DesafioDetallePage />} />
+            <Route path="/desafios/:idDesafio" element={<DesafioDetallePage />} />
+            <Route path="/desafios/:id" element={<DesafioDetallePage />} />
             <Route path="/perfil" element={<PerfilPage />} />
           </Route>
 

@@ -602,7 +602,10 @@ const CursoDetallePage = () => {
                               {isDesafio && (
                                 <button
                                   type="button"
-                                  onClick={() => navigate(`/desafios/${item.idDesafio || item.itemable_id}`)}
+                                  onClick={() => {
+                                    const targetDesafioId = item.idDesafio || item.itemable_id || item.itemable?.idDesafio || item.idItem;
+                                    navigate(`/cursos/${id}/desafios/${targetDesafioId}`);
+                                  }}
                                   className="px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
                                 >
                                   <Play size={14} fill="currentColor" />
