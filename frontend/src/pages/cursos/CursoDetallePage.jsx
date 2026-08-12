@@ -554,16 +554,38 @@ const CursoDetallePage = () => {
                       <p className="text-xs text-slate-400 font-medium italic text-center py-4">No hay ítems cargados en este tema.</p>
                     ) : (
                       tema.items?.map((item) => {
-                        const isDesafio = item.itemable_type?.includes('Desafio') || Boolean(item.dificultad);
-                        const isMaterial = item.itemable_type?.includes('Material') || Boolean(item.tipo_archivo);
+                        const typeStr = item.itemable_type || '';
+                        const isDesafio = typeStr.includes('Desafio') || Boolean(item.dificultad) || Boolean(item.itemable?.dificultad);
+                        const isForo = typeStr.includes('Foro') || Boolean(item.itemable?.idForo) || (item.titulo && item.titulo.includes('Foro'));
+                        const isQuiz = typeStr.includes('Quiz') || Boolean(item.itemable?.idQuiz) || (item.titulo && item.titulo.includes('Evaluación'));
+                        const isMaterial = !isDesafio && !isForo && !isQuiz;
+
+                        const getItemIcon = () => {
+                          if (isDesafio) return <Code size={18} />;
+                          if (isForo) return <MessageSquare size={18} />;
+                          if (isQuiz) return <HelpCircle size={18} />;
+                          return <FileText size={18} />;
+                        };
+
+                        const getIconBg = () => {
+                          if (isDesafio) return 'bg-amber-100 text-amber-900';
+                          if (isForo) return 'bg-purple-100 text-purple-900';
+                          if (isQuiz) return 'bg-indigo-100 text-indigo-900';
+                          return 'bg-slate-100 text-[#2c5364]';
+                        };
+
+                        const getItemSubtitle = () => {
+                          if (isDesafio) return `Desafío (${item.dificultad || item.itemable?.dificultad || 'Práctico'})`;
+                          if (isForo) return 'Foro de Discusión';
+                          if (isQuiz) return 'Evaluación / Quiz';
+                          return `Material (${item.tipo || item.itemable?.tipo || 'Lectura'})`;
+                        };
 
                         return (
-                          <div key={item.idItem || item.idMaterial || item.idDesafio} className="p-4 bg-white rounded-2xl border border-slate-200 flex justify-between items-center gap-4 hover:border-slate-300 transition-all">
+                          <div key={item.idItem || item.idMaterial || item.idDesafio || item.idForo || item.idQuiz || Math.random()} className="p-4 bg-white rounded-2xl border border-slate-200 flex justify-between items-center gap-4 hover:border-slate-300 transition-all">
                             <div className="flex items-center gap-3">
-                              <div className={`p-2 rounded-xl text-xs font-black ${
-                                isDesafio ? 'bg-amber-100 text-amber-900' : 'bg-slate-100 text-[#2c5364]'
-                              }`}>
-                                {isDesafio ? <Code size={18} /> : <FileText size={18} />}
+                              <div className={`p-2 rounded-xl text-xs font-black ${getIconBg()}`}>
+                                {getItemIcon()}
                               </div>
 
                               <div>
@@ -571,7 +593,7 @@ const CursoDetallePage = () => {
                                   {item.titulo || item.itemable?.titulo || item.nombre}
                                 </h4>
                                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                                  {isDesafio ? `Desafío (${item.dificultad || item.itemable?.dificultad || 'Práctico'})` : `Material (${item.tipo || 'Lectura'})`}
+                                  {getItemSubtitle()}
                                 </span>
                               </div>
                             </div>
@@ -610,6 +632,28 @@ const CursoDetallePage = () => {
                                 >
                                   <Play size={14} fill="currentColor" />
                                   <span>Resolver Desafío</span>
+                                </button>
+                              )}
+
+                              {isForo && (
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveTab('foro')}
+                                  className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+                                >
+                                  <MessageSquare size={14} />
+                                  <span>Ir al Foro</span>
+                                </button>
+                              )}
+
+                              {isQuiz && (
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveTab('quizzes')}
+                                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+                                >
+                                  <HelpCircle size={14} />
+                                  <span>Rendir Quiz</span>
                                 </button>
                               )}
 
