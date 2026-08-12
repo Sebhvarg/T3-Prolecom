@@ -298,7 +298,8 @@ class ForoController extends Controller
         $pregunta = Pregunta::with([
             'creador:idUsuario,nombreCompleto,usuario,avatar_path',
             'respuestas' => function ($q) {
-                $q->with('usuario:idUsuario,nombreCompleto,usuario,avatar_path', 'usuario.roles:idRol,rol')
+                $q->where('oculta', false)
+                    ->with('usuario:idUsuario,nombreCompleto,usuario,avatar_path', 'usuario.roles:idRol,rol')
                     ->orderByDesc('validada')
                     ->orderByDesc('created_at');
             },

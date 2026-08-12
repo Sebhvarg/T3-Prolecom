@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DesafioController;
 use App\Http\Controllers\Api\ForoController;
 use App\Http\Controllers\Api\MaterialController;
+use App\Http\Controllers\Api\ModeracionController;
 use App\Http\Controllers\Api\NotificacionController;
 use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\TemaController;
@@ -130,5 +131,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post(ROUTE_CURSO_ID.'/matricular-manual', [CursoController::class, 'matricularManual']);
         Route::get('/estudiantes', [UserController::class, 'listarEstudiantes']);
         Route::get('/usuarios/activos', [UserController::class, 'usuariosActivos']);
+    });
+
+    // MODERACIÓN Y CONTROL DE REPORTES (Administrador, Moderador)
+    Route::middleware('role:Administrador,Moderador')->group(function () {
+        Route::get('/moderacion/stats', [ModeracionController::class, 'stats']);
+        Route::get('/moderacion/reportes', [ModeracionController::class, 'indexReportes']);
+        Route::post('/moderacion/reportes/{id}/resolver', [ModeracionController::class, 'resolverReporte']);
+        Route::post('/moderacion/reportes/{id}/ocultar', [ModeracionController::class, 'ocultarPublicacion']);
+        Route::post('/moderacion/usuarios/{id}/banear', [ModeracionController::class, 'banearUsuario']);
     });
 });

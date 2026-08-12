@@ -163,6 +163,20 @@ class TestUserSeeder extends Seeder
         ]);
         DB::table('rolUsuario')->insert(['idUsuario' => $teresaId, 'idRol' => 6]);
 
+        // 6. Moderador
+        $moderadorId = DB::table('usuarios')->insertGetId([
+            'nombreCompleto' => 'Lic. Roberto Moderador',
+            'usuario' => 'moderador',
+            'email' => 'moderador@prolecom.com',
+            'password' => Hash::make('password123'),
+            'fechaDeNacimiento' => '1988-09-12',
+            'idEstado' => 1,
+            'xp' => 600,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('rolUsuario')->insert(['idUsuario' => $moderadorId, 'idRol' => 2]); // Moderador
+
         return [
             'admin' => $adminId,
             'profesor' => $profesorId,
@@ -172,6 +186,7 @@ class TestUserSeeder extends Seeder
             'karla' => $karlaId,
             'alex' => $alexId,
             'teresa' => $teresaId,
+            'moderador' => $moderadorId,
         ];
     }
 
