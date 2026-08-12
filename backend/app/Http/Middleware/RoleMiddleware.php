@@ -20,10 +20,15 @@ class RoleMiddleware
             return response()->json(['message' => 'No autenticado'], 401);
         }
 
-        // Verificamos si el usuario tiene alguno de los roles permitidos
         $userRoles = $request->user()->roles->pluck('rol')->toArray();
-
+        $allowedRoles = [];
         foreach ($roles as $role) {
+            foreach (explode(',', $role) as $r) {
+                $allowedRoles[] = trim($r);
+            }
+        }
+
+        foreach ($allowedRoles as $role) {
             if (in_array($role, $userRoles, true)) {
                 return $next($request);
             }

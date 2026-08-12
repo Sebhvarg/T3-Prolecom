@@ -19,11 +19,13 @@ class Respuesta extends Model
         'idPregunta',
         'validada',
         'editado',
+        'oculta',
     ];
 
     protected $casts = [
         'validada' => 'boolean',
         'editado' => 'boolean',
+        'oculta' => 'boolean',
     ];
 
     /**

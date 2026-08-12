@@ -1,4 +1,4 @@
-import { Home, Settings, LogOut, BookOpen } from 'lucide-react';
+import { Home, Settings, LogOut, BookOpen, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logo from '../../assets/Logo/logoHorizontal.webp';
@@ -8,12 +8,25 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const nonStudentPath = user?.rol === 'Profesor' ? '/profesor/dashboard' : '/admin';
-  const homePath = user?.rol === 'Estudiante' ? '/dashboard/estudiante' : nonStudentPath;
+  const isModeratorOrAdmin = Boolean(
+    user?.rol === 'Administrador' ||
+    user?.rol === 'Moderador' ||
+    user?.roles?.some(r => ['Administrador', 'Moderador'].includes(r.rol || r))
+  );
+
+  const getHomePath = (userRole) => {
+    if (userRole === 'Estudiante') return '/dashboard/estudiante';
+    if (userRole === 'Moderador') return '/moderador/dashboard';
+    if (userRole === 'Profesor') return '/profesor/dashboard';
+    return '/admin';
+  };
+
+  const homePath = getHomePath(user?.rol);
 
   const menuItems = [
     { name: 'Principal', path: homePath, icon: <Home size={20} />, show: true },
     { name: 'Cursos', path: '/cursos', icon: <BookOpen size={20} />, show: true },
+    { name: 'Moderación', path: '/moderador/dashboard', icon: <ShieldAlert size={20} />, show: isModeratorOrAdmin },
   ];
 
   return (

@@ -99,6 +99,10 @@ class ForoController extends Controller
      */
     public function show($idForo)
     {
+        if (! is_numeric($idForo)) {
+            return response()->json(['message' => 'No se encontró el foro especificado.'], 404);
+        }
+
         $foro = Foro::with('creador:idUsuario,nombreCompleto,usuario,avatar_path')
             ->withCount('preguntas')
             ->findOrFail($idForo);
@@ -224,6 +228,10 @@ class ForoController extends Controller
      */
     public function indexPreguntas($idForo)
     {
+        if (! is_numeric($idForo)) {
+            return response()->json([]);
+        }
+
         Foro::findOrFail($idForo);
 
         $preguntas = Pregunta::where('idForo', $idForo)
@@ -290,7 +298,8 @@ class ForoController extends Controller
         $pregunta = Pregunta::with([
             'creador:idUsuario,nombreCompleto,usuario,avatar_path',
             'respuestas' => function ($q) {
-                $q->with('usuario:idUsuario,nombreCompleto,usuario,avatar_path', 'usuario.roles:idRol,rol')
+                $q->where('oculta', false)
+                    ->with('usuario:idUsuario,nombreCompleto,usuario,avatar_path', 'usuario.roles:idRol,rol')
                     ->orderByDesc('validada')
                     ->orderByDesc('created_at');
             },

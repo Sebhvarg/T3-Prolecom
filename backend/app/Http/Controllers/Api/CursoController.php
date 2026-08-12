@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\CategoriaCurso;
 use App\Models\Curso;
+use App\Models\Desafio;
+use App\Models\LenguajeProgramacion;
 use App\Models\Solucion;
 use App\Models\User;
+use App\Services\AuditLogService;
 use App\Strategies\CourseTemplate\CursoTemplateFactory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -15,7 +19,7 @@ class CursoController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $query = Curso::query()->with('creador:idUsuario,nombreCompleto');
+        $query = Curso::query()->with(['creador:idUsuario,nombreCompleto', 'categoria:idCategoria,nombre,slug,icono']);
 
         // Filtro por Lenguaje (LP)
         if ($request->has('lp') && ! empty($request->lp)) {
@@ -25,6 +29,11 @@ class CursoController extends Controller
         // Filtro por Tipo (Público/Privado)
         if ($request->has('tipo') && ! empty($request->tipo)) {
             $query->where('tipo', $request->tipo);
+        }
+
+        // Filtro por Categoría
+        if ($request->has('idCategoria') && ! empty($request->idCategoria)) {
+            $query->where('idCategoria', $request->idCategoria);
         }
 
         // Filtros especiales de matrícula
@@ -54,52 +63,63 @@ class CursoController extends Controller
         return response()->json($cursos);
     }
 
+    public function getCategorias()
+    {
+        return response()->json(CategoriaCurso::all());
+    }
+
     public function show(Request $request, $id)
     {
         $user = $request->user('sanctum') ?? auth()->user();
 
         $curso = Curso::with([
             'creador:idUsuario,nombreCompleto',
+            'categoria:idCategoria,nombre,slug,icono',
             'temas.items.itemable',
-        ])->findOrFail($id);
+            'temas' => function ($query) {
+                $query->orderBy('idTema', 'asc');
+            },
+        ])->find($id);
 
-        $idsDesafiosResueltos = [];
-        if ($user) {
-            $idsDesafiosResueltos = Solucion::where('idEstudiante', $user->idUsuario)
-                ->where('estado', 'aprobado')
-                ->pluck('idDesafio')
-                ->unique()
-                ->toArray();
+        if (! $curso) {
+            return response()->json(['message' => 'Curso no encontrado'], 404);
         }
 
-        $totalXPCurso = 0;
-        $xpGanadoCurso = 0;
-        $desafiosTotales = 0;
+        // Si el curso es privado y el usuario no está matriculado ni es creador/admin
+        $isCreatorOrAdmin = $user && ($user->idUsuario === $curso->idProfeCreador || $user->roles->pluck('rol')->contains('Administrador'));
+        $isEnrolled = $user && $curso->estudiantes()->where('usuarios.idUsuario', $user->idUsuario)->exists();
+
+        if ($curso->tipo === 'privado' && ! $isCreatorOrAdmin && ! $isEnrolled) {
+            return response()->json(['message' => 'No tienes acceso a este curso privado'], 403);
+        }
+
+        $curso->esta_matriculado = $isEnrolled;
+        $curso->progreso_desafios = $this->calcularProgresoDesafios($curso, $user);
+
+        return response()->json($curso);
+    }
+
+    private function calcularProgresoDesafios(Curso $curso, $user): array
+    {
+        $desafiosCount = 0;
         $desafiosResueltosCount = 0;
 
         foreach ($curso->temas as $tema) {
             foreach ($tema->items as $item) {
-                $res = $this->procesarItemTema($item, $idsDesafiosResueltos);
-                if ($res['es_desafio']) {
-                    $totalXPCurso += $res['puntos'];
-                    $desafiosTotales++;
-                    if ($res['completado']) {
-                        $xpGanadoCurso += $res['puntos'];
+                if ($item->itemable_type === Desafio::class) {
+                    $desafiosCount++;
+                    if ($user && Solucion::where('idDesafio', $item->itemable_id)->where('idEstudiante', $user->idUsuario)->where('estado', 'aprobado')->exists()) {
                         $desafiosResueltosCount++;
                     }
                 }
             }
         }
 
-        $curso->progreso_estudiante = [
-            'xp_ganado' => $xpGanadoCurso,
-            'xp_total' => $totalXPCurso,
-            'desafios_resueltos' => $desafiosResueltosCount,
-            'desafios_totales' => $desafiosTotales,
-            'porcentaje' => $desafiosTotales > 0 ? round(($desafiosResueltosCount / $desafiosTotales) * 100) : 0,
+        return [
+            'resueltos' => $desafiosResueltosCount,
+            'totales' => $desafiosCount,
+            'porcentaje' => $desafiosCount > 0 ? (int) round(($desafiosResueltosCount / $desafiosCount) * 100) : 0,
         ];
-
-        return response()->json($curso);
     }
 
     public function store(Request $request)
@@ -109,6 +129,7 @@ class CursoController extends Controller
             'descripcion' => 'required|string',
             'lp' => 'required|string|max:50',
             'tipo' => 'required|in:público,privado',
+            'idCategoria' => 'nullable|exists:categorias_curso,idCategoria',
         ]);
 
         if ($validator->fails()) {
@@ -120,6 +141,7 @@ class CursoController extends Controller
             'descripcion' => $request->descripcion,
             'lp' => $request->lp,
             'tipo' => $request->tipo,
+            'idCategoria' => $request->idCategoria ?? 1,
             'idProfeCreador' => $request->user()->idUsuario,
         ]);
 
@@ -127,9 +149,11 @@ class CursoController extends Controller
         $strategy = CursoTemplateFactory::getStrategy($curso->lp);
         $strategy->loadTemplate($curso);
 
+        AuditLogService::log('crear_curso', 'Curso', $curso->idCurso, "Curso creado: {$curso->titulo}");
+
         return response()->json([
             'message' => 'Curso creado con éxito',
-            'curso' => $curso->load(['creador:idUsuario,nombreCompleto', 'temas']),
+            'curso' => $curso->load(['creador:idUsuario,nombreCompleto', 'categoria', 'temas']),
         ], 201);
     }
 
@@ -148,17 +172,20 @@ class CursoController extends Controller
             'descripcion' => 'sometimes|required|string',
             'lp' => 'sometimes|required|string|max:50',
             'tipo' => 'sometimes|required|in:público,privado',
+            'idCategoria' => 'nullable|exists:categorias_curso,idCategoria',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 400);
         }
 
-        $curso->update($request->only('titulo', 'descripcion', 'lp', 'tipo'));
+        $curso->update($request->only('titulo', 'descripcion', 'lp', 'tipo', 'idCategoria'));
+
+        AuditLogService::log('editar_curso', 'Curso', $curso->idCurso, "Curso actualizado: {$curso->titulo}");
 
         return response()->json([
             'message' => 'Curso actualizado con éxito',
-            'curso' => $curso->load('creador:idUsuario,nombreCompleto'),
+            'curso' => $curso->load(['creador:idUsuario,nombreCompleto', 'categoria']),
         ]);
     }
 
@@ -263,26 +290,12 @@ class CursoController extends Controller
         return response()->json(['count' => Curso::count()]);
     }
 
-    private function procesarItemTema($item, array $idsDesafiosResueltos): array
+    public function getLenguajes()
     {
-        if ($item->itemable && method_exists($item->itemable, 'creador')) {
-            $item->itemable->load('creador:idUsuario,nombreCompleto');
-        }
+        $lenguajes = LenguajeProgramacion::where('activo', true)
+            ->orderBy('nombre')
+            ->get();
 
-        $isDesafio = $item->itemable_type && str_contains($item->itemable_type, 'Desafio') && $item->itemable;
-        if (! $isDesafio) {
-            return ['es_desafio' => false, 'puntos' => 0, 'completado' => false];
-        }
-
-        $desafio = $item->itemable;
-        $puntos = $desafio->puntos ?? 10;
-        $isCompleted = in_array($desafio->idDesafio, $idsDesafiosResueltos);
-        $desafio->completado = $isCompleted;
-
-        return [
-            'es_desafio' => true,
-            'puntos' => $puntos,
-            'completado' => $isCompleted,
-        ];
+        return response()->json($lenguajes);
     }
 }

@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useForoHandlers } from '../../hooks/useForoHandlers';
+import { useForoData } from '../../hooks/useForoData';
 import PropTypes from 'prop-types';
 import {
   MessageSquare, Plus, Search,
   Loader2, AlertCircle, ShieldCheck, Lock, Unlock, ArrowLeft
 } from 'lucide-react';
-import { foroService } from '../../api/foroService';
 import PreguntaCard from './PreguntaCard';
 import HiloRespuestas from './HiloRespuestas';
 import NuevaPreguntaModal from './NuevaPreguntaModal';
@@ -14,19 +15,66 @@ import EditRespuestaModal from './EditRespuestaModal';
 import ReporteModal from './ReporteModal';
 import ForoEmptyState from './ForoEmptyState';
 
-const ForoSeccion = ({ idForo, user, onBack }) => {
+const filterAndSortPreguntas = (preguntas, search, filtro, orden, userId) => {
+  const filtered = preguntas.filter((p) => {
+    const matchSearch = p.titulo.toLowerCase().includes(search.toLowerCase()) ||
+                        p.descripcion.toLowerCase().includes(search.toLowerCase());
+    if (!matchSearch) return false;
+
+    if (filtro === 'mis_preguntas') return p.idUsuarioCreador === userId;
+    if (filtro === 'sin_respuesta') return (p.respuestas_count ?? 0) === 0;
+    if (filtro === 'oficial') return p.tiene_respuesta_validada;
+    if (filtro === 'fijadas') return p.fijada;
+    return true;
+  });
+
+  return filtered.sort((a, b) => {
+    if (a.fijada !== b.fijada) return b.fijada ? 1 : -1;
+    if (orden === 'respuestas') return (b.respuestas_count ?? 0) - (a.respuestas_count ?? 0);
+    if (orden === 'vistas') return (b.vistas ?? 0) - (a.vistas ?? 0);
+    return new Date(b.created_at) - new Date(a.created_at);
+  });
+};
+
+const checkAuthToValidate = (user) => Boolean(
+  user?.rol === 'Administrador' ||
+  user?.rol === 'Profesor' ||
+  user?.rol === 'Ayudante' ||
+  user?.roles?.some(r => ['Administrador', 'Profesor', 'Ayudante'].includes(r.rol || r))
+);
+
+const checkCanManageForo = (user) => Boolean(
+  user?.rol === 'Administrador' ||
+  user?.rol === 'Moderador' ||
+  user?.rol === 'Profesor' ||
+  user?.roles?.some(r => ['Administrador', 'Moderador', 'Profesor'].includes(r.rol || r))
+);
+
+const resolveTargetForoIdHelper = (idForo, temas) => {
+  const isValidId = (val) => Boolean(val && val !== 'undefined' && val !== 'null' && !Number.isNaN(Number(val)));
+  if (isValidId(idForo)) return Number(idForo);
+
+  const items = (temas || []).flatMap(t => t.items || []);
+  const match = items.find(item => {
+    const pid = item.idForo || (item.itemable_type?.includes('Foro') ? item.itemable_id : null);
+    return isValidId(pid);
+  });
+
+  if (match) {
+    const pid = match.idForo || (match.itemable_type?.includes('Foro') ? match.itemable_id : null);
+    return Number(pid);
+  }
+  return null;
+};
+
+const ForoSeccion = ({ idForo, user, temas, onBack }) => {
   const [searchParams] = useSearchParams();
   const initialPreguntaId = searchParams.get('preguntaId');
 
-  const [foro, setForo] = useState(null);
-  const [preguntas, setPreguntas] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [filtro, setFiltro] = useState('todas'); // 'todas' | 'oficial' | 'abiertas' | 'fijadas'
-  const [orden, setOrden] = useState('recientes'); // 'recientes' | 'respuestas' | 'vistas'
+  const [filtro, setFiltro] = useState('todas');
+  const [orden, setOrden] = useState('recientes');
 
-  // Modales
   const [isModalNuevaOpen, setIsModalNuevaOpen] = useState(false);
   const [submittingPregunta, setSubmittingPregunta] = useState(false);
 
@@ -38,259 +86,88 @@ const ForoSeccion = ({ idForo, user, onBack }) => {
 
   const [reportModalData, setReportModalData] = useState({ isOpen: false, targetId: null, targetType: 'pregunta' });
 
-  // Detalle Pregunta seleccionada (Hilo)
-  const [selectedPreguntaId, setSelectedPreguntaId] = useState(initialPreguntaId ? Number(initialPreguntaId) : null);
-  const [preguntaDetalle, setPreguntaDetalle] = useState(null);
+  const isAuthorizedToValidate = checkAuthToValidate(user);
+  const canManageForo = checkCanManageForo(user);
 
-  // Verificación RBAC para validar respuestas y gestionar el foro
-  const isAuthorizedToValidate = Boolean(
-    user?.rol === 'Administrador' ||
-    user?.rol === 'Profesor' ||
-    user?.rol === 'Ayudante' ||
-    user?.roles?.some(r => ['Administrador', 'Profesor', 'Ayudante'].includes(r.rol || r))
-  );
+  const resolveTargetForoId = useCallback(() => resolveTargetForoIdHelper(idForo, temas), [idForo, temas]);
 
-  const canManageForo = Boolean(
-    user?.rol === 'Administrador' ||
-    user?.rol === 'Moderador' ||
-    user?.rol === 'Profesor' ||
-    user?.roles?.some(r => ['Administrador', 'Moderador', 'Profesor'].includes(r.rol || r))
-  );
+  const {
+    foro,
+    preguntas,
+    loading,
+    error,
+    selectedPreguntaId,
+    setSelectedPreguntaId,
+    preguntaDetalle,
+    setPreguntaDetalle,
+    loadPreguntaDetalle,
+    fetchForoData,
+  } = useForoData({ resolveTargetForoId, initialPreguntaId });
 
-  const loadPreguntaDetalle = useCallback(async (idPregunta) => {
-    setSelectedPreguntaId(idPregunta);
-    try {
-      const data = await foroService.getPreguntaDetalle(idPregunta);
-      setPreguntaDetalle(data);
-    } catch (err) {
-      console.error(err);
-      alert('Error al cargar el detalle de la pregunta.');
-    }
-  }, []);
-
-  const fetchForoData = useCallback(async () => {
-    if (!idForo) {
-      setLoading(false);
-      setError('No se ha especificado un ID de foro válido.');
-      return;
-    }
-    try {
-      const [foroData, preguntasData] = await Promise.all([
-        foroService.getForo(idForo),
-        foroService.getPreguntasForo(idForo),
-      ]);
-      setForo(foroData);
-      setPreguntas(preguntasData);
-    } catch (err) {
-      console.error(err);
-      setError(err.message || 'Error al cargar los datos del foro.');
-    } finally {
-      setLoading(false);
-    }
-  }, [idForo]);
-
-  useEffect(() => {
-    let ignore = false;
-    async function init() {
-      await fetchForoData();
-      if (initialPreguntaId && !ignore) {
-        await loadPreguntaDetalle(Number(initialPreguntaId));
-      }
-    }
-    init();
-    return () => { ignore = true; };
-  }, [fetchForoData, initialPreguntaId, loadPreguntaDetalle]);
-
-  const handleCreatePregunta = async (preguntaData) => {
-    setSubmittingPregunta(true);
-    try {
-      await foroService.createPregunta(idForo, preguntaData);
-      setIsModalNuevaOpen(false);
-      fetchForoData();
-    } catch (err) {
-      console.error(err);
-      alert(err.message || 'Error al publicar la pregunta.');
-    } finally {
-      setSubmittingPregunta(false);
-    }
-  };
-
-  const handleEditPreguntaSubmit = async (idPregunta, data) => {
-    setSubmittingEditPregunta(true);
-    try {
-      await foroService.updatePregunta(idPregunta, data);
-      setEditingPregunta(null);
-      fetchForoData();
-      if (selectedPreguntaId === idPregunta) {
-        loadPreguntaDetalle(idPregunta);
-      }
-    } catch (err) {
-      console.error(err);
-      alert(err.message || 'Error al actualizar la pregunta.');
-    } finally {
-      setSubmittingEditPregunta(false);
-    }
-  };
-
-  const handleDeletePregunta = async (idPregunta) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar esta pregunta y todas sus respuestas?')) return;
-
-    try {
-      await foroService.deletePregunta(idPregunta);
-      if (selectedPreguntaId === idPregunta) {
-        setSelectedPreguntaId(null);
-        setPreguntaDetalle(null);
-      }
-      fetchForoData();
-    } catch (err) {
-      console.error(err);
-      alert(err.message || 'Error al eliminar la pregunta.');
-    }
-  };
-
-  const handleTogglePin = async (idPregunta) => {
-    try {
-      await foroService.toggleFijarPregunta(idPregunta);
-      fetchForoData();
-    } catch (err) {
-      console.error(err);
-      alert(err.message || 'Error al cambiar el estado fijado.');
-    }
-  };
-
-  const handleToggleEstadoForo = async () => {
-    try {
-      await foroService.toggleEstadoForo(idForo);
-      fetchForoData();
-    } catch (err) {
-      console.error(err);
-      alert(err.message || 'Error al cambiar el estado del foro.');
-    }
-  };
-
-  const handleEditRespuestaSubmit = async (idRespuesta, data) => {
-    setSubmittingEditRespuesta(true);
-    try {
-      await foroService.updateRespuesta(idRespuesta, data);
-      setEditingRespuesta(null);
-      if (selectedPreguntaId) {
-        loadPreguntaDetalle(selectedPreguntaId);
-      }
-    } catch (err) {
-      console.error(err);
-      alert(err.message || 'Error al editar la respuesta.');
-    } finally {
-      setSubmittingEditRespuesta(false);
-    }
-  };
-
-  const handleDeleteRespuesta = async (idRespuesta) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar esta respuesta?')) return;
-
-    try {
-      await foroService.deleteRespuesta(idRespuesta);
-      if (selectedPreguntaId) {
-        loadPreguntaDetalle(selectedPreguntaId);
-      }
-    } catch (err) {
-      console.error(err);
-      alert(err.message || 'Error al eliminar la respuesta.');
-    }
-  };
-
-  // Filtrado y Ordenamiento
-  let preguntasProcesadas = preguntas.filter(p => {
-    const matchSearch = p.titulo.toLowerCase().includes(search.toLowerCase()) ||
-                        p.descripcion.toLowerCase().includes(search.toLowerCase());
-    if (!matchSearch) return false;
-
-    if (filtro === 'mis_preguntas') return p.idUsuarioCreador === user?.idUsuario;
-    if (filtro === 'sin_respuesta') return (p.respuestas_count ?? 0) === 0;
-    if (filtro === 'oficial') return p.tiene_respuesta_validada;
-    if (filtro === 'fijadas') return p.fijada;
-    return true;
+  const {
+    handleCreatePregunta,
+    handleEditPreguntaSubmit,
+    handleDeletePregunta,
+    handleTogglePin,
+    handleToggleEstadoForo,
+    handleEditRespuestaSubmit,
+    handleDeleteRespuesta,
+  } = useForoHandlers({
+    idForo,
+    selectedPreguntaId,
+    setSelectedPreguntaId,
+    setPreguntaDetalle,
+    setEditingPregunta,
+    setSubmittingPregunta,
+    setSubmittingEditPregunta,
+    setEditingRespuesta,
+    setSubmittingEditRespuesta,
+    loadPreguntaDetalle,
+    fetchForoData,
+    setIsModalNuevaOpen,
   });
 
-  // Ordenamiento adicional
-  preguntasProcesadas.sort((a, b) => {
-    // Las fijadas siempre primero
-    if (a.fijada !== b.fijada) return b.fijada ? 1 : -1;
-
-    if (orden === 'respuestas') {
-      return (b.respuestas_count ?? 0) - (a.respuestas_count ?? 0);
-    }
-    if (orden === 'vistas') {
-      return (b.vistas ?? 0) - (a.vistas ?? 0);
-    }
-    return new Date(b.created_at) - new Date(a.created_at);
-  });
+  const preguntasProcesadas = filterAndSortPreguntas(preguntas, search, filtro, orden, user?.idUsuario);
 
   const isForoClosed = foro?.estado === 'cerrado';
 
   // Si hay una pregunta seleccionada, renderizar la Vista Completa del Hilo
   if (selectedPreguntaId && preguntaDetalle) {
     return (
-      <div className="space-y-6">
-        <HiloRespuestas
-          pregunta={preguntaDetalle}
-          currentUser={user}
-          isAuthorizedToValidate={isAuthorizedToValidate}
-          isForoClosed={isForoClosed}
-          onClose={() => { setSelectedPreguntaId(null); setPreguntaDetalle(null); }}
-          onRefresh={() => loadPreguntaDetalle(selectedPreguntaId)}
-          onEditRespuesta={(r) => setEditingRespuesta(r)}
-          onDeleteRespuesta={handleDeleteRespuesta}
-          onReportRespuesta={(id) => setReportModalData({ isOpen: true, targetId: id, targetType: 'respuesta' })}
-        />
-
-        <EditRespuestaModal
-          isOpen={Boolean(editingRespuesta)}
-          onClose={() => setEditingRespuesta(null)}
-          onSubmit={handleEditRespuestaSubmit}
-          respuesta={editingRespuesta}
-          submitting={submittingEditRespuesta}
-        />
-
-        <ReporteModal
-          isOpen={reportModalData.isOpen}
-          onClose={() => setReportModalData({ isOpen: false, targetId: null, targetType: 'pregunta' })}
-          targetId={reportModalData.targetId || 0}
-          targetType={reportModalData.targetType}
-        />
-      </div>
+      <ForoHiloSelectedView
+        preguntaDetalle={preguntaDetalle}
+        user={user}
+        isAuthorizedToValidate={isAuthorizedToValidate}
+        isForoClosed={isForoClosed}
+        onClose={() => { setSelectedPreguntaId(null); setPreguntaDetalle(null); }}
+        onRefresh={() => loadPreguntaDetalle(selectedPreguntaId)}
+        onEditRespuesta={(r) => setEditingRespuesta(r)}
+        onDeleteRespuesta={handleDeleteRespuesta}
+        onReportRespuesta={(id) => setReportModalData({ isOpen: true, targetId: id, targetType: 'respuesta' })}
+        editingRespuesta={editingRespuesta}
+        onCloseEditRespuesta={() => setEditingRespuesta(null)}
+        handleEditRespuestaSubmit={handleEditRespuestaSubmit}
+        submittingEditRespuesta={submittingEditRespuesta}
+        reportModalData={reportModalData}
+        onCloseReportModal={() => setReportModalData({ isOpen: false, targetId: null, targetType: 'pregunta' })}
+      />
     );
   }
 
-  let mainContent;
-  if (loading) {
-    mainContent = (
-      <div className="flex flex-col items-center justify-center py-16 gap-3">
-        <Loader2 className="w-10 h-10 text-[#2c5364] animate-spin" />
-        <p className="text-sm font-semibold text-gray-500">Cargando preguntas del foro...</p>
-      </div>
-    );
-  } else if (preguntasProcesadas.length === 0) {
-    mainContent = (
-      <ForoEmptyState
-        onOpenCreateModal={() => setIsModalNuevaOpen(true)}
-        isClosed={isForoClosed}
-      />
-    );
-  } else {
-    mainContent = (
-      <div className="space-y-4">
-        {preguntasProcesadas.map((preg) => (
-          <PreguntaCard
-            key={preg.idPregunta}
-            pregunta={preg}
-            currentUser={user}
-            onSelect={loadPreguntaDetalle}
-            onPinToggle={handleTogglePin}
-            onEdit={(p) => setEditingPregunta(p)}
-            onDelete={handleDeletePregunta}
-            onReport={(id) => setReportModalData({ isOpen: true, targetId: id, targetType: 'pregunta' })}
-          />
-        ))}
+  const targetForoId = resolveTargetForoId();
+
+  if (!loading && !targetForoId) {
+    return (
+      <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-xs p-8 max-w-lg mx-auto my-6 space-y-3">
+        <div className="w-16 h-16 bg-purple-50 text-purple-700 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+          <MessageSquare className="w-8 h-8" />
+        </div>
+        <div>
+          <h3 className="text-xl font-black text-slate-900">Sin Foro de Discusión Activo</h3>
+          <p className="text-slate-500 text-xs mt-2 max-w-sm mx-auto leading-relaxed font-medium">
+            Este curso aún no cuenta con un foro de preguntas agregado a sus temas. Los profesores pueden crear uno agregando una actividad de tipo Foro en cualquier tema.
+          </p>
+        </div>
       </div>
     );
   }
@@ -451,7 +328,18 @@ const ForoSeccion = ({ idForo, user, onBack }) => {
         </div>
       )}
 
-      {mainContent}
+      <ForoMainContent
+        loading={loading}
+        preguntasProcesadas={preguntasProcesadas}
+        isForoClosed={isForoClosed}
+        onOpenCreateModal={() => setIsModalNuevaOpen(true)}
+        user={user}
+        loadPreguntaDetalle={loadPreguntaDetalle}
+        handleTogglePin={handleTogglePin}
+        setEditingPregunta={setEditingPregunta}
+        handleDeletePregunta={handleDeletePregunta}
+        setReportModalData={setReportModalData}
+      />
 
       {/* Modal Nueva Pregunta */}
       <NuevaPreguntaModal
@@ -486,6 +374,101 @@ const ForoSeccion = ({ idForo, user, onBack }) => {
         targetId={reportModalData.targetId || 0}
         targetType={reportModalData.targetType}
       />
+    </div>
+  );
+};
+
+const ForoHiloSelectedView = ({
+  preguntaDetalle,
+  user,
+  isAuthorizedToValidate,
+  isForoClosed,
+  onClose,
+  onRefresh,
+  onEditRespuesta,
+  onDeleteRespuesta,
+  onReportRespuesta,
+  editingRespuesta,
+  onCloseEditRespuesta,
+  handleEditRespuestaSubmit,
+  submittingEditRespuesta,
+  reportModalData,
+  onCloseReportModal,
+}) => (
+  <div className="space-y-6">
+    <HiloRespuestas
+      pregunta={preguntaDetalle}
+      currentUser={user}
+      isAuthorizedToValidate={isAuthorizedToValidate}
+      isForoClosed={isForoClosed}
+      onClose={onClose}
+      onRefresh={onRefresh}
+      onEditRespuesta={onEditRespuesta}
+      onDeleteRespuesta={onDeleteRespuesta}
+      onReportRespuesta={onReportRespuesta}
+    />
+
+    <EditRespuestaModal
+      isOpen={Boolean(editingRespuesta)}
+      onClose={onCloseEditRespuesta}
+      onSubmit={handleEditRespuestaSubmit}
+      respuesta={editingRespuesta}
+      submitting={submittingEditRespuesta}
+    />
+
+    <ReporteModal
+      isOpen={reportModalData.isOpen}
+      onClose={onCloseReportModal}
+      targetId={reportModalData.targetId || 0}
+      targetType={reportModalData.targetType}
+    />
+  </div>
+);
+
+const ForoMainContent = ({
+  loading,
+  preguntasProcesadas,
+  isForoClosed,
+  onOpenCreateModal,
+  user,
+  loadPreguntaDetalle,
+  handleTogglePin,
+  setEditingPregunta,
+  handleDeletePregunta,
+  setReportModalData,
+}) => {
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-3">
+        <Loader2 className="w-10 h-10 text-[#2c5364] animate-spin" />
+        <p className="text-sm font-semibold text-gray-500">Cargando preguntas del foro...</p>
+      </div>
+    );
+  }
+
+  if (preguntasProcesadas.length === 0) {
+    return (
+      <ForoEmptyState
+        onOpenCreateModal={onOpenCreateModal}
+        isClosed={isForoClosed}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {preguntasProcesadas.map((preg) => (
+        <PreguntaCard
+          key={preg.idPregunta}
+          pregunta={preg}
+          currentUser={user}
+          onSelect={loadPreguntaDetalle}
+          onPinToggle={handleTogglePin}
+          onEdit={(p) => setEditingPregunta(p)}
+          onDelete={handleDeletePregunta}
+          onReport={(id) => setReportModalData({ isOpen: true, targetId: id, targetType: 'pregunta' })}
+        />
+      ))}
     </div>
   );
 };

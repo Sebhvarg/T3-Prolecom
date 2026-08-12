@@ -56,9 +56,19 @@ class ProfesorDashboard extends BaseDashboard
     protected function getActividadReciente(): array
     {
         $cursosProfe = Curso::where('idProfeCreador', $this->usuario->idUsuario)->pluck('idCurso')->toArray();
+        $actPreguntas = $this->getActividadPreguntas($cursosProfe);
+        $actSoluciones = $this->getActividadSoluciones($cursosProfe);
 
-        // 1. Obtener últimas preguntas
-        $preguntas = Pregunta::whereHas('foro.itemTema.tema', function ($q) use ($cursosProfe) {
+        return collect([...$actPreguntas, ...$actSoluciones])
+            ->sortByDesc('timestamp')
+            ->take(5)
+            ->values()
+            ->toArray();
+    }
+
+    private function getActividadPreguntas(array $cursosProfe): array
+    {
+        return Pregunta::whereHas('foro.itemTema.tema', function ($q) use ($cursosProfe) {
             $q->whereIn('idCurso', $cursosProfe);
         })
             ->with(['creador:idUsuario,nombreCompleto', 'foro.itemTema.tema.curso:idCurso,titulo'])
@@ -75,15 +85,17 @@ class ProfesorDashboard extends BaseDashboard
                     'estudiante' => $primerNombre,
                     'detalle' => 'hizo una pregunta',
                     'titulo_actividad' => $pregunta->titulo,
-                    'curso' => $curso->titulo ?? 'Curso',
-                    'paralelo' => 10 + (($curso->idCurso ?? 0) % 5),
+                    'curso' => $curso ? $curso->titulo : 'Curso',
+                    'paralelo' => 10 + (($curso ? $curso->idCurso : 0) % 5),
                     'fecha' => $pregunta->created_at ? $pregunta->created_at->toISOString() : now()->toISOString(),
                     'timestamp' => $pregunta->created_at ? $pregunta->created_at->timestamp : now()->timestamp,
                 ];
-            });
+            })->toArray();
+    }
 
-        // 2. Obtener últimas soluciones aprobadas
-        $soluciones = Solucion::whereHas('desafio', function ($q) use ($cursosProfe) {
+    private function getActividadSoluciones(array $cursosProfe): array
+    {
+        return Solucion::whereHas('desafio', function ($q) use ($cursosProfe) {
             $q->whereIn('idCurso', $cursosProfe);
         })
             ->with(['estudiante:idUsuario,nombreCompleto', 'desafio.curso'])
@@ -94,28 +106,20 @@ class ProfesorDashboard extends BaseDashboard
             ->map(function ($solucion) {
                 $nombreCompleto = $solucion->estudiante->nombreCompleto ?? 'Estudiante';
                 $primerNombre = explode(' ', $nombreCompleto)[0];
-                $cursoId = $solucion->desafio->idCurso ?? 0;
-                $cursoTitulo = $solucion->desafio->curso->titulo ?? 'Curso';
+                $desafio = $solucion->desafio;
+                $cursoId = $desafio ? $desafio->idCurso : 0;
+                $cursoTitulo = ($desafio && $desafio->curso) ? $desafio->curso->titulo : 'Curso';
 
                 return [
                     'tipo' => 'desafio',
                     'estudiante' => $primerNombre,
                     'detalle' => 'completó',
-                    'titulo_actividad' => $solucion->desafio->titulo ?? 'Actividad',
+                    'titulo_actividad' => $desafio ? $desafio->titulo : 'Actividad',
                     'curso' => $cursoTitulo,
                     'paralelo' => 10 + ($cursoId % 5),
                     'fecha' => $solucion->created_at ? $solucion->created_at->toISOString() : now()->toISOString(),
                     'timestamp' => $solucion->created_at ? $solucion->created_at->timestamp : now()->timestamp,
                 ];
-            });
-
-        // Combinar y ordenar por más reciente
-        return collect()
-            ->merge($preguntas)
-            ->merge($soluciones)
-            ->sortByDesc('timestamp')
-            ->take(4) // El mock muestra 4 actividades
-            ->values()
-            ->toArray();
+            })->toArray();
     }
 }
