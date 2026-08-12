@@ -475,25 +475,24 @@ const ModeratorDashboard = () => {
               const isResuelto = rep.estado === 'resuelto';
               const isOculto = rep.contenido?.estado === 'oculta' || rep.contenido?.oculta;
               const isAutorBaneado = rep.autor?.idEstado === 4;
+              const reporteCardClass = isResuelto
+                ? 'bg-slate-50/70 border-slate-200 opacity-80'
+                : 'bg-white border-slate-200 shadow-xs hover:border-slate-300';
+              const estadoLabel = isResuelto ? 'Resuelto' : 'Pendiente';
+              const estadoBadgeClass = isResuelto ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900';
 
               return (
                 <div 
                   key={rep.idReporte}
-                  className={`p-6 rounded-3xl border transition-all space-y-4 ${
-                    isResuelto 
-                      ? 'bg-slate-50/70 border-slate-200 opacity-80' 
-                      : 'bg-white border-slate-200 shadow-xs hover:border-slate-300'
-                  }`}
+                  className={`p-6 rounded-3xl border transition-all space-y-4 ${reporteCardClass}`}
                 >
                   {/* Encabezado del Reporte */}
                   <div className="flex flex-wrap justify-between items-start gap-3 border-b border-slate-100 pb-3">
                     <div className="flex items-center gap-2 flex-wrap">
                       {getTipoBadge(rep.tipoPublicacion)}
 
-                      <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase ${
-                        isResuelto ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
-                      }`}>
-                        {isResuelto ? 'Resuelto' : 'Pendiente'}
+                      <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase ${estadoBadgeClass}`}>
+                        {estadoLabel}
                       </span>
 
                       <span className="text-xs text-slate-400 font-medium">· Reportado {timeAgo(rep.fecha)}</span>

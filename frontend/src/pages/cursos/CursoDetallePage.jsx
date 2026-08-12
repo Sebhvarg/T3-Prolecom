@@ -3,9 +3,8 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { cursosService } from '../../api/cursosService';
-import { authService } from '../../api/authService';
 import { desafiosService } from '../../api/desafiosService';
-import { storage } from '../../utils/crypto';
+import { useSecureViewer } from '../../hooks/useSecureViewer';
 import ForoSeccion from '../../components/foro/ForoSeccion';
 import QuizSeccion from '../../components/quizzes/QuizSeccion';
 import { 
@@ -16,7 +15,7 @@ import {
 import CourseProgressBar from '../../components/cursos/CourseProgressBar';
 import Modal from '../../components/ui/Modal';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+
 
 let testCaseIdCounter = 0;
 const generateTestCaseId = () => {
@@ -251,11 +250,15 @@ const CursoDetallePage = () => {
 
   const [submitting, setSubmitting] = useState(false);
 
-  // Secure Viewer State
-  const [activeViewerMaterial, setActiveViewerMaterial] = useState(null);
-  const [viewerBlobUrl, setViewerBlobUrl] = useState('');
-  const [viewerLoading, setViewerLoading] = useState(false);
-  const [viewerError, setViewerError] = useState('');
+  const {
+    activeViewerMaterial,
+    viewerBlobUrl,
+    viewerLoading,
+    viewerError,
+    handleOpenSecureViewer,
+    handleCloseSecureViewer,
+    handleDownloadMaterial,
+  } = useSecureViewer();
 
   const canManage = user?.rol === 'Administrador' || user?.rol === 'Profesor' || user?.rol === 'Ayudante';
 
@@ -413,81 +416,7 @@ const CursoDetallePage = () => {
     }
   };
 
-  // --- Handlers Secure Viewer ---
-  const handleOpenSecureViewer = async (item) => {
-    const idMaterial = item?.idMaterial || item?.itemable_id || item?.itemable?.idMaterial || item?.resource?.idMaterial;
-    if (!idMaterial) {
-      setViewerError('ID de material no encontrado.');
-      return;
-    }
-    setActiveViewerMaterial(item.itemable || item.resource || item);
-    setViewerLoading(true);
-    setViewerError('');
-    setViewerBlobUrl('');
-
-    try {
-      const token = authService.getToken() || storage.get('token') || storage.get('auth_token');
-      const response = await fetch(`${API_URL}/materiales/${idMaterial}/stream`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json, */*',
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('No se pudo cargar el recurso protegido.');
-      }
-
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      setViewerBlobUrl(objectUrl);
-    } catch (err) {
-      console.error(err);
-      setViewerError(err.message || 'Error al visualizar el archivo.');
-    } finally {
-      setViewerLoading(false);
-    }
-  };
-
-  const handleCloseSecureViewer = () => {
-    if (viewerBlobUrl) {
-      URL.revokeObjectURL(viewerBlobUrl);
-    }
-    setActiveViewerMaterial(null);
-    setViewerBlobUrl('');
-    setViewerError('');
-  };
-
-  const handleDownloadMaterial = async (item) => {
-    const idMaterial = item?.idMaterial || item?.itemable_id || item?.itemable?.idMaterial || item?.resource?.idMaterial;
-    if (!idMaterial) {
-      alert('ID de material no encontrado.');
-      return;
-    }
-    try {
-      const token = authService.getToken() || storage.get('token') || storage.get('auth_token');
-      const response = await fetch(`${API_URL}/materiales/${idMaterial}/download`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json, */*'
-        }
-      });
-      if (!response.ok) throw new Error('Error al descargar el archivo.');
-      
-      const blob = await response.blob();
-      const downloadUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.download = item.titulo || item.nombre_archivo_original || item.nombre || 'material';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(downloadUrl);
-    } catch (err) {
-      console.error(err);
-      alert('No se pudo descargar el material.');
-    }
-  };
+  // Handlers Secure Viewer delegados a useSecureViewer hook
 
   // --- Handlers Desafío ---
   const handleOpenDesafioModal = (idTema) => {
