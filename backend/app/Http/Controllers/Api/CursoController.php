@@ -94,8 +94,13 @@ class CursoController extends Controller
         }
 
         $curso->esta_matriculado = $isEnrolled;
+        $curso->progreso_desafios = $this->calcularProgresoDesafios($curso, $user);
 
-        // Desafíos resueltos por el estudiante en este curso
+        return response()->json($curso);
+    }
+
+    private function calcularProgresoDesafios(Curso $curso, $user): array
+    {
         $desafiosCount = 0;
         $desafiosResueltosCount = 0;
 
@@ -103,27 +108,18 @@ class CursoController extends Controller
             foreach ($tema->items as $item) {
                 if ($item->itemable_type === Desafio::class) {
                     $desafiosCount++;
-                    if ($user) {
-                        $aprobado = Solucion::where('idDesafio', $item->itemable_id)
-                            ->where('idEstudiante', $user->idUsuario)
-                            ->where('estado', 'aprobado')
-                            ->exists();
-                        if ($aprobado) {
-                            $desafiosResueltosCount++;
-                        }
+                    if ($user && Solucion::where('idDesafio', $item->itemable_id)->where('idEstudiante', $user->idUsuario)->where('estado', 'aprobado')->exists()) {
+                        $desafiosResueltosCount++;
                     }
                 }
             }
         }
 
-        $desafiosTotales = $desafiosCount;
-        $curso->progreso_desafios = [
+        return [
             'resueltos' => $desafiosResueltosCount,
-            'totales' => $desafiosTotales,
-            'porcentaje' => $desafiosTotales > 0 ? round(($desafiosResueltosCount / $desafiosTotales) * 100) : 0,
+            'totales' => $desafiosCount,
+            'porcentaje' => $desafiosCount > 0 ? (int) round(($desafiosResueltosCount / $desafiosCount) * 100) : 0,
         ];
-
-        return response()->json($curso);
     }
 
     public function store(Request $request)

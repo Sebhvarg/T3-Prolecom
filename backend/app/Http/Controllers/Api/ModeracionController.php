@@ -17,6 +17,51 @@ class ModeracionController extends Controller
     /**
      * Listar todos los reportes con relaciones enriquecidas.
      */
+    private function resolveContenidoReportado($rep): array
+    {
+        $contenidoReportado = null;
+        $autorContenido = null;
+
+        if ($rep->tipoPublicacion === 'pregunta') {
+            $preg = Pregunta::with('creador:idUsuario,nombreCompleto,usuario,email,idEstado')->find($rep->idPublicacionReportada);
+            if ($preg) {
+                $contenidoReportado = [
+                    'id' => $preg->idPregunta,
+                    'titulo' => $preg->titulo,
+                    'texto' => $preg->descripcion,
+                    'estado' => $preg->estado,
+                    'idForo' => $preg->idForo,
+                ];
+                $autorContenido = $preg->creador;
+            }
+        } elseif ($rep->tipoPublicacion === 'respuesta') {
+            $resp = Respuesta::with(['usuario:idUsuario,nombreCompleto,usuario,email,idEstado', 'pregunta:idPregunta,titulo,idForo'])->find($rep->idPublicacionReportada);
+            if ($resp) {
+                $contenidoReportado = [
+                    'id' => $resp->idRespuesta,
+                    'titulo' => 'Respuesta en: '.($resp->pregunta->titulo ?? 'Pregunta'),
+                    'texto' => $resp->contenido,
+                    'oculta' => (bool) $resp->oculta,
+                    'idPregunta' => $resp->idPregunta,
+                    'idForo' => $resp->pregunta->idForo ?? null,
+                ];
+                $autorContenido = $resp->usuario;
+            }
+        } elseif ($rep->tipoPublicacion === 'material') {
+            $mat = MaterialAprendizaje::with('creador:idUsuario,nombreCompleto,usuario,email,idEstado')->find($rep->idPublicacionReportada);
+            if ($mat) {
+                $contenidoReportado = [
+                    'id' => $mat->idMaterial,
+                    'titulo' => $mat->nombre,
+                    'texto' => $mat->tipo_archivo,
+                ];
+                $autorContenido = $mat->creador;
+            }
+        }
+
+        return [$contenidoReportado, $autorContenido];
+    }
+
     public function indexReportes(Request $request)
     {
         $estado = $request->query('estado', 'pendiente');
@@ -39,45 +84,7 @@ class ModeracionController extends Controller
             $reportador = User::select('idUsuario', 'nombreCompleto', 'usuario', 'email')
                 ->find($rep->idUsuarioReportador);
 
-            $contenidoReportado = null;
-            $autorContenido = null;
-
-            if ($rep->tipoPublicacion === 'pregunta') {
-                $preg = Pregunta::with('creador:idUsuario,nombreCompleto,usuario,email,idEstado')->find($rep->idPublicacionReportada);
-                if ($preg) {
-                    $contenidoReportado = [
-                        'id' => $preg->idPregunta,
-                        'titulo' => $preg->titulo,
-                        'texto' => $preg->descripcion,
-                        'estado' => $preg->estado,
-                        'idForo' => $preg->idForo,
-                    ];
-                    $autorContenido = $preg->creador;
-                }
-            } elseif ($rep->tipoPublicacion === 'respuesta') {
-                $resp = Respuesta::with(['usuario:idUsuario,nombreCompleto,usuario,email,idEstado', 'pregunta:idPregunta,titulo,idForo'])->find($rep->idPublicacionReportada);
-                if ($resp) {
-                    $contenidoReportado = [
-                        'id' => $resp->idRespuesta,
-                        'titulo' => 'Respuesta en: '.($resp->pregunta->titulo ?? 'Pregunta'),
-                        'texto' => $resp->contenido,
-                        'oculta' => (bool) $resp->oculta,
-                        'idPregunta' => $resp->idPregunta,
-                        'idForo' => $resp->pregunta->idForo ?? null,
-                    ];
-                    $autorContenido = $resp->usuario;
-                }
-            } elseif ($rep->tipoPublicacion === 'material') {
-                $mat = MaterialAprendizaje::with('creador:idUsuario,nombreCompleto,usuario,email,idEstado')->find($rep->idPublicacionReportada);
-                if ($mat) {
-                    $contenidoReportado = [
-                        'id' => $mat->idMaterial,
-                        'titulo' => $mat->nombre,
-                        'texto' => $mat->tipo_archivo,
-                    ];
-                    $autorContenido = $mat->creador;
-                }
-            }
+            [$contenidoReportado, $autorContenido] = $this->resolveContenidoReportado($rep);
 
             $reportes[] = [
                 'idReporte' => $rep->idReporte,
@@ -99,7 +106,7 @@ class ModeracionController extends Controller
     /**
      * Marcar reporte como resuelto o desestimado.
      */
-    public function resolverReporte(Request $request, $idReporte)
+    public function resolverReporte($idReporte)
     {
         $afectados = DB::table('reportes')
             ->where('idReporte', $idReporte)
@@ -118,7 +125,7 @@ class ModeracionController extends Controller
     /**
      * Ocultar o desocultar publicación reportada.
      */
-    public function ocultarPublicacion(Request $request, $idReporte)
+    public function ocultarPublicacion($idReporte)
     {
         $reporte = DB::table('reportes')->where('idReporte', $idReporte)->first();
 
@@ -131,17 +138,15 @@ class ModeracionController extends Controller
         if ($reporte->tipoPublicacion === 'pregunta') {
             $preg = Pregunta::find($reporte->idPublicacionReportada);
             if ($preg) {
-                $nuevoEstado = ($preg->estado === 'oculta') ? 'abierta' : 'oculta';
-                $preg->estado = $nuevoEstado;
-                $preg->save();
-                $nuevoEstadoOculto = ($nuevoEstado === 'oculta');
+                $nuevoEstado = $preg->estado === 'oculta' ? 'activa' : 'oculta';
+                $preg->update(['estado' => $nuevoEstado]);
+                $nuevoEstadoOculto = $nuevoEstado === 'oculta';
             }
         } elseif ($reporte->tipoPublicacion === 'respuesta') {
             $resp = Respuesta::find($reporte->idPublicacionReportada);
             if ($resp) {
-                $resp->oculta = ! $resp->oculta;
-                $resp->save();
-                $nuevoEstadoOculto = (bool) $resp->oculta;
+                $nuevoEstadoOculto = ! $resp->oculta;
+                $resp->update(['oculta' => $nuevoEstadoOculto]);
             }
         }
 
@@ -224,7 +229,7 @@ class ModeracionController extends Controller
     /**
      * Listar historial de auditoría del sistema.
      */
-    public function indexAuditorias(Request $request)
+    public function indexAuditorias()
     {
         $auditorias = DB::table('auditorias')
             ->orderByDesc('created_at')

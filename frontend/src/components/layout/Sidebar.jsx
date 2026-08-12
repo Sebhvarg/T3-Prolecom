@@ -14,10 +14,14 @@ const Sidebar = () => {
     user?.roles?.some(r => ['Administrador', 'Moderador'].includes(r.rol || r))
   );
 
-  const nonStudentPath = isModeratorOrAdmin 
-    ? (user?.rol === 'Moderador' ? '/moderador/dashboard' : '/admin') 
-    : (user?.rol === 'Profesor' ? '/profesor/dashboard' : '/admin');
-  const homePath = user?.rol === 'Estudiante' ? '/dashboard/estudiante' : nonStudentPath;
+  const getHomePath = (userRole) => {
+    if (userRole === 'Estudiante') return '/dashboard/estudiante';
+    if (userRole === 'Moderador') return '/moderador/dashboard';
+    if (userRole === 'Profesor') return '/profesor/dashboard';
+    return '/admin';
+  };
+
+  const homePath = getHomePath(user?.rol);
 
   const menuItems = [
     { name: 'Principal', path: homePath, icon: <Home size={20} />, show: true },

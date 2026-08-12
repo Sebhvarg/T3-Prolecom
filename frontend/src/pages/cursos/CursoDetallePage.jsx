@@ -210,11 +210,9 @@ const CursoDetallePage = () => {
         setError('El archivo seleccionado debe ser un video válido (.mp4, .mov, .avi, .mkv, .webm).');
         return;
       }
-    } else {
-      if (!fileName.endsWith('.pdf')) {
-        setError('El archivo seleccionado para un documento debe ser estrictamente en formato PDF (.pdf).');
-        return;
-      }
+    } else if (!fileName.endsWith('.pdf')) {
+      setError('El archivo seleccionado para un documento debe ser strictly en formato PDF (.pdf).');
+      return;
     }
 
     const maxSizeBytes = 500 * 1024 * 1024; // 500 MB
@@ -560,11 +558,11 @@ const CursoDetallePage = () => {
                     {tema.items?.length === 0 ? (
                       <p className="text-xs text-slate-400 font-medium italic text-center py-4">No hay ítems cargados en este tema.</p>
                     ) : (
-                      tema.items?.map((item) => {
+                      tema.items?.map((item, itemIdx) => {
                         const typeStr = item.itemable_type || '';
                         const isDesafio = typeStr.includes('Desafio') || Boolean(item.dificultad) || Boolean(item.itemable?.dificultad);
-                        const isForo = typeStr.includes('Foro') || Boolean(item.itemable?.idForo) || (item.titulo && item.titulo.includes('Foro'));
-                        const isQuiz = typeStr.includes('Quiz') || Boolean(item.itemable?.idQuiz) || (item.titulo && item.titulo.includes('Evaluación'));
+                        const isForo = typeStr.includes('Foro') || Boolean(item.itemable?.idForo) || Boolean(item.titulo?.includes('Foro'));
+                        const isQuiz = typeStr.includes('Quiz') || Boolean(item.itemable?.idQuiz) || Boolean(item.titulo?.includes('Evaluación'));
                         const isMaterial = !isDesafio && !isForo && !isQuiz;
 
                         const getItemIcon = () => {
@@ -588,8 +586,10 @@ const CursoDetallePage = () => {
                           return `Material (${item.tipo || item.itemable?.tipo || 'Lectura'})`;
                         };
 
+                        const itemKey = item.idItem || item.idMaterial || item.idDesafio || item.idForo || item.idQuiz || `item-${itemIdx}`;
+
                         return (
-                          <div key={item.idItem || item.idMaterial || item.idDesafio || item.idForo || item.idQuiz || Math.random()} className="p-4 bg-white rounded-2xl border border-slate-200 flex justify-between items-center gap-4 hover:border-slate-300 transition-all">
+                          <div key={itemKey} className="p-4 bg-white rounded-2xl border border-slate-200 flex justify-between items-center gap-4 hover:border-slate-300 transition-all">
                             <div className="flex items-center gap-3">
                               <div className={`p-2 rounded-xl text-xs font-black ${getIconBg()}`}>
                                 {getItemIcon()}

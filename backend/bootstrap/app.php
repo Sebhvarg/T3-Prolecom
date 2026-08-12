@@ -25,6 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
         );
         $exceptions->render(function (PostTooLargeException $e, Request $request) {
             if ($request->is('api/*')) {
+                logger()->warning('PostTooLargeException rendered: '.$e->getMessage());
+
                 return response()->json([
                     'message' => 'El archivo subido supera el tamaño máximo permitido (500 MB). Por favor, comprime el video o intenta con un archivo más liviano.',
                 ], 413);

@@ -41,11 +41,17 @@ const Modal = ({
     <div
       role="dialog"
       aria-modal="true"
-      onClick={handleBackdropClick}
       className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[100] flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
     >
+      <button
+        type="button"
+        tabIndex={-1}
+        onClick={handleBackdropClick}
+        aria-label="Cerrar fondo"
+        className="fixed inset-0 w-full h-full bg-transparent border-0 cursor-default"
+      />
       <div
-        className={`bg-white rounded-3xl border border-slate-100 shadow-2xl w-full ${maxWidth} overflow-hidden animate-scale-up relative`}
+        className={`bg-white rounded-3xl border border-slate-100 shadow-2xl w-full ${maxWidth} overflow-hidden animate-scale-up relative z-10`}
       >
         {/* Header */}
         <div className="p-6 pb-4 border-b border-slate-100 flex items-center justify-between gap-4">
