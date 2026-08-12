@@ -1,39 +1,24 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
-import { cursosService } from '../../api/cursosService';
 import { useSecureViewer } from '../../hooks/useSecureViewer';
 import { useCursoHandlers } from '../../hooks/useCursoHandlers';
+import { useCursoDataLoader } from '../../hooks/useCursoDataLoader';
 import ForoSeccion from '../../components/foro/ForoSeccion';
 import QuizSeccion from '../../components/quizzes/QuizSeccion';
+import CourseProgressBar from '../../components/cursos/CourseProgressBar';
+import Modal from '../../components/ui/Modal';
 import { 
   ArrowLeft, Plus, Trash2, FileText, Play, Download, Eye, 
   X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code, Pencil,
   MessageSquare, BookOpen, HelpCircle
 } from 'lucide-react';
-import CourseProgressBar from '../../components/cursos/CourseProgressBar';
-import Modal from '../../components/ui/Modal';
-
-
 
 let testCaseIdCounter = 0;
 const generateTestCaseId = () => {
   testCaseIdCounter += 1;
   return `tc-id-${testCaseIdCounter}`;
-};
-
-const sortCursoTemasEItems = (temas) => {
-  if (!temas) return;
-  temas.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { numeric: true }));
-  temas.forEach((t) => {
-    if (!t.items) return;
-    t.items.sort((a, b) => {
-      const titleA = a.titulo || a.itemable?.titulo || a.resource?.titulo || a.nombre || '';
-      const titleB = b.titulo || b.itemable?.titulo || b.resource?.titulo || b.nombre || '';
-      return titleA.localeCompare(titleB, 'es', { numeric: true });
-    });
-  });
 };
 
 
@@ -183,23 +168,97 @@ const TemaItemCard = ({
   );
 };
 
+const checkCanManage = (user) => {
+  if (!user) return false;
+  const rol = user.rol;
+  return rol === 'Administrador' || rol === 'Profesor' || rol === 'Ayudante';
+};
+
+const CursoHeroCard = ({ curso, user }) => {
+  const progreso = curso.progreso || { porcentaje: 0, itemsCompletados: 0, totalItems: 0, xpGanado: 0, xpTotal: 0 };
+  const isPrivado = curso.esPrivado;
+  const badgeClass = isPrivado ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-900';
+  const badgeText = isPrivado ? 'Curso Privado' : 'Curso Público';
+
+  return (
+    <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-6">
+        <div className="space-y-1">
+          <span className="px-3 py-1 rounded-full bg-slate-100 text-[#2c5364] text-xs font-black uppercase tracking-wider">
+            {curso.lenguaje || 'General'}
+          </span>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{curso.titulo}</h1>
+          <p className="text-slate-600 text-xs font-medium max-w-2xl">{curso.descripcion}</p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className={`px-3 py-1 rounded-xl text-xs font-black ${badgeClass}`}>
+            {badgeText}
+          </span>
+        </div>
+      </div>
+
+      {user?.rol === 'Estudiante' && (
+        <CourseProgressBar progreso={progreso} />
+      )}
+    </div>
+  );
+};
+
+const CursoNavTabs = ({ activeTab, setActiveTab, totalTemas }) => {
+  const tabs = [
+    { id: 'temas', label: `Temas y Módulos (${totalTemas})`, icon: BookOpen },
+    { id: 'quizzes', label: 'Cuestionarios & Quizzes', icon: HelpCircle },
+    { id: 'foro', label: 'Foro del Curso', icon: MessageSquare },
+  ];
+
+  return (
+    <div className="flex border-b border-slate-200 overflow-x-auto">
+      {tabs.map((t) => {
+        const Icon = t.icon;
+        const isActive = activeTab === t.id;
+        const activeClass = isActive
+          ? 'border-[#2c5364] text-[#2c5364]'
+          : 'border-transparent text-slate-500 hover:text-slate-900';
+
+        return (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setActiveTab(t.id)}
+            className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all shrink-0 cursor-pointer ${activeClass}`}
+          >
+            <Icon size={18} />
+            <span>{t.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+
 const CursoDetallePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
 
-  const [curso, setCurso] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const {
+    curso,
+    loading,
+    error,
+    setError,
+    expandedTemas,
+    fetchCurso,
+    toggleTema,
+  } = useCursoDataLoader(id);
+
   const [success, setSuccess] = useState('');
   const [activeTab, setActiveTab] = useState(() => {
     const tab = searchParams.get('tab');
     return ['temas', 'quizzes', 'foro'].includes(tab) ? tab : 'temas';
   });
-
-  // Estado para colapsar/expandir temas
-  const [expandedTemas, setExpandedTemas] = useState({});
 
   // Modales Estado
   const [isTemaModalOpen, setIsTemaModalOpen] = useState(false);
@@ -240,52 +299,7 @@ const CursoDetallePage = () => {
     handleDownloadMaterial,
   } = useSecureViewer();
 
-  const canManage = user?.rol === 'Administrador' || user?.rol === 'Profesor' || user?.rol === 'Ayudante';
-
-  const [reloadKey, setReloadKey] = useState(0);
-  const fetchCurso = useCallback(() => setReloadKey((k) => k + 1), []);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadCursoData = async () => {
-      setLoading(true);
-      try {
-        const data = await cursosService.getCurso(id);
-        if (!isMounted) return;
-
-        sortCursoTemasEItems(data.temas);
-
-        setCurso(data);
-
-        const expandMap = {};
-        data.temas?.forEach((t) => {
-          expandMap[t.idTema] = true;
-        });
-        setExpandedTemas(expandMap);
-      } catch (err) {
-        if (isMounted) {
-          console.error(err);
-          setError('No se pudo cargar la información del curso.');
-        }
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    loadCursoData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [id, reloadKey]);
-
-  const toggleTema = (idTema) => {
-    setExpandedTemas(prev => ({
-      ...prev,
-      [idTema]: !prev[idTema]
-    }));
-  };
+  const canManage = checkCanManage(user);
 
   const {
     handleOpenTemaModal,
@@ -372,7 +386,7 @@ const CursoDetallePage = () => {
           <button
             type="button"
             onClick={() => navigate('/cursos')}
-            className="px-6 py-2 bg-[#2c5364] text-white rounded-xl font-bold text-sm"
+            className="px-6 py-2 bg-[#2c5364] text-[#ffffff] rounded-xl font-bold text-sm"
           >
             Volver a la Lista de Cursos
           </button>
@@ -380,8 +394,6 @@ const CursoDetallePage = () => {
       </DashboardContainer>
     );
   }
-
-  const progreso = curso.progreso || { porcentaje: 0, itemsCompletados: 0, totalItems: 0, xpGanado: 0, xpTotal: 0 };
 
   return (
     <DashboardContainer activeSection="Cursos" title={curso.titulo}>
@@ -413,70 +425,14 @@ const CursoDetallePage = () => {
         )}
 
         {/* Hero Card del Curso */}
-        <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-6">
-            <div className="space-y-1">
-              <span className="px-3 py-1 rounded-full bg-slate-100 text-[#2c5364] text-xs font-black uppercase tracking-wider">
-                {curso.lenguaje || 'General'}
-              </span>
-              <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{curso.titulo}</h1>
-              <p className="text-slate-600 text-xs font-medium max-w-2xl">{curso.descripcion}</p>
-            </div>
+        <CursoHeroCard curso={curso} user={user} />
 
-            <div className="flex items-center gap-2">
-              <span className={`px-3 py-1 rounded-xl text-xs font-black ${
-                curso.esPrivado ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-900'
-              }`}>
-                {curso.esPrivado ? 'Curso Privado' : 'Curso Público'}
-              </span>
-            </div>
-          </div>
-
-          {/* Componente Modular de Barra de Progreso */}
-          {user?.rol === 'Estudiante' && (
-            <CourseProgressBar progreso={progreso} />
-          )}
-        </div>
-
-        {/* Navegación por pestañas (Temas vs Quizzes vs Foro) */}
-        <div className="flex border-b border-slate-200 overflow-x-auto">
-          <button
-            type="button"
-            onClick={() => setActiveTab('temas')}
-            className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all shrink-0 cursor-pointer ${
-              activeTab === 'temas'
-                ? 'border-[#2c5364] text-[#2c5364]'
-                : 'border-transparent text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <BookOpen size={18} />
-            <span>Temas y Módulos ({curso.temas?.length || 0})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('quizzes')}
-            className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all shrink-0 cursor-pointer ${
-              activeTab === 'quizzes'
-                ? 'border-[#2c5364] text-[#2c5364]'
-                : 'border-transparent text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <HelpCircle size={18} />
-            <span>Cuestionarios & Quizzes</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('foro')}
-            className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all shrink-0 cursor-pointer ${
-              activeTab === 'foro'
-                ? 'border-[#2c5364] text-[#2c5364]'
-                : 'border-transparent text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <MessageSquare size={18} />
-            <span>Foro del Curso</span>
-          </button>
-        </div>
+        {/* Navegación por pestañas */}
+        <CursoNavTabs
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          totalTemas={curso.temas?.length || 0}
+        />
 
         {/* Renderizado Condicional por Pestaña */}
         <CursoTabContent
