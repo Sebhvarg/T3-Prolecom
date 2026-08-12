@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Loader2, Code, HelpCircle, Eye, Edit3 } from 'lucide-react';
 import CodeBlock from './CodeBlock';
 import Modal from '../ui/Modal';
+import ModalActions from '../ui/ModalActions';
 
 const NuevaPreguntaModal = ({ isOpen, onClose, onSubmit, submitting }) => {
   const [form, setForm] = useState({ titulo: '', descripcion: '' });
