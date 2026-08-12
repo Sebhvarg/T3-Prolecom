@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { adminService } from '../../api/adminService';
 import { Search, Filter, Shield, Key, CheckCircle, AlertTriangle, UserCheck, UserX } from 'lucide-react';
 
@@ -28,7 +28,7 @@ const UserManagementTable = () => {
     setTimeout(() => setToast(null), 4000);
   };
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const params = {};
@@ -45,10 +45,38 @@ const UserManagementTable = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [search, selectedRole, selectedState]);
 
   useEffect(() => {
-    fetchUsers();
+    let isMounted = true;
+    const params = {};
+    if (search) params.search = search;
+    if (selectedRole) params.rol = selectedRole;
+    if (selectedState) params.estado = selectedState;
+
+    adminService
+      .getUsers(params)
+      .then((res) => {
+        if (isMounted) {
+          setUsers(res.users || []);
+          if (res.availableRoles) setAvailableRoles(res.availableRoles);
+          if (res.availableStates) setAvailableStates(res.availableStates);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          showToast(err.message || 'Error al cargar usuarios', 'error');
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [search, selectedRole, selectedState]);
 
   // Cambiar Rol

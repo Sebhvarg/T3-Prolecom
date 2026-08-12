@@ -22,7 +22,20 @@ const SystemHealthMonitor = () => {
   };
 
   useEffect(() => {
-    fetchHealthLogs();
+    let isMounted = true;
+    adminService.getHealthLogs()
+      .then((data) => {
+        if (isMounted) setHealthData(data);
+      })
+      .catch((err) => {
+        console.error('Error al obtener salud del sistema:', err);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   if (loading) {
@@ -86,7 +99,7 @@ const SystemHealthMonitor = () => {
           <div>
             <div className="text-xs text-gray-500 font-medium">Estado del Servidor</div>
             <div className="text-sm font-bold text-emerald-600 truncate max-w-[170px] mt-0.5">
-              Activo ({new Date(health.server_time || Date.now()).toLocaleTimeString()})
+              Activo{health.server_time ? ` (${new Date(health.server_time).toLocaleTimeString()})` : ''}
             </div>
           </div>
         </div>
