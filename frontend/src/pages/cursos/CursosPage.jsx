@@ -24,14 +24,17 @@ const CursosPage = () => {
     titulo: '',
     descripcion: '',
     lp: '',
-    tipo: 'público'
+    tipo: 'público',
+    idCategoria: 1,
   });
 
   // Matriculación y Filtros states
   const [activeTab, setActiveTab] = useState('mis_cursos'); // 'mis_cursos', 'disponibles'
   const [filterLp, setFilterLp] = useState('');
   const [filterTipo, setFilterTipo] = useState('');
+  const [filterCategoria, setFilterCategoria] = useState('');
   const [lps, setLps] = useState([]);
+  const [categorias, setCategorias] = useState([]);
   
   // Alumnos Modal states
   const [isAlumnosModalOpen, setIsAlumnosModalOpen] = useState(false);
@@ -55,6 +58,7 @@ const CursosPage = () => {
       const params = {};
       if (filterLp) params.lp = filterLp;
       if (filterTipo) params.tipo = filterTipo;
+      if (filterCategoria) params.idCategoria = filterCategoria;
       if (!canManage) {
         if (activeTab === 'mis_cursos') params.filtro = 'mis_cursos';
         else if (activeTab === 'disponibles') params.filtro = 'disponibles';
@@ -67,19 +71,23 @@ const CursosPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [filterLp, filterTipo, activeTab, canManage]);
+  }, [filterLp, filterTipo, filterCategoria, activeTab, canManage]);
 
-  // Cargar todos los lenguajes una vez al inicio
+  // Cargar lenguajes y categorías al inicio
   useEffect(() => {
-    const loadAllLps = async () => {
+    const loadAllCatalogs = async () => {
       try {
-        const data = await cursosService.getLenguajes();
-        setLps((data || []).slice().sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { numeric: true })));
+        const [lpsData, catsData] = await Promise.all([
+          cursosService.getLenguajes(),
+          cursosService.getCategorias(),
+        ]);
+        setLps((lpsData || []).slice().sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { numeric: true })));
+        setCategorias(catsData || []);
       } catch (err) {
-        console.error('Error al cargar lenguajes:', err);
+        console.error('Error al cargar catálogos:', err);
       }
     };
-    loadAllLps();
+    loadAllCatalogs();
   }, []);
 
   useEffect(() => {
@@ -96,7 +104,7 @@ const CursosPage = () => {
 
   const handleOpenCreateModal = () => {
     setEditingCurso(null);
-    setFormData({ titulo: '', descripcion: '', lp: '', tipo: 'público' });
+    setFormData({ titulo: '', descripcion: '', lp: '', tipo: 'público', idCategoria: 1 });
     setIsModalOpen(true);
   };
 
@@ -106,7 +114,8 @@ const CursosPage = () => {
       titulo: curso.titulo,
       descripcion: curso.descripcion,
       lp: curso.lp,
-      tipo: curso.tipo
+      tipo: curso.tipo,
+      idCategoria: curso.idCategoria || 1,
     });
     setIsModalOpen(true);
   };
@@ -418,6 +427,22 @@ const CursosPage = () => {
               <option value="privado">Privado</option>
             </select>
           </div>
+
+          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl min-w-[160px]">
+            <span className="text-xs text-gray-400 font-bold uppercase">Categoría:</span>
+            <select
+              value={filterCategoria}
+              onChange={(e) => setFilterCategoria(e.target.value)}
+              className="bg-transparent text-sm font-semibold text-gray-700 outline-none w-full cursor-pointer"
+            >
+              <option value="">Todas</option>
+              {categorias.map((cat) => (
+                <option key={cat.idCategoria} value={cat.idCategoria}>
+                  {cat.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -489,6 +514,22 @@ const CursosPage = () => {
                 <option value="privado">Privado</option>
               </select>
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label htmlFor="categoria" className="text-xs font-extrabold text-slate-700 uppercase">Categoría del Curso</label>
+            <select
+              id="categoria"
+              className="w-full p-2.5 border border-slate-300 focus:border-[#2c5364] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-slate-900 font-bold text-xs bg-white cursor-pointer"
+              value={formData.idCategoria}
+              onChange={(e) => setFormData({ ...formData, idCategoria: Number(e.target.value) })}
+            >
+              {categorias.map((cat) => (
+                <option key={cat.idCategoria} value={cat.idCategoria}>
+                  {cat.nombre}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
@@ -748,10 +789,17 @@ const CursoCard = ({
     >
       <div className="p-6 flex-1 flex flex-col justify-between">
         <div>
-          <div className="flex justify-between items-start mb-4">
-            <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full uppercase tracking-wider">
-              {curso.lp}
-            </span>
+          <div className="flex justify-between items-start mb-4 gap-2 flex-wrap">
+            <div className="flex gap-1.5 flex-wrap">
+              <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full uppercase tracking-wider">
+                {curso.lp}
+              </span>
+              {curso.categoria && (
+                <span className="px-3 py-1 bg-purple-50 text-purple-700 text-xs font-bold rounded-full tracking-wider">
+                  {curso.categoria.nombre}
+                </span>
+              )}
+            </div>
             <span className={`px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wider ${
               curso.tipo === 'público' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
             }`}>

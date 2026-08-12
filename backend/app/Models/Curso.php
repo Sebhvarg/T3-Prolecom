@@ -18,12 +18,18 @@ class Curso extends Model
         'descripcion',
         'lp',
         'tipo',
+        'idCategoria',
         'idProfeCreador',
     ];
 
     public function creador()
     {
         return $this->belongsTo(User::class, 'idProfeCreador', 'idUsuario');
+    }
+
+    public function categoria()
+    {
+        return $this->belongsTo(CategoriaCurso::class, 'idCategoria', 'idCategoria');
     }
 
     public function estudiantes()
