@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\CursoController;
 use App\Http\Controllers\Api\DesafioController;
 use App\Http\Controllers\Api\ForoController;
 use App\Http\Controllers\Api\MaterialController;
+use App\Http\Controllers\Api\HealthLogController;
 use App\Http\Controllers\Api\NotificacionController;
 use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\TemaController;
@@ -47,6 +48,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Cursos — lectura, exploración y matriculación (PB08/PB10)
     Route::get('/cursos', [CursoController::class, 'index']);
+    Route::get('/cursos/total', [CursoController::class, 'cursosTotal']);
     Route::get(ROUTE_CURSO_ID, [CursoController::class, 'show']);
     Route::get('/mis-cursos', [CursoController::class, 'misCursos']);
     Route::post(ROUTE_CURSO_ID.'/inscribir', [CursoController::class, 'inscribir']);
@@ -127,5 +129,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post(ROUTE_CURSO_ID.'/matricular-manual', [CursoController::class, 'matricularManual']);
         Route::get('/estudiantes', [UserController::class, 'listarEstudiantes']);
         Route::get('/usuarios/activos', [UserController::class, 'usuariosActivos']);
+    });
+
+    // Rutas exclusivas de Administrador / Soporte (PB22 - SCRUM-60 & SCRUM-61)
+    Route::middleware('role:Administrador,Soporte')->group(function () {
+        Route::get('/admin/usuarios', [UserController::class, 'index']);
+        Route::put('/admin/usuarios/{id}/roles', [UserController::class, 'updateRoles']);
+        Route::put('/admin/usuarios/{id}/estado', [UserController::class, 'updateEstado']);
+        Route::put('/admin/usuarios/{id}/reset-password', [UserController::class, 'resetPassword']);
+
+        // Monitor de salud del sistema y logs de errores (SCRUM-61)
+        Route::get('/admin/logs', [HealthLogController::class, 'index']);
     });
 });
