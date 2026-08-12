@@ -72,7 +72,7 @@ class UserController extends Controller
             $rolesToSync = $request->roles;
         }
 
-        if (!empty($rolesToSync)) {
+        if (! empty($rolesToSync)) {
             $user->roles()->sync($rolesToSync);
         }
 
