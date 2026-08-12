@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\LogActividad;
 use App\Repositories\Interfaces\AuthRepositoryInterface;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
@@ -48,8 +49,17 @@ class AuthService
             ])->status(403);
         }
 
-        // Login exitoso: limpiar el contador de intentos
+        // Login exitoso: limpiar el contador de intentos y registrar en logs_actividad
         RateLimiter::clear($throttleKey);
+
+        try {
+            LogActividad::create([
+                'accion' => 'Inicio de sesión de usuario en la plataforma',
+                'idUsuario' => $usuario->idUsuario,
+            ]);
+        } catch (\Exception $e) {
+            // Ignorar errores menores de logging en DB para no bloquear el login
+        }
 
         $token = $usuario->createToken('auth_token')->plainTextToken;
 
