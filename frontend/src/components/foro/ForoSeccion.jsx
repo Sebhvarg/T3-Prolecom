@@ -104,6 +104,8 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
     fetchForoData,
   } = useForoData({ resolveTargetForoId, initialPreguntaId });
 
+  const targetForoId = resolveTargetForoId();
+
   const {
     handleCreatePregunta,
     handleEditPreguntaSubmit,
@@ -113,7 +115,7 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
     handleEditRespuestaSubmit,
     handleDeleteRespuesta,
   } = useForoHandlers({
-    idForo,
+    idForo: targetForoId || idForo,
     selectedPreguntaId,
     setSelectedPreguntaId,
     setPreguntaDetalle,
@@ -134,27 +136,36 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
   // Si hay una pregunta seleccionada, renderizar la Vista Completa del Hilo
   if (selectedPreguntaId && preguntaDetalle) {
     return (
-      <ForoHiloSelectedView
-        preguntaDetalle={preguntaDetalle}
-        user={user}
-        isAuthorizedToValidate={isAuthorizedToValidate}
-        isForoClosed={isForoClosed}
-        onClose={() => { setSelectedPreguntaId(null); setPreguntaDetalle(null); }}
-        onRefresh={() => loadPreguntaDetalle(selectedPreguntaId)}
-        onEditRespuesta={(r) => setEditingRespuesta(r)}
-        onDeleteRespuesta={handleDeleteRespuesta}
-        onReportRespuesta={(id) => setReportModalData({ isOpen: true, targetId: id, targetType: 'respuesta' })}
-        editingRespuesta={editingRespuesta}
-        onCloseEditRespuesta={() => setEditingRespuesta(null)}
-        handleEditRespuestaSubmit={handleEditRespuestaSubmit}
-        submittingEditRespuesta={submittingEditRespuesta}
-        reportModalData={reportModalData}
-        onCloseReportModal={() => setReportModalData({ isOpen: false, targetId: null, targetType: 'pregunta' })}
-      />
+      <div className="space-y-6">
+        <HiloRespuestas
+          pregunta={preguntaDetalle}
+          currentUser={user}
+          isAuthorizedToValidate={isAuthorizedToValidate}
+          isForoClosed={isForoClosed}
+          onClose={() => { setSelectedPreguntaId(null); setPreguntaDetalle(null); }}
+          onRefresh={() => loadPreguntaDetalle(selectedPreguntaId)}
+          onEditRespuesta={(r) => setEditingRespuesta(r)}
+          onDeleteRespuesta={handleDeleteRespuesta}
+          onReportRespuesta={(id) => setReportModalData({ isOpen: true, targetId: id, targetType: 'respuesta' })}
+        />
+
+        <EditRespuestaModal
+          isOpen={Boolean(editingRespuesta)}
+          onClose={() => setEditingRespuesta(null)}
+          onSubmit={handleEditRespuestaSubmit}
+          respuesta={editingRespuesta}
+          submitting={submittingEditRespuesta}
+        />
+
+        <ReporteModal
+          isOpen={reportModalData.isOpen}
+          onClose={() => setReportModalData({ isOpen: false, targetId: null, targetType: 'pregunta' })}
+          targetId={reportModalData.targetId || 0}
+          targetType={reportModalData.targetType}
+        />
+      </div>
     );
   }
-
-  const targetForoId = resolveTargetForoId();
 
   if (!loading && !targetForoId) {
     return (
