@@ -25,7 +25,7 @@ export const getAdminDashboardData = async () => {
 
   return {
     stats: [
-      { id: 1, label: 'Usuarios Activos', value: usuariosActivosCount, icon: 'UserS', color: 'bg-slate-50 border-slate-200/80', iconColor: 'text-slate-700' },
+      { id: 1, label: 'Usuarios Activos', value: usuariosActivosCount, icon: 'Users', color: 'bg-slate-50 border-slate-200/80', iconColor: 'text-slate-700' },
       { id: 2, label: 'Total Registrados', value: usuariosTotalesCount, icon: 'Users', color: 'bg-slate-50 border-slate-200/80', iconColor: 'text-slate-700' },
       { id: 3, label: 'Cursos Totales', value: cursosCount, icon: 'BookOpen', color: 'bg-slate-50 border-slate-200/80', iconColor: 'text-slate-700' },
       { id: 4, label: 'Estado Base Datos', value: healthLogsData.health?.database || 'OK', icon: 'Database', color: 'bg-slate-50 border-slate-200/80', iconColor: 'text-slate-700' },
