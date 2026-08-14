@@ -12,7 +12,8 @@ export const useForoData = ({ resolveTargetForoId, initialPreguntaId }) => {
   const [preguntaDetalle, setPreguntaDetalle] = useState(null);
 
   const loadPreguntaDetalle = useCallback(async (idPregunta) => {
-    setSelectedPreguntaId(idPregunta);
+    if (!idPregunta || Number.isNaN(Number(idPregunta))) return;
+    setSelectedPreguntaId(Number(idPregunta));
     try {
       const data = await foroService.getPreguntaDetalle(idPregunta);
       setPreguntaDetalle(data);

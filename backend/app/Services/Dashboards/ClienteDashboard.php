@@ -21,6 +21,10 @@ class ClienteDashboard extends BaseDashboard
             ['name' => 'Principal', 'route' => '/dashboard/estudiante'],
             ['name' => 'Mis Cursos', 'route' => '/cursos'],
             ['name' => 'Mi Perfil', 'route' => '/perfil'],
+            ['name' => 'Catálogo de Cursos', 'route' => '/cursos'],
+            ['name' => 'Mi Perfil', 'route' => '/cliente/perfil'],
+            ['name' => 'Mis Compras', 'route' => '/cliente/compras'],
+            ['name' => 'Soporte', 'route' => '/cliente/soporte'],
         ];
     }
 

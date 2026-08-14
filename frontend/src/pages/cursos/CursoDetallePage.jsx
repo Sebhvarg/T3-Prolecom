@@ -21,11 +21,10 @@ const generateTestCaseId = () => {
   return `tc-id-${testCaseIdCounter}`;
 };
 
-
 const renderItemMetadata = (item) => {
   const typeStr = item.itemable_type || '';
   const isDesafio = typeStr.includes('Desafio') || Boolean(item.dificultad) || Boolean(item.itemable?.dificultad);
-  const isForo = typeStr.includes('Foro') || Boolean(item.itemable?.idForo) || Boolean(item.titulo?.includes('Foro'));
+  const isForo = typeStr.includes('Foro') || Boolean(item.itemable?.idForo) || Boolean(item.idForo) || Boolean(item.titulo?.includes('Foro'));
   const isQuiz = typeStr.includes('Quiz') || Boolean(item.itemable?.idQuiz) || Boolean(item.titulo?.includes('Evaluación'));
 
   let icon = <FileText size={18} />;
@@ -53,11 +52,13 @@ const renderItemMetadata = (item) => {
 const TemaItemCard = ({
   item,
   itemIdx,
+  temaId,
   canManage,
   handleOpenSecureViewer,
   handleDownloadMaterial,
   handleDeleteMaterial,
   handleDeleteDesafio,
+  handleOpenForoModal,
   handleDeleteForo,
   navigate,
   idCurso,
@@ -163,14 +164,24 @@ const TemaItemCard = ({
               </button>
             )}
             {isForo && (
-              <button
-                type="button"
-                onClick={() => handleDeleteForo(item.idForo || item.itemable_id || item.itemable?.idForo)}
-                className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
-                title="Eliminar Foro"
-              >
-                <Trash2 size={14} />
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleOpenForoModal(temaId, item)}
+                  className="p-1.5 text-slate-400 hover:text-[#2c5364] rounded-lg transition-colors cursor-pointer"
+                  title="Editar Foro"
+                >
+                  <Pencil size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteForo(item)}
+                  className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                  title="Eliminar Foro"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </>
             )}
           </div>
         )}
@@ -248,7 +259,6 @@ const CursoNavTabs = ({ activeTab, setActiveTab, totalTemas }) => {
   );
 };
 
-
 const CursoDetallePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -302,6 +312,7 @@ const CursoDetallePage = () => {
   ]);
 
   // Form Foro
+  const [foroEditId, setForoEditId] = useState(null);
   const [foroTitulo, setForoTitulo] = useState('');
   const [foroDescripcion, setForoDescripcion] = useState('');
 
@@ -347,6 +358,7 @@ const CursoDetallePage = () => {
     desafioLenguaje,
     desafioPlantillaCodigo,
     desafioTestCases,
+    foroEditId,
     foroTitulo,
     foroDescripcion,
     setSubmitting,
@@ -371,6 +383,10 @@ const CursoDetallePage = () => {
     setDesafioLenguaje,
     setDesafioPlantillaCodigo,
     setDesafioTestCases,
+    setIsForoModalOpen,
+    setForoEditId,
+    setForoTitulo,
+    setForoDescripcion,
     generateTestCaseId,
     fetchCurso,
   });
@@ -488,6 +504,7 @@ const CursoDetallePage = () => {
           handleOpenMaterialModal={handleOpenMaterialModal}
           handleOpenDesafioModal={handleOpenDesafioModal}
           handleOpenForoModal={handleOpenForoModal}
+          handleDeleteForo={handleDeleteForo}
           handleDeleteTema={handleDeleteTema}
           toggleTema={toggleTema}
           expandedTemas={expandedTemas}
@@ -501,15 +518,11 @@ const CursoDetallePage = () => {
 
       </div>
 
-      {/* --- MODAL FORMS --- */}
-
-      {/* Modal Tema */}
+      {/* Modal Crear / Editar Tema */}
       <Modal
         isOpen={isTemaModalOpen}
         onClose={() => setIsTemaModalOpen(false)}
-        title={temaEditId ? 'Editar Tema' : 'Nuevo Tema o Módulo'}
-        icon={BookOpen}
-        maxWidth="max-w-md"
+        title={temaEditId ? "Editar Tema / Módulo" : "Nuevo Tema del Curso"}
       >
         <form onSubmit={handleSaveTema} className="space-y-4">
           <div>
@@ -518,7 +531,7 @@ const CursoDetallePage = () => {
               id="tema-form-nombre"
               type="text"
               required
-              placeholder="Ej. Introducción a Funciones"
+              placeholder="Ej. Introducción a Funciones y Recursión"
               value={temaNombre}
               onChange={(e) => setTemaNombre(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
@@ -526,11 +539,11 @@ const CursoDetallePage = () => {
           </div>
 
           <div>
-            <label htmlFor="tema-form-descripcion" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Descripción</label>
+            <label htmlFor="tema-form-descripcion" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Descripción (Opcional)</label>
             <textarea 
               id="tema-form-descripcion"
               rows="3"
-              placeholder="Breve explicación de los objetivos del tema..."
+              placeholder="Explica qué aprenderán los estudiantes en esta sección..."
               value={temaDescripcion}
               onChange={(e) => setTemaDescripcion(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs resize-none focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
@@ -543,28 +556,26 @@ const CursoDetallePage = () => {
             </button>
             <button type="submit" disabled={submitting} className="px-5 py-2.5 bg-[#2c5364] hover:bg-[#203a43] text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5">
               {submitting ? <Loader2 size={14} className="animate-spin" /> : null}
-              <span>{submitting ? 'Guardando...' : 'Guardar Tema'}</span>
+              <span>{submitting ? 'Guardando...' : temaEditId ? 'Actualizar Tema' : 'Crear Tema'}</span>
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* Modal Material */}
+      {/* Modal Subir Material */}
       <Modal
         isOpen={isMaterialModalOpen}
         onClose={() => setIsMaterialModalOpen(false)}
-        title="Cargar Material de Aprendizaje"
-        icon={FileText}
-        maxWidth="max-w-md"
+        title="Subir Material de Aprendizaje"
       >
         <form onSubmit={handleSaveMaterial} className="space-y-4">
           <div>
-            <label htmlFor="mat-form-nombre" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Nombre del Material</label>
+            <label htmlFor="mat-form-nombre" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Título del Material</label>
             <input 
               id="mat-form-nombre"
               type="text"
               required
-              placeholder="Ej. Guía Teórica de Condicionales PDF"
+              placeholder="Ej. Guía Práctica de Sintaxis"
               value={materialNombre}
               onChange={(e) => setMaterialNombre(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
@@ -581,18 +592,15 @@ const CursoDetallePage = () => {
             >
               <option value="documento">Documento / Guía (PDF)</option>
               <option value="video">Video Explicativo (MP4)</option>
-              <option value="presentacion">Presentación / Diapositivas</option>
-              <option value="codigo">Código de Ejemplo (.py)</option>
             </select>
           </div>
 
           <div>
-            <label htmlFor="mat-form-archivo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Archivo de Origen (Máx 500 MB)</label>
+            <label htmlFor="mat-form-archivo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Archivo de Origen</label>
             <input 
               id="mat-form-archivo"
               type="file"
               required
-              accept={materialTipo === 'video' ? '.mp4,.mov,.avi,.mkv,.webm,video/*' : '.pdf,application/pdf'}
               onChange={(e) => setMaterialFile(e.target.files[0])}
               className="w-full text-xs font-semibold text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#2c5364]/10 file:text-[#2c5364] hover:file:bg-[#2c5364]/20 cursor-pointer"
             />
@@ -610,13 +618,55 @@ const CursoDetallePage = () => {
         </form>
       </Modal>
 
+      {/* Modal Crear / Editar Foro */}
+      <Modal
+        isOpen={isForoModalOpen}
+        onClose={() => setIsForoModalOpen(false)}
+        title={foroEditId ? "Editar Foro de Discusión" : "Crear Foro de Discusión en Tema"}
+      >
+        <form onSubmit={handleSaveForo} className="space-y-4">
+          <div>
+            <label htmlFor="foro-form-titulo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Título del Foro</label>
+            <input 
+              id="foro-form-titulo"
+              type="text"
+              required
+              placeholder="Ej. Foro: Dudas y Consultas sobre Bucles"
+              value={foroTitulo}
+              onChange={(e) => setForoTitulo(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="foro-form-descripcion" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Descripción / Normas (Opcional)</label>
+            <textarea 
+              id="foro-form-descripcion"
+              rows="3"
+              placeholder="Instrucciones o normas para los estudiantes en este espacio..."
+              value={foroDescripcion}
+              onChange={(e) => setForoDescripcion(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs resize-none focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button type="button" onClick={() => setIsForoModalOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">
+              Cancelar
+            </button>
+            <button type="submit" disabled={submitting} className="px-5 py-2.5 bg-[#2c5364] hover:bg-[#203a43] text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5">
+              {submitting ? <Loader2 size={14} className="animate-spin" /> : null}
+              <span>{submitting ? 'Guardando...' : foroEditId ? 'Actualizar Foro' : 'Crear Foro'}</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
+
       {/* Modal Desafío Práctico */}
       <Modal
         isOpen={isDesafioModalOpen}
         onClose={() => setIsDesafioModalOpen(false)}
         title="Crear Desafío Práctico de Código"
-        icon={Code}
-        maxWidth="max-w-2xl"
       >
         <form onSubmit={handleSaveDesafio} className="space-y-4">
           <div>
@@ -868,6 +918,7 @@ const CursoTabContent = ({
   handleOpenMaterialModal,
   handleOpenDesafioModal,
   handleOpenForoModal,
+  handleDeleteForo,
   handleDeleteTema,
   toggleTema,
   expandedTemas,
@@ -967,8 +1018,8 @@ const CursoTabContent = ({
                       <button
                         type="button"
                         onClick={() => handleOpenForoModal(tema.idTema)}
-                        className="p-1.5 text-slate-700 hover:text-purple-600 hover:bg-white rounded-lg transition-colors cursor-pointer"
-                        title="Crear Foro de Discusión"
+                        className="p-1.5 text-slate-700 hover:text-purple-700 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                        title="Crear Foro de Discusión en este Tema"
                       >
                         <MessageSquare size={16} />
                       </button>
@@ -1012,11 +1063,13 @@ const CursoTabContent = ({
                         key={item.idItem || item.idMaterial || item.idDesafio || item.idForo || item.idQuiz || `item-${itemIdx}`}
                         item={item}
                         itemIdx={itemIdx}
+                        temaId={tema.idTema}
                         canManage={canManage}
                         handleOpenSecureViewer={handleOpenSecureViewer}
                         handleDownloadMaterial={handleDownloadMaterial}
                         handleDeleteMaterial={handleDeleteMaterial}
                         handleDeleteDesafio={handleDeleteDesafio}
+                        handleOpenForoModal={handleOpenForoModal}
                         handleDeleteForo={handleDeleteForo}
                         navigate={navigate}
                         idCurso={id}

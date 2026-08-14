@@ -125,6 +125,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Foros
         Route::post('/temas/{idTema}/foros', [ForoController::class, 'store']);
+        Route::put(ROUTE_FORO_ID, [ForoController::class, 'update']);
+        Route::delete(ROUTE_FORO_ID, [ForoController::class, 'destroy']);
         Route::patch(ROUTE_FORO_ID.'/estado', [ForoController::class, 'toggleEstado']);
         Route::patch(ROUTE_PREGUNTA_ID.'/fijar', [ForoController::class, 'toggleFijar']);
         Route::patch(ROUTE_PREGUNTA_ID.'/estado', [ForoController::class, 'toggleEstadoPregunta']);

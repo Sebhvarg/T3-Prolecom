@@ -104,6 +104,8 @@ const ForoSeccion = ({ idForo, user, temas, onBack, onOpenCreateForoModal }) => 
     fetchForoData,
   } = useForoData({ resolveTargetForoId, initialPreguntaId });
 
+  const targetForoId = resolveTargetForoId();
+
   const {
     handleCreatePregunta,
     handleEditPreguntaSubmit,
@@ -113,7 +115,7 @@ const ForoSeccion = ({ idForo, user, temas, onBack, onOpenCreateForoModal }) => 
     handleEditRespuestaSubmit,
     handleDeleteRespuesta,
   } = useForoHandlers({
-    idForo,
+    idForo: targetForoId || idForo,
     selectedPreguntaId,
     setSelectedPreguntaId,
     setPreguntaDetalle,
@@ -153,8 +155,6 @@ const ForoSeccion = ({ idForo, user, temas, onBack, onOpenCreateForoModal }) => 
       />
     );
   }
-
-  const targetForoId = resolveTargetForoId();
 
   if (!loading && !targetForoId) {
     return (

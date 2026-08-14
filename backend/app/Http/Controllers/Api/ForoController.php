@@ -312,6 +312,10 @@ class ForoController extends Controller
      */
     public function showPregunta(Request $request, $idPregunta)
     {
+        if (! is_numeric($idPregunta)) {
+            return response()->json(['error' => 'ID de pregunta inválido.'], 400);
+        }
+
         $pregunta = Pregunta::with([
             'creador:idUsuario,nombreCompleto,usuario,avatar_path',
             'respuestas' => function ($q) {
@@ -326,12 +330,12 @@ class ForoController extends Controller
 
         $pregunta->incrementarVistas();
 
-        $userId = $request->user()->idUsuario;
+        $userId = $request->user()?->idUsuario;
         foreach ($pregunta->respuestas as $respuesta) {
-            $votos = $respuesta->votos;
+            $votos = $respuesta->votos ?? collect();
             $respuesta->likes_count = $votos->where('valor', VotoRespuesta::LIKE)->count();
             $respuesta->dislikes_count = $votos->where('valor', VotoRespuesta::DISLIKE)->count();
-            $votoPropio = $votos->firstWhere('idUsuario', $userId);
+            $votoPropio = $userId ? $votos->firstWhere('idUsuario', $userId) : null;
 
             $miVotoStr = null;
             if ($votoPropio) {
