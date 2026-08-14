@@ -148,6 +148,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get(ROUTE_CURSO_ID.'/estudiantes', [CursoController::class, 'getEstudiantes']);
         Route::post(ROUTE_CURSO_ID.'/matricular-manual', [CursoController::class, 'matricularManual']);
         Route::get('/estudiantes', [UserController::class, 'listarEstudiantes']);
+        Route::get('/ayudantes', [UserController::class, 'listarAyudantes']);
         Route::get('/usuarios/activos', [UserController::class, 'usuariosActivos']);
     });
 
@@ -159,6 +160,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/moderacion/reportes/{id}/resolver', [ModeracionController::class, 'resolverReporte']);
         Route::post('/moderacion/reportes/{id}/ocultar', [ModeracionController::class, 'ocultarPublicacion']);
         Route::post('/moderacion/usuarios/{id}/banear', [ModeracionController::class, 'banearUsuario']);
+    });
+
+    // GENERACIÓN DE REPORTES ACADÉMICOS Y EXPORTACIÓN (Administrador, Profesor, Soporte, Ayudante)
+    Route::middleware('role:Administrador,Profesor,Soporte,Ayudante')->group(function () {
+        Route::get('/reportes/cursos', [\App\Http\Controllers\Api\ReporteAcademicoController::class, 'reporteCursos']);
+        Route::get('/reportes/estudiantes', [\App\Http\Controllers\Api\ReporteAcademicoController::class, 'reporteEstudiantes']);
+        Route::get('/reportes/ayudantes', [\App\Http\Controllers\Api\ReporteAcademicoController::class, 'reporteAyudantes']);
     });
 
     // Rutas exclusivas de Administrador / Soporte (PB22 - SCRUM-60 & SCRUM-61)

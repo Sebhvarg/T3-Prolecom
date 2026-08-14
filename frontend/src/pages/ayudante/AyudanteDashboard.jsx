@@ -16,6 +16,7 @@ import {
   FileQuestion,
   ShieldCheck
 } from 'lucide-react';
+import BotonDescargaReporte from '../../components/common/BotonDescargaReporte';
 
 const AyudanteDashboard = () => {
   const { user } = useAuth();
@@ -95,6 +96,10 @@ const AyudanteDashboard = () => {
                 Atención a consultas académicas, asistencia pedagógica y validación oficial de respuestas en el foro.
               </p>
             </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <BotonDescargaReporte tipoReporte="ayudantes" label="Reporte Cátedra" variant="secondary" />
           </div>
 
           {/* Segmented Control Tabs */}

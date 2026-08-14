@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { quizzesService } from '../../api/quizzesService';
 import { useAuth } from '../../context/AuthContext';
+import ConfirmModal from '../ui/ConfirmModal';
 import { 
   X, Clock, AlertCircle, Loader2, 
   HelpCircle, ChevronRight, ChevronLeft, Sparkles, Check, X as XIcon
@@ -84,16 +85,18 @@ const QuizResolverModal = ({ isOpen, onClose, quizId, onQuizCompleted }) => {
     }));
   };
 
-  const handleEnviarQuiz = async () => {
-    if (!quiz) return;
+  // Confirm Modal State
+  const [confirmState, setConfirmState] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Aceptar',
+    cancelText: 'Cancelar',
+    variant: 'warning',
+    onConfirm: () => {},
+  });
 
-    const preguntasSinResponder = quiz.preguntas.filter(p => !respuestas[p.idPreguntaQuiz]);
-    if (preguntasSinResponder.length > 0) {
-      if (!window.confirm(`Tienes ${preguntasSinResponder.length} pregunta(s) sin responder. ¿Deseas enviar el quiz de todos modos?`)) {
-        return;
-      }
-    }
-
+  const ejecutarEnvio = async () => {
     setSubmitting(true);
     setError('');
 
@@ -124,6 +127,28 @@ const QuizResolverModal = ({ isOpen, onClose, quizId, onQuizCompleted }) => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEnviarQuiz = async () => {
+    if (!quiz) return;
+
+    const preguntasSinResponder = quiz.preguntas.filter(p => !respuestas[p.idPreguntaQuiz]);
+    if (preguntasSinResponder.length > 0) {
+      setConfirmState({
+        isOpen: true,
+        title: 'Preguntas sin responder',
+        message: `Tienes ${preguntasSinResponder.length} pregunta(s) sin responder. ¿Deseas enviar la evaluación de todos modos?`,
+        variant: 'warning',
+        confirmText: 'Sí, enviar de todos modos',
+        onConfirm: async () => {
+          setConfirmState((prev) => ({ ...prev, isOpen: false }));
+          await ejecutarEnvio();
+        },
+      });
+      return;
+    }
+
+    await ejecutarEnvio();
   };
 
   const formatTiempo = (segundos) => {
@@ -459,6 +484,18 @@ const QuizResolverModal = ({ isOpen, onClose, quizId, onQuizCompleted }) => {
 
         </div>
       </div>
+
+      {/* ConfirmModal Reutilizable */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmState.onConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        variant={confirmState.variant}
+      />
     </div>
   );
 };

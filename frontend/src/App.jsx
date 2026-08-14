@@ -14,6 +14,7 @@ import PerfilPage from './pages/perfil/PerfilPage';
 
 import ModeratorDashboard from './pages/dashboard/ModeratorDashboard';
 import AyudanteDashboard from './pages/ayudante/AyudanteDashboard';
+import ReportesPage from './pages/reportes/ReportesPage';
 
 function App() {
   return (
@@ -54,6 +55,11 @@ function App() {
             <Route path="/cursos/:id/desafios/:idDesafio" element={<DesafioDetallePage />} />
             <Route path="/desafios/:idDesafio" element={<DesafioDetallePage />} />
             <Route path="/desafios/:id" element={<DesafioDetallePage />} />
+          </Route>
+
+          {/* Centro de Reportes PDF y CSV — Administrador, Profesor, Soporte, Ayudante */}
+          <Route element={<PrivateRoute allowedRoles={[1, 3, 4, 5]} />}>
+            <Route path="/reportes" element={<ReportesPage />} />
           </Route>
 
           {/* Perfil accesible para todos los roles autenticados */}

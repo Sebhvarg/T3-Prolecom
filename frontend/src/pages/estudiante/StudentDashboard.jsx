@@ -4,7 +4,7 @@ import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { authService } from '../../api/authService';
 import { cursosService } from '../../api/cursosService';
-import { MessageSquare, BookOpen, Clock, AlertCircle } from 'lucide-react';
+import { MessageSquare, BookOpen, Clock, AlertCircle, LayoutGrid, List, ChevronRight } from 'lucide-react';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
@@ -13,6 +13,7 @@ const StudentDashboard = () => {
   const [actividades, setActividades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
 
   useEffect(() => {
     const fetchStudentDashboardData = async () => {
@@ -78,38 +79,71 @@ const StudentDashboard = () => {
       return (
         <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-xs text-center flex flex-col items-center justify-center">
           <BookOpen size={48} className="text-gray-300 mb-3" />
-          <p className="text-gray-500 font-medium mb-4">Aún no estás inscrito en ningún curso.</p>
+          <p className="text-gray-500 font-medium text-xs mb-4">Aún no estás inscrito en ningún curso.</p>
           <button
+            type="button"
             onClick={() => navigate('/cursos')}
-            className="bg-[#2c5364] hover:bg-[#203a43] text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-xs cursor-pointer"
+            className="bg-[#2c5364] hover:bg-[#203a43] text-white px-5 py-2 rounded-xl font-bold text-xs transition-all shadow-xs cursor-pointer"
           >
             Explorar Cursos
           </button>
         </div>
       );
     }
+
+    if (viewMode === 'list') {
+      return (
+        <div className="flex flex-col space-y-3">
+          {cursos.map(curso => (
+            <button
+              key={curso.idCurso}
+              type="button"
+              onClick={() => navigate(`/cursos/${curso.idCurso}`)}
+              className="w-full text-left bg-white rounded-2xl border border-slate-200/80 shadow-2xs p-4 flex items-center justify-between hover:border-slate-300 hover:shadow-xs transition group cursor-pointer"
+            >
+              <div className="flex items-center gap-3.5 min-w-0">
+                <img src={getLanguageLogo(curso.lp)} alt={curso.lp} className="w-8 h-8 drop-shadow-xs shrink-0" />
+                <div className="min-w-0">
+                  <h4 className="text-sm font-extrabold text-slate-900 group-hover:text-[#2c5364] truncate">{curso.titulo}</h4>
+                  <p className="text-slate-500 text-xs truncate mt-0.5">Profesor: {curso.creador?.nombreCompleto || 'Docente Cátedra'}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0">
+                <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full uppercase tracking-wider">
+                  {curso.tipo}
+                </span>
+                <ChevronRight size={16} className="text-slate-400 group-hover:text-slate-700 transition" />
+              </div>
+            </button>
+          ))}
+        </div>
+      );
+    }
+
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {cursos.map(curso => (
           <button
             key={curso.idCurso}
             type="button"
             onClick={() => navigate(`/cursos/${curso.idCurso}`)}
-            className="w-full text-left bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex hover:shadow-md transition-all group cursor-pointer hover:-translate-y-0.5 transform duration-200"
+            className="w-full text-left bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden flex hover:border-slate-300 hover:shadow-xs transition-all group cursor-pointer"
           >
-            <div className="flex-1 p-6 flex flex-col justify-between">
+            <div className="flex-1 p-5 flex flex-col justify-between min-w-0">
               <div>
-                <h4 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-[#2c5364] transition-colors">{curso.titulo}</h4>
-                <p className="text-gray-500 text-sm line-clamp-2 mb-4 leading-relaxed">{curso.descripcion}</p>
-                <div className="space-y-1.5 text-xs text-gray-500 mb-4">
-                  <p className="font-semibold text-gray-700">Profesor: <span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Docente Cátedra'}</span></p>
+                <h4 className="text-base font-extrabold text-slate-900 mb-1.5 group-hover:text-[#2c5364] transition-colors truncate">{curso.titulo}</h4>
+                <p className="text-slate-500 text-xs line-clamp-2 mb-3 leading-relaxed">{curso.descripcion}</p>
+                <div className="text-[11px] text-slate-500 mb-2">
+                  <span>Profesor: </span>
+                  <strong className="text-slate-800 font-bold">{curso.creador?.nombreCompleto || 'Docente Cátedra'}</strong>
                 </div>
               </div>
-              <span className="px-3 py-1 bg-green-50 text-green-700 text-[10px] font-bold rounded-full w-fit uppercase tracking-wider">{curso.tipo}</span>
+              <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full w-fit uppercase tracking-wider">{curso.tipo}</span>
             </div>
-            <div className="w-32 bg-gray-50 flex flex-col items-center justify-center border-l border-gray-50 gap-2 group-hover:bg-gray-100 transition-colors">
-              <img src={getLanguageLogo(curso.lp)} alt={curso.lp} className="w-12 h-12 drop-shadow-xs" />
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{curso.lp}</span>
+            <div className="w-24 bg-slate-50 flex flex-col items-center justify-center border-l border-slate-100 gap-1 group-hover:bg-slate-100/80 transition-colors shrink-0">
+              <img src={getLanguageLogo(curso.lp)} alt={curso.lp} className="w-9 h-9 drop-shadow-xs" />
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">{curso.lp}</span>
             </div>
           </button>
         ))}
@@ -120,7 +154,7 @@ const StudentDashboard = () => {
   return (
     <DashboardContainer title="Panel de Estudiante" user={user}>
       <div className="space-y-8">
-        {/* Header Hero Banner with XP & Progress Stats (Figure 8 in Report) */}
+        {/* Header Hero Banner with XP & Progress Stats */}
         <div className="bg-[#1e293b] rounded-2xl border border-slate-800 p-6 md:p-8 text-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
           <div className="space-y-2 relative z-10">
             <h2 className="text-2xl md:text-3xl font-black tracking-tight">
@@ -133,6 +167,7 @@ const StudentDashboard = () => {
 
           <div className="flex flex-wrap gap-3 relative z-10 w-full md:w-auto">
             <button
+              type="button"
               onClick={() => navigate('/cursos')}
               className="bg-white text-[#2c5364] hover:bg-slate-100 px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer w-full sm:w-auto text-center"
             >
@@ -143,7 +178,7 @@ const StudentDashboard = () => {
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex items-center gap-4">
             <div className="p-3 bg-blue-50 text-[#2c5364] rounded-xl">
               <BookOpen size={24} />
             </div>
@@ -153,7 +188,7 @@ const StudentDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex items-center gap-4">
             <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
               <span className="text-xl font-black">⚡</span>
             </div>
@@ -163,7 +198,7 @@ const StudentDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex items-center gap-4">
             <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
               <Clock size={24} />
             </div>
@@ -173,45 +208,84 @@ const StudentDashboard = () => {
             </div>
           </div>
         </div>
-        
-        <section className="mb-10">
-          <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-             <BookOpen size={20} className="text-[#2c5364]" />
-             <span>Mis Cursos En Curso</span>
-          </h3>
-          {renderCursos()}
-        </section>
 
-        <section>
-          <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <Clock size={20} className="text-[#2c5364]" />
-            <span>Actividades Recientes & Notificaciones</span>
-          </h3>
-          
-          {actividades.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-xs text-slate-400 font-medium">
-              No tienes actividades o notificaciones pendientes en tus cursos por ahora.
+        {/* Estructura Principal en 2 Columnas */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Columna Izquierda (2/3 width) - Mis Cursos en Curso con Selector Grid / Lista */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <BookOpen size={20} className="text-[#2c5364]" />
+                <span>Mis Cursos En Curso</span>
+              </h3>
+
+              {/* Selector de orden Grid / Lista */}
+              <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/80">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grid')}
+                  title="Vista en Cuadrícula (Grid)"
+                  className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                    viewMode === 'grid'
+                      ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                      : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  <LayoutGrid size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('list')}
+                  title="Vista en Lista"
+                  className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                    viewMode === 'list'
+                      ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                      : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  <List size={16} />
+                </button>
+              </div>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {actividades.map(act => (
-                <div key={act.id || act.titulo} className="bg-white rounded-2xl border border-slate-200 shadow-2xs flex overflow-hidden hover:border-slate-300 transition-colors">
-                  <div className="w-1.5 bg-[#2c5364]"></div>
-                  <div className="flex-1 p-4 flex justify-between items-center">
-                    <div className="space-y-1">
-                      <p className="text-slate-900 text-xs font-bold"><strong>{act.tipo}:</strong> {act.titulo}</p>
-                      <p className="text-xs text-slate-500 font-semibold">{act.curso}</p>
-                      <p className="text-[10px] text-slate-400 font-mono">{act.fecha}</p>
-                    </div>
-                    <div className="p-2.5 rounded-full bg-slate-100 text-[#2c5364]">
-                      <MessageSquare size={18} />
+
+            {renderCursos()}
+          </div>
+
+          {/* Columna Derecha (1/3 width) - Actividades Recientes */}
+          <div className="lg:col-span-1 space-y-4">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Clock size={20} className="text-[#2c5364]" />
+                <span>Actividades Recientes</span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">Notificaciones y tareas pendientes</p>
+            </div>
+
+            {actividades.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center text-xs text-slate-400 font-medium">
+                No tienes actividades o notificaciones pendientes por ahora.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {actividades.map((act) => (
+                  <div key={act.id || act.titulo} className="bg-white rounded-xl border border-slate-200/80 shadow-2xs flex overflow-hidden hover:border-slate-300 transition-colors">
+                    <div className="w-1.5 bg-[#2c5364]"></div>
+                    <div className="flex-1 p-3.5 flex justify-between items-center min-w-0">
+                      <div className="space-y-0.5 min-w-0 pr-2">
+                        <p className="text-slate-900 text-xs font-bold truncate"><strong>{act.tipo}:</strong> {act.titulo}</p>
+                        <p className="text-[11px] text-slate-500 font-medium truncate">{act.curso}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">{act.fecha}</p>
+                      </div>
+                      <div className="p-2 rounded-full bg-slate-100 text-[#2c5364] shrink-0">
+                        <MessageSquare size={16} />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </DashboardContainer>
   );

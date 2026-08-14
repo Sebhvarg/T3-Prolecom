@@ -15,6 +15,7 @@ export const useForoHandlers = ({
   loadPreguntaDetalle,
   fetchForoData,
   setIsModalNuevaOpen,
+  setConfirmState,
 }) => {
   const handleCreatePregunta = useCallback(async (preguntaData) => {
     await executeAsyncAction({
@@ -44,19 +45,36 @@ export const useForoHandlers = ({
   }, [fetchForoData, selectedPreguntaId, loadPreguntaDetalle, setEditingPregunta, setSubmittingEditPregunta]);
 
   const handleDeletePregunta = useCallback(async (idPregunta) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar esta pregunta y todas sus respuestas?')) return;
-    await executeAsyncAction({
-      action: () => foroService.deletePregunta(idPregunta),
-      errorMessage: 'Error al eliminar la pregunta.',
-      onSuccess: () => {
-        if (selectedPreguntaId === idPregunta) {
-          setSelectedPreguntaId(null);
-          setPreguntaDetalle(null);
-        }
-        fetchForoData();
-      },
-    });
-  }, [fetchForoData, selectedPreguntaId, setSelectedPreguntaId, setPreguntaDetalle]);
+    const doDelete = async () => {
+      await executeAsyncAction({
+        action: () => foroService.deletePregunta(idPregunta),
+        errorMessage: 'Error al eliminar la pregunta.',
+        onSuccess: () => {
+          if (selectedPreguntaId === idPregunta) {
+            setSelectedPreguntaId(null);
+            setPreguntaDetalle(null);
+          }
+          fetchForoData();
+        },
+      });
+    };
+
+    if (setConfirmState) {
+      setConfirmState({
+        isOpen: true,
+        title: 'Eliminar Pregunta',
+        message: '¿Estás seguro de que deseas eliminar esta pregunta y todas sus respuestas?',
+        variant: 'danger',
+        confirmText: 'Sí, eliminar',
+        onConfirm: async () => {
+          setConfirmState((prev) => ({ ...prev, isOpen: false }));
+          await doDelete();
+        },
+      });
+    } else {
+      await doDelete();
+    }
+  }, [setConfirmState, fetchForoData, selectedPreguntaId, setSelectedPreguntaId, setPreguntaDetalle]);
 
   const handleTogglePin = useCallback(async (idPregunta) => {
     await executeAsyncAction({
@@ -89,17 +107,34 @@ export const useForoHandlers = ({
   }, [selectedPreguntaId, loadPreguntaDetalle, setEditingRespuesta, setSubmittingEditRespuesta]);
 
   const handleDeleteRespuesta = useCallback(async (idRespuesta) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar esta respuesta?')) return;
-    await executeAsyncAction({
-      action: () => foroService.deleteRespuesta(idRespuesta),
-      errorMessage: 'Error al eliminar la respuesta.',
-      onSuccess: () => {
-        if (selectedPreguntaId) {
-          loadPreguntaDetalle(selectedPreguntaId);
-        }
-      },
-    });
-  }, [selectedPreguntaId, loadPreguntaDetalle]);
+    const doDelete = async () => {
+      await executeAsyncAction({
+        action: () => foroService.deleteRespuesta(idRespuesta),
+        errorMessage: 'Error al eliminar la respuesta.',
+        onSuccess: () => {
+          if (selectedPreguntaId) {
+            loadPreguntaDetalle(selectedPreguntaId);
+          }
+        },
+      });
+    };
+
+    if (setConfirmState) {
+      setConfirmState({
+        isOpen: true,
+        title: 'Eliminar Respuesta',
+        message: '¿Estás seguro de que deseas eliminar esta respuesta?',
+        variant: 'danger',
+        confirmText: 'Sí, eliminar',
+        onConfirm: async () => {
+          setConfirmState((prev) => ({ ...prev, isOpen: false }));
+          await doDelete();
+        },
+      });
+    } else {
+      await doDelete();
+    }
+  }, [setConfirmState, selectedPreguntaId, loadPreguntaDetalle]);
 
   return {
     handleCreatePregunta,

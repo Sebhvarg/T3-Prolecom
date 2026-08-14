@@ -14,6 +14,7 @@ import EditPreguntaModal from './EditPreguntaModal';
 import EditRespuestaModal from './EditRespuestaModal';
 import ReporteModal from './ReporteModal';
 import ForoEmptyState from './ForoEmptyState';
+import ConfirmModal from '../ui/ConfirmModal';
 
 const filterAndSortPreguntas = (preguntas, search, filtro, orden, userId) => {
   const filtered = preguntas.filter((p) => {
@@ -106,6 +107,16 @@ const ForoSeccion = ({ idForo, user, temas, onBack, onOpenCreateForoModal }) => 
 
   const targetForoId = resolveTargetForoId();
 
+  const [confirmState, setConfirmState] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Aceptar',
+    cancelText: 'Cancelar',
+    variant: 'danger',
+    onConfirm: () => {},
+  });
+
   const {
     handleCreatePregunta,
     handleEditPreguntaSubmit,
@@ -127,6 +138,7 @@ const ForoSeccion = ({ idForo, user, temas, onBack, onOpenCreateForoModal }) => 
     loadPreguntaDetalle,
     fetchForoData,
     setIsModalNuevaOpen,
+    setConfirmState,
   });
 
   const preguntasProcesadas = filterAndSortPreguntas(preguntas, search, filtro, orden, user?.idUsuario);
@@ -382,6 +394,18 @@ const ForoSeccion = ({ idForo, user, temas, onBack, onOpenCreateForoModal }) => 
         onClose={() => setReportModalData({ isOpen: false, targetId: null, targetType: 'pregunta' })}
         targetId={reportModalData.targetId || 0}
         targetType={reportModalData.targetType}
+      />
+
+      {/* ConfirmModal Reutilizable */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmState.onConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        variant={confirmState.variant}
       />
     </div>
   );

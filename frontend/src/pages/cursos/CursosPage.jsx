@@ -3,9 +3,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { cursosService } from '../../api/cursosService';
-import { BookOpen, Plus, Edit2, Trash2, X, AlertCircle, CheckCircle, Users, UserPlus, Filter, Loader2, LayoutGrid, List } from 'lucide-react';
+import { BookOpen, Plus, Edit2, Trash2, X, AlertCircle, CheckCircle, Users, UserPlus, Filter, Loader2, LayoutGrid, List, GraduationCap, UserCheck } from 'lucide-react';
 import PropTypes from 'prop-types';
 import Modal from '../../components/ui/Modal';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 
 const CursosPage = () => {
   const navigate = useNavigate();
@@ -15,6 +16,17 @@ const CursosPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  
+  // Confirm Modal State
+  const [confirmState, setConfirmState] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Aceptar',
+    cancelText: 'Cancelar',
+    variant: 'danger',
+    onConfirm: () => {},
+  });
   
   // Modal states for Create/Edit Curso
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,12 +49,17 @@ const CursosPage = () => {
   const [lps, setLps] = useState([]);
   const [categorias, setCategorias] = useState([]);
   
-  // Alumnos Modal states
+  // Alumnos & Ayudantes Modal states
   const [isAlumnosModalOpen, setIsAlumnosModalOpen] = useState(false);
   const [selectedCursoForAlumnos, setSelectedCursoForAlumnos] = useState(null);
   const [alumnosMatriculados, setAlumnosMatriculados] = useState([]);
+  const [ayudantesMatriculados, setAyudantesMatriculados] = useState([]);
   const [estudiantesSistema, setEstudiantesSistema] = useState([]);
+  const [ayudantesSistema, setAyudantesSistema] = useState([]);
   const [alumnosLoading, setAlumnosLoading] = useState(false);
+  const [ayudantesLoading, setAyudantesLoading] = useState(false);
+  const [searchAyudante, setSearchAyudante] = useState('');
+  const [showAllUsersForTA, setShowAllUsersForTA] = useState(false);
 
   // Search and Sort states for Manual Enrollment (Point 4)
   const [searchAvailable, setSearchAvailable] = useState('');
@@ -145,19 +162,27 @@ const CursosPage = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!globalThis.confirm('¿Estás seguro de que deseas eliminar este curso?')) return;
-    setError('');
-    setSuccess('');
-
-    try {
-      await cursosService.deleteCurso(id);
-      setSuccess('Curso eliminado correctamente.');
-      fetchCursos();
-    } catch (err) {
-      console.error(err);
-      setError('No se pudo eliminar el curso.');
-    }
+  const handleDelete = (id) => {
+    setConfirmState({
+      isOpen: true,
+      title: 'Eliminar Curso',
+      message: '¿Estás seguro de que deseas eliminar este curso? Esta acción no se puede deshacer.',
+      variant: 'danger',
+      confirmText: 'Sí, eliminar',
+      onConfirm: async () => {
+        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+        setError('');
+        setSuccess('');
+        try {
+          await cursosService.deleteCurso(id);
+          setSuccess('Curso eliminado correctamente.');
+          fetchCursos();
+        } catch (err) {
+          console.error(err);
+          setError('No se pudo eliminar el curso.');
+        }
+      },
+    });
   };
 
   // Student self-enrollment/unenrollment
@@ -174,21 +199,30 @@ const CursosPage = () => {
     }
   };
 
-  const handleDesmatricular = async (idCurso) => {
-    if (!globalThis.confirm('¿Estás seguro de que deseas darte de baja de este curso?')) return;
-    setError('');
-    setSuccess('');
-    try {
-      await cursosService.desmatricularCurso(idCurso);
-      setSuccess('Te has dado de baja del curso con éxito.');
-      fetchCursos();
-    } catch (err) {
-      console.error(err);
-      setError(err.message || 'Error al intentar darse de baja.');
-    }
+  const handleDesmatricular = (idCurso) => {
+    setConfirmState({
+      isOpen: true,
+      title: 'Darse de baja del curso',
+      message: '¿Estás seguro de que deseas darte de baja de este curso?',
+      variant: 'warning',
+      confirmText: 'Sí, darme de baja',
+      onConfirm: async () => {
+        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+        setError('');
+        setSuccess('');
+        try {
+          await cursosService.desmatricularCurso(idCurso);
+          setSuccess('Te has dado de baja del curso con éxito.');
+          fetchCursos();
+        } catch (err) {
+          console.error(err);
+          setError(err.message || 'Error al intentar darse de baja.');
+        }
+      },
+    });
   };
 
-  // Manual enrollment and view students (Professor/Admin)
+  // Manual enrollment and view students/ayudantes (Professor/Admin)
   const refreshAlumnosList = useCallback(async (cursoId) => {
     setAlumnosLoading(true);
     try {
@@ -202,6 +236,18 @@ const CursosPage = () => {
     }
   }, []);
 
+  const refreshAyudantesList = useCallback(async (cursoId) => {
+    setAyudantesLoading(true);
+    try {
+      const ayus = await cursosService.getAyudantes(cursoId);
+      setAyudantesMatriculados(ayus || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAyudantesLoading(false);
+    }
+  }, []);
+
   const handleOpenAlumnosModal = async (curso) => {
     setSelectedCursoForAlumnos(curso);
     setIsAlumnosModalOpen(true);
@@ -211,16 +257,62 @@ const CursosPage = () => {
     setSortAvailable('asc');
     setSearchEnrolled('');
     setSortEnrolled('asc');
+    setSearchAyudante('');
     setModalActiveTab('matriculados');
     
     refreshAlumnosList(curso.idCurso);
+    refreshAyudantesList(curso.idCurso);
     
     try {
-      const allStudents = await cursosService.getEstudiantesSistema();
-      setEstudiantesSistema(allStudents);
+      const [allStudents, allTAs] = await Promise.all([
+        cursosService.getEstudiantesSistema(),
+        cursosService.getAyudantesSistema().catch(() => []),
+      ]);
+      setEstudiantesSistema(allStudents || []);
+      setAyudantesSistema(allTAs || []);
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleAsignarAyudanteDirect = async (estudiante) => {
+    if (!selectedCursoForAlumnos) return;
+    setError('');
+    setSuccess('');
+    try {
+      await cursosService.asignarAyudante(selectedCursoForAlumnos.idCurso, {
+        idUsuarioAyudante: estudiante.idUsuario,
+      });
+      setSuccess(`¡${estudiante.nombreCompleto} ha sido asignado como Ayudante de Cátedra!`);
+      refreshAyudantesList(selectedCursoForAlumnos.idCurso);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Error al asignar ayudante.');
+    }
+  };
+
+  const handleDesasignarAyudanteDirect = (idAyudante) => {
+    if (!selectedCursoForAlumnos) return;
+    setConfirmState({
+      isOpen: true,
+      title: 'Remover Ayudante',
+      message: '¿Estás seguro de que deseas remover a este ayudante del curso?',
+      variant: 'danger',
+      confirmText: 'Sí, remover',
+      onConfirm: async () => {
+        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+        setError('');
+        setSuccess('');
+        try {
+          await cursosService.desasignarAyudante(selectedCursoForAlumnos.idCurso, idAyudante);
+          setSuccess('Ayudante removido del curso exitosamente.');
+          refreshAyudantesList(selectedCursoForAlumnos.idCurso);
+        } catch (err) {
+          console.error(err);
+          setError(err.message || 'Error al remover ayudante.');
+        }
+      },
+    });
   };
 
   const getFilteredAndSortedAvailable = () => {
@@ -285,19 +377,29 @@ const CursosPage = () => {
     }
   };
 
-  const handleDesmatricularEstudianteManual = async (idEstudiante) => {
-    if (!globalThis.confirm('¿Estás seguro de que deseas desmatricular a este estudiante de este curso?')) return;
-    setError('');
-    setSuccess('');
-    try {
-      await cursosService.desmatricularCurso(selectedCursoForAlumnos.idCurso, idEstudiante);
-      setSuccess('Estudiante desmatriculado con éxito.');
-      refreshAlumnosList(selectedCursoForAlumnos.idCurso);
-      fetchCursos();
-    } catch (err) {
-      console.error(err);
-      setError(err.message || 'Error al desmatricular al estudiante.');
-    }
+  const handleDesmatricularEstudianteManual = (idEstudiante) => {
+    if (!selectedCursoForAlumnos) return;
+    setConfirmState({
+      isOpen: true,
+      title: 'Desmatricular Estudiante',
+      message: '¿Estás seguro de que deseas desmatricular a este estudiante de este curso?',
+      variant: 'danger',
+      confirmText: 'Sí, desmatricular',
+      onConfirm: async () => {
+        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+        setError('');
+        setSuccess('');
+        try {
+          await cursosService.desmatricularCurso(selectedCursoForAlumnos.idCurso, idEstudiante);
+          setSuccess('Estudiante desmatriculado con éxito.');
+          refreshAlumnosList(selectedCursoForAlumnos.idCurso);
+          fetchCursos();
+        } catch (err) {
+          console.error(err);
+          setError(err.message || 'Error al desmatricular al estudiante.');
+        }
+      },
+    });
   };
 
   const renderCursosList = () => {
@@ -614,7 +716,7 @@ const CursosPage = () => {
                 {selectedCursoForAlumnos.lp}
               </span>
               <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                Gestión de Alumnos
+                Gestión de Cátedra y Alumnos
               </h3>
               <p className="text-sm text-gray-500 mt-0.5">
                 Curso: <span className="font-semibold text-gray-800">{selectedCursoForAlumnos.titulo}</span>
@@ -622,30 +724,44 @@ const CursosPage = () => {
             </div>
 
             {/* Modal Tabs Header */}
-            <div className="flex border-b border-gray-200 mb-6">
+            <div className="flex border-b border-gray-200 mb-6 overflow-x-auto">
               <button
                 type="button"
                 onClick={() => setModalActiveTab('matriculados')}
-                className={`py-2.5 px-4 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
+                className={`py-2.5 px-4 text-xs md:text-sm font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
                   modalActiveTab === 'matriculados'
                     ? 'border-[#2c5364] text-[#2c5364]'
                     : 'border-transparent text-gray-400 hover:text-gray-600'
                 }`}
               >
                 <Users size={16} />
-                <span>Alumnos Matriculados ({alumnosMatriculados.length})</span>
+                <span>Alumnos ({alumnosMatriculados.length})</span>
               </button>
+
               <button
                 type="button"
                 onClick={() => setModalActiveTab('matricular')}
-                className={`py-2.5 px-4 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
+                className={`py-2.5 px-4 text-xs md:text-sm font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
                   modalActiveTab === 'matricular'
                     ? 'border-[#2c5364] text-[#2c5364]'
                     : 'border-transparent text-gray-400 hover:text-gray-600'
                 }`}
               >
                 <UserPlus size={16} />
-                <span>Matricular Alumnos</span>
+                <span>Matricular Alumno</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModalActiveTab('ayudantes')}
+                className={`py-2.5 px-4 text-xs md:text-sm font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+                  modalActiveTab === 'ayudantes'
+                    ? 'border-[#2c5364] text-[#2c5364]'
+                    : 'border-transparent text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                <GraduationCap size={16} />
+                <span>Ayudantes ({ayudantesMatriculados.length})</span>
               </button>
             </div>
 
@@ -705,7 +821,7 @@ const CursosPage = () => {
                               <td className="px-6 py-4 text-right">
                                 <button
                                   onClick={() => handleDesmatricularEstudianteManual(alumno.idUsuario)}
-                                  className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                  className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                                   title="Desmatricular Alumno"
                                 >
                                   <Trash2 size={16} />
@@ -719,7 +835,7 @@ const CursosPage = () => {
                   })()}
                 </div>
               </div>
-            ) : (
+            ) : modalActiveTab === 'matricular' ? (
               <div className="flex flex-col flex-1 min-h-0">
                 {/* Search and Sort for Available */}
                 <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -776,7 +892,7 @@ const CursosPage = () => {
                                 <button
                                   type="button"
                                   onClick={() => handleMatricularDirect(est)}
-                                  className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-all text-xs flex items-center gap-1.5 ml-auto shadow-sm"
+                                  className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-all text-xs flex items-center gap-1.5 ml-auto shadow-sm cursor-pointer"
                                 >
                                   <UserPlus size={14} />
                                   <span>Matricular</span>
@@ -790,10 +906,137 @@ const CursosPage = () => {
                   })()}
                 </div>
               </div>
+            ) : (
+              /* TAB: AYUDANTES DE CÁTEDRA */
+              <div className="flex flex-col flex-1 min-h-0 space-y-4">
+                {/* Lista de Ayudantes Asignados */}
+                <div>
+                  <h4 className="text-xs font-extrabold text-slate-700 uppercase mb-2">Ayudantes Asignados a la Cátedra ({ayudantesMatriculados.length})</h4>
+                  {ayudantesLoading ? (
+                    <div className="flex justify-center items-center h-20">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#2c5364]"></div>
+                    </div>
+                  ) : ayudantesMatriculados.length === 0 ? (
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-400 text-xs italic">
+                      No hay ayudantes de cátedra asignados a este curso por el momento.
+                    </div>
+                  ) : (
+                    <div className="border border-slate-200 rounded-xl overflow-hidden max-h-36 overflow-y-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead className="bg-[#0f2027] text-white uppercase text-[10px] font-bold sticky top-0 z-10">
+                          <tr>
+                            <th className="px-4 py-2.5">Nombre</th>
+                            <th className="px-4 py-2.5">Email</th>
+                            <th className="px-4 py-2.5 text-right">Acción</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {ayudantesMatriculados.map((ayu) => (
+                            <tr key={ayu.idUsuario} className="hover:bg-slate-50">
+                              <td className="px-4 py-3 font-semibold text-slate-900 flex items-center gap-2">
+                                <span className="p-1 rounded bg-slate-100 text-slate-700"><GraduationCap size={14} /></span>
+                                {ayu.nombreCompleto}
+                              </td>
+                              <td className="px-4 py-3 text-slate-600">{ayu.email}</td>
+                              <td className="px-4 py-3 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDesasignarAyudanteDirect(ayu.idUsuario)}
+                                  className="p-1 text-red-500 hover:bg-red-50 rounded transition cursor-pointer"
+                                  title="Remover Ayudante"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Sección: Asignar Nuevo Ayudante */}
+                <div className="pt-3 border-t border-slate-100 flex flex-col flex-1 min-h-0">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-xs font-extrabold text-slate-700 uppercase">Asignar Nuevo Ayudante de Cátedra</h4>
+                    <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={showAllUsersForTA}
+                        onChange={(e) => setShowAllUsersForTA(e.target.checked)}
+                        className="rounded text-[#2c5364] focus:ring-[#2c5364]"
+                      />
+                      <span>Ver todos los usuarios</span>
+                    </label>
+                  </div>
+                  
+                  <div className="mb-2">
+                    <input
+                      type="text"
+                      placeholder="Buscar ayudante por nombre o correo..."
+                      value={searchAyudante}
+                      onChange={(e) => setSearchAyudante(e.target.value)}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20"
+                    />
+                  </div>
+
+                  <div className="border border-slate-200 rounded-xl overflow-hidden flex-1 max-h-40 overflow-y-auto divide-y divide-slate-100">
+                    {(() => {
+                      const pool = showAllUsersForTA
+                        ? estudiantesSistema
+                        : (ayudantesSistema.length > 0 ? ayudantesSistema : estudiantesSistema);
+
+                      const availableForTA = pool
+                        .filter((u) => !ayudantesMatriculados.some((a) => a.idUsuario === u.idUsuario))
+                        .filter((u) => !searchAyudante.trim() || u.nombreCompleto.toLowerCase().includes(searchAyudante.toLowerCase()) || u.email.toLowerCase().includes(searchAyudante.toLowerCase()));
+                      
+                      if (availableForTA.length === 0) {
+                        return (
+                          <div className="p-4 text-center text-slate-400 text-xs font-medium">
+                            {showAllUsersForTA
+                              ? 'No hay más usuarios disponibles en el sistema.'
+                              : 'No hay más usuarios registrados con el rol de Ayudante.'}
+                          </div>
+                        );
+                      }
+
+                      return availableForTA.map((userToAssign) => (
+                        <div key={userToAssign.idUsuario} className="p-3 hover:bg-slate-50 flex justify-between items-center text-xs">
+                          <div>
+                            <span className="font-semibold text-slate-900 block">{userToAssign.nombreCompleto}</span>
+                            <span className="text-slate-500 text-[11px]">{userToAssign.email}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleAsignarAyudanteDirect(userToAssign)}
+                            className="px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold rounded-lg text-[11px] transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                          >
+                            <UserCheck size={13} />
+                            <span>Asignar Ayudante</span>
+                          </button>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>
       )}
+
+      {/* Reusable Confirmation Modal */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmState.onConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        variant={confirmState.variant}
+      />
     </DashboardContainer>
   );
 };

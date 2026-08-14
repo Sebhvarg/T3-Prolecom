@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { quizzesService } from '../../api/quizzesService';
 import QuizFormModal from './QuizFormModal';
 import QuizResolverModal from './QuizResolverModal';
+import ConfirmModal from '../ui/ConfirmModal';
 import { 
   HelpCircle, Plus, Play, CheckCircle2, Clock, 
   Trash2, Pencil, AlertCircle, Loader2, Award, Users, BookOpen, Check, RotateCcw, Sparkles
@@ -73,30 +74,59 @@ const QuizSeccion = ({ idCurso, user, temas, onQuizCompleted }) => {
     }
   };
 
-  const handleDeleteQuiz = async (quizId, e) => {
+  // Confirm Modal State
+  const [confirmState, setConfirmState] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Aceptar',
+    cancelText: 'Cancelar',
+    variant: 'danger',
+    onConfirm: () => {},
+  });
+
+  const handleDeleteQuiz = (quizId, e) => {
     if (e) e.stopPropagation();
-    if (!window.confirm('¿Estás seguro de eliminar este cuestionario? Se eliminarán todas las preguntas e intentos.')) return;
-    try {
-      await quizzesService.deleteQuiz(quizId);
-      setSuccess('Cuestionario eliminado exitosamente.');
-      reloadQuizzes();
-    } catch (err) {
-      console.error(err);
-      setError('Error al eliminar el cuestionario.');
-    }
+    setConfirmState({
+      isOpen: true,
+      title: 'Eliminar Cuestionario',
+      message: '¿Estás seguro de eliminar este cuestionario? Se eliminarán todas las preguntas e intentos asociados.',
+      variant: 'danger',
+      confirmText: 'Sí, eliminar',
+      onConfirm: async () => {
+        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+        try {
+          await quizzesService.deleteQuiz(quizId);
+          setSuccess('Cuestionario eliminado exitosamente.');
+          reloadQuizzes();
+        } catch (err) {
+          console.error(err);
+          setError('Error al eliminar el cuestionario.');
+        }
+      },
+    });
   };
 
-  const handleReiniciarIntentosProfesor = async (quizId, e) => {
+  const handleReiniciarIntentosProfesor = (quizId, e) => {
     if (e) e.stopPropagation();
-    if (!window.confirm('¿Deseas reiniciar todos los intentos de este quiz para permitir que los estudiantes lo vuelvan a realizar?')) return;
-    try {
-      await quizzesService.reiniciarIntentos(quizId);
-      setSuccess('Intentos del cuestionario reiniciados exitosamente.');
-      reloadQuizzes();
-    } catch (err) {
-      console.error(err);
-      setError('Error al reiniciar los intentos.');
-    }
+    setConfirmState({
+      isOpen: true,
+      title: 'Reiniciar Intentos',
+      message: '¿Deseas reiniciar todos los intentos de este quiz para permitir que los estudiantes lo vuelvan a realizar?',
+      variant: 'warning',
+      confirmText: 'Sí, reiniciar',
+      onConfirm: async () => {
+        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+        try {
+          await quizzesService.reiniciarIntentos(quizId);
+          setSuccess('Intentos del cuestionario reiniciados exitosamente.');
+          reloadQuizzes();
+        } catch (err) {
+          console.error(err);
+          setError('Error al reiniciar los intentos.');
+        }
+      },
+    });
   };
 
   const handleStartResolver = (quiz) => {
@@ -332,6 +362,18 @@ const QuizSeccion = ({ idCurso, user, temas, onQuizCompleted }) => {
         onClose={() => setIsResolverModalOpen(false)}
         quizId={activeQuizId}
         onQuizCompleted={reloadQuizzes}
+      />
+
+      {/* ConfirmModal Reutilizable */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmState.onConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        variant={confirmState.variant}
       />
     </div>
   );

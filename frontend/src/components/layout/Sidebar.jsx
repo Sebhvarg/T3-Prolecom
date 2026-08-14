@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, Settings, LogOut, BookOpen, ShieldAlert, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Home, Settings, LogOut, BookOpen, ShieldAlert, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logo from '../../assets/Logo/logoHorizontal.webp';
@@ -43,9 +43,15 @@ const Sidebar = () => {
 
   const homePath = getHomePath(user?.rol);
 
+  const canViewReports = Boolean(
+    ['Administrador', 'Profesor', 'Soporte', 'Ayudante'].includes(user?.rol) ||
+    user?.roles?.some(r => ['Administrador', 'Profesor', 'Soporte', 'Ayudante'].includes(r.rol || r))
+  );
+
   const menuItems = [
     { name: 'Principal', path: homePath, icon: <Home size={20} />, show: true },
     { name: 'Cursos', path: '/cursos', icon: <BookOpen size={20} />, show: !isAdminOrSupport },
+    { name: 'Reportes', path: '/reportes', icon: <FileText size={20} />, show: canViewReports },
     { name: 'Moderación', path: '/moderador/dashboard', icon: <ShieldAlert size={20} />, show: isModeratorOrAdmin },
   ];
 

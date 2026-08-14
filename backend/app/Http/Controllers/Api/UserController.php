@@ -182,6 +182,15 @@ class UserController extends Controller
         return response()->json($estudiantes);
     }
 
+    public function listarAyudantes()
+    {
+        $ayudantes = User::whereHas('roles', function ($q) {
+            $q->where('rol', 'Ayudante')->orWhere('roles.idRol', 5);
+        })->select('idUsuario', 'nombreCompleto', 'email')->get();
+
+        return response()->json($ayudantes);
+    }
+
     public function usuariosActivos()
     {
         $count = User::whereHas('estado', function ($q) {

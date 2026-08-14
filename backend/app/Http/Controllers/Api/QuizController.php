@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Curso;
 use App\Models\ItemTema;
+use App\Models\Notificacion;
 use App\Models\Quiz;
 use App\Models\QuizAsignacion;
 use App\Models\QuizIntento;
@@ -183,6 +184,14 @@ class QuizController extends Controller
             $this->guardarAsignaciones($quiz, $request->estudiantes);
 
             DB::commit();
+
+            Notificacion::notificarEstudiantesDelCurso(
+                $idCurso,
+                'nuevo_quiz',
+                'Nueva Evaluación / Quiz',
+                "El profesor publicó la evaluación '{$quiz->titulo}'.",
+                ['idQuiz' => $quiz->idQuiz]
+            );
 
             return response()->json(array_merge(['message' => 'Quiz creado exitosamente.'], $quiz->load('preguntas.opciones')->toArray()), 201);
         } catch (\Exception $e) {

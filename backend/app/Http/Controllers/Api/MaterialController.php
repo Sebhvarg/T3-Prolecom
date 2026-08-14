@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ItemTema;
 use App\Models\MaterialAprendizaje;
+use App\Models\Notificacion;
 use App\Models\Tema;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
@@ -113,6 +114,14 @@ class MaterialController extends Controller
         ]);
 
         AuditLogService::log('subir_material', 'MaterialAprendizaje', $material->idMaterial, "Material: {$material->titulo}");
+
+        Notificacion::notificarEstudiantesDelCurso(
+            $curso->idCurso,
+            'nuevo_material',
+            'Nuevo Material Publicado',
+            "El profesor publicó '{$material->titulo}' en {$tema->nombre}.",
+            ['idMaterial' => $material->idMaterial]
+        );
 
         return response()->json([
             'message' => 'Material subido con éxito',

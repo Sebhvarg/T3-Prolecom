@@ -59,6 +59,10 @@ export const cursosService = {
     return await authService.apiFetch('/estudiantes');
   },
 
+  getAyudantesSistema: async () => {
+    return await authService.apiFetch('/ayudantes');
+  },
+
   // Gestión de Temas (Módulos)
   createTema: async (cursoId, temaData) => {
     return await authService.apiFetch(`/cursos/${cursoId}/temas`, {

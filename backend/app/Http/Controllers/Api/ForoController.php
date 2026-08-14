@@ -96,6 +96,14 @@ class ForoController extends Controller
 
             DB::commit();
 
+            Notificacion::notificarEstudiantesDelCurso(
+                $tema->idCurso,
+                'nuevo_foro',
+                'Nuevo Foro de Debate',
+                "Se abrió el foro '{$foro->titulo}' en {$tema->nombre}.",
+                ['idForo' => $foro->idForo]
+            );
+
             $foro->load('creador:idUsuario,nombreCompleto,usuario,avatar_path');
 
             return response()->json([

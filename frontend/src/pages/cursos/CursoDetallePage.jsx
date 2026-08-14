@@ -10,6 +10,7 @@ import QuizSeccion from '../../components/quizzes/QuizSeccion';
 import CourseProgressBar from '../../components/cursos/CourseProgressBar';
 import PDFSecureViewer from '../../components/cursos/PDFSecureViewer';
 import Modal from '../../components/ui/Modal';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import { 
   ArrowLeft, Plus, Trash2, FileText, Play, Download, Eye, 
   X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code, Pencil,
@@ -347,6 +348,17 @@ const CursoDetallePage = () => {
 
   const canManage = checkCanManage(user);
 
+  // Confirm Modal State
+  const [confirmState, setConfirmState] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Aceptar',
+    cancelText: 'Cancelar',
+    variant: 'danger',
+    onConfirm: () => {},
+  });
+
   const {
     handleOpenTemaModal,
     handleSaveTema,
@@ -403,6 +415,7 @@ const CursoDetallePage = () => {
     setDesafioTestCases,
     generateTestCaseId,
     fetchCurso,
+    setConfirmState,
   });
 
   useEffect(() => {
@@ -643,8 +656,26 @@ const CursoDetallePage = () => {
         title={foroEditId ? "Editar Foro de Discusión" : "Crear Foro de Discusión en Tema"}
       >
         <form onSubmit={handleSaveForo} className="space-y-4">
+          {curso?.temas?.length > 0 && (
+            <div>
+              <label htmlFor="foro-form-tema" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Módulo / Tema del Curso <span className="text-red-500">*</span></label>
+              <select
+                id="foro-form-tema"
+                value={activeTemaId || (curso.temas[0]?.idTema || '')}
+                onChange={(e) => setActiveTemaId(Number(e.target.value))}
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-bold text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#2c5364] cursor-pointer"
+              >
+                {curso.temas.map((t) => (
+                  <option key={t.idTema} value={t.idTema}>
+                    {t.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div>
-            <label htmlFor="foro-form-titulo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Título del Foro</label>
+            <label htmlFor="foro-form-titulo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Título del Foro <span className="text-red-500">*</span></label>
             <input 
               id="foro-form-titulo"
               type="text"
@@ -891,6 +922,18 @@ const CursoDetallePage = () => {
         onClose={handleCloseSecureViewer}
       />
 
+      {/* ConfirmModal Reutilizable */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmState.onConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        variant={confirmState.variant}
+      />
+
     </DashboardContainer>
   );
 };
@@ -929,24 +972,50 @@ const ForosDelCurso = ({ curso, user, canManage, handleOpenForoModal, handleDele
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-black text-slate-900 tracking-tight">Foros del Curso</h2>
           <p className="text-xs text-slate-500 font-semibold mt-1">
             {totalForos} {totalForos === 1 ? 'foro disponible' : 'foros disponibles'} en este curso
           </p>
         </div>
+        {canManage && (
+          <button
+            type="button"
+            onClick={() => {
+              const firstTemaId = curso?.temas?.[0]?.idTema || null;
+              handleOpenForoModal(firstTemaId);
+            }}
+            className="bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <Plus size={16} />
+            <span>Crear Nuevo Foro</span>
+          </button>
+        )}
       </div>
 
       {totalForos === 0 ? (
-        <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-3">
+        <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-4">
           <MessageSquare className="mx-auto h-12 w-12 text-slate-300" />
           <h3 className="text-lg font-extrabold text-slate-900">No hay foros disponibles</h3>
-          <p className="text-slate-500 text-xs max-w-sm mx-auto font-medium">
+          <p className="text-slate-500 text-xs max-w-sm mx-auto font-medium leading-relaxed">
             {canManage
-              ? 'Agrega un foro desde la sección de Temas para habilitar discusiones.'
+              ? 'Habilita foros de discusión en este curso para interactuar con tus estudiantes.'
               : 'El profesor aún no ha habilitado foros de discusión en este curso.'}
           </p>
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => {
+                const firstTemaId = curso?.temas?.[0]?.idTema || null;
+                handleOpenForoModal(firstTemaId);
+              }}
+              className="inline-flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer"
+            >
+              <Plus size={16} />
+              <span>Crear Nuevo Foro</span>
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-6">

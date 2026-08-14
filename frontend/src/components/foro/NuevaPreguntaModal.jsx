@@ -92,7 +92,7 @@ const NuevaPreguntaModal = ({ isOpen, onClose, onSubmit, submitting }) => {
                 placeholder="Explica en detalle tu problema. Puedes encerrar tu código entre ```python ... ``` para darle formato."
                 value={form.descripcion}
                 onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364] text-xs font-mono resize-none leading-relaxed text-slate-800"
+                className="w-full border border-slate-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364] text-xs font-mono resize-none leading-relaxed text-slate-900 font-bold placeholder-slate-400 bg-white"
               />
               <p className="text-[11px] text-slate-400 mt-1 font-mono">Tip: Usa ```lenguaje para resaltar sintaxis (python, javascript, c, etc.)</p>
             </>

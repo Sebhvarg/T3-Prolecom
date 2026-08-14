@@ -64,4 +64,34 @@ class Notificacion extends Model
             'datos' => $datos,
         ]);
     }
+
+    /**
+     * Envía una notificación a todos los estudiantes matriculados en un curso.
+     */
+    public static function notificarEstudiantesDelCurso(int $idCurso, string $tipo, string $titulo, string $mensaje, array $datos = []): void
+    {
+        try {
+            $curso = Curso::find($idCurso);
+            if (! $curso) {
+                return;
+            }
+
+            $estudianteIds = \Illuminate\Support\Facades\DB::table('inscripciones_cursos')
+                ->where('idCurso', $idCurso)
+                ->pluck('idUsuarioEstudiante');
+
+            foreach ($estudianteIds as $idEstudiante) {
+                self::create([
+                    'idUsuario' => $idEstudiante,
+                    'tipo' => $tipo,
+                    'titulo' => $titulo,
+                    'mensaje' => "{$curso->titulo}: {$mensaje}",
+                    'leida' => false,
+                    'datos' => array_merge(['idCurso' => $idCurso], $datos),
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Error notificando estudiantes del curso {$idCurso}: ".$e->getMessage());
+        }
+    }
 }

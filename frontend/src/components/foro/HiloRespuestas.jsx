@@ -198,7 +198,7 @@ const HiloRespuestas = ({
                 placeholder="Explica tu solución o comparte conocimientos en detalle... Puedes usar ```python ... ``` para formatear código."
                 value={nuevoContenido}
                 onChange={(e) => setNuevoContenido(e.target.value)}
-                className="w-full border border-gray-200 rounded-2xl p-4 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#2c5364] resize-none leading-relaxed"
+                className="w-full border border-slate-300 rounded-2xl p-4 text-sm font-mono text-slate-900 font-bold placeholder-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-[#2c5364] focus:border-[#2c5364] resize-none leading-relaxed shadow-2xs"
               />
             ) : (
               <div className="w-full border border-gray-200 rounded-2xl p-4 min-h-28 bg-gray-50/50 max-h-56 overflow-y-auto">
