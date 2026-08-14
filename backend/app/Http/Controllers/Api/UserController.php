@@ -8,6 +8,7 @@ use App\Models\LogActividad;
 use App\Models\Rol;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
@@ -77,8 +78,9 @@ class UserController extends Controller
         }
 
         try {
+            $nuevoRol = Rol::find($rolesToSync[0] ?? null)?->rol ?? 'Rol';
             LogActividad::create([
-                'accion' => "Cambio de rol efectuado para el usuario @{$user->usuario}",
+                'accion' => "Cambio de rol a '{$nuevoRol}' para el usuario @{$user->usuario}",
                 'idUsuario' => $request->user()->idUsuario ?? $user->idUsuario,
             ]);
         } catch (\Exception $e) {
@@ -105,9 +107,21 @@ class UserController extends Controller
         $user->idEstado = $request->idEstado;
         $user->save();
 
+        // Revocación Automática de Tokens JWT/Sanctum al inhabilitar/suspender/banear
+        if ((int) $request->idEstado !== 1) {
+            try {
+                DB::table('personal_access_tokens')
+                    ->where('tokenable_id', $user->idUsuario)
+                    ->delete();
+            } catch (\Exception $e) {
+                //
+            }
+        }
+
         try {
+            $estadoNombre = EstadoCuenta::find($request->idEstado)?->estado ?? "Estado {$request->idEstado}";
             LogActividad::create([
-                'accion' => "Cambio de estado de cuenta para el usuario @{$user->usuario}",
+                'accion' => "Cambio de estado a '{$estadoNombre}' para el usuario @{$user->usuario}",
                 'idUsuario' => $request->user()->idUsuario ?? $user->idUsuario,
             ]);
         } catch (\Exception $e) {
@@ -136,9 +150,18 @@ class UserController extends Controller
         $user->password = Hash::make($request->password);
         $user->save();
 
+        // Revocar tokens existentes por seguridad al cambiar contraseña
+        try {
+            DB::table('personal_access_tokens')
+                ->where('tokenable_id', $user->idUsuario)
+                ->delete();
+        } catch (\Exception $e) {
+            //
+        }
+
         try {
             LogActividad::create([
-                'accion' => "Restablecimiento de contraseña efectuado para el usuario @{$user->usuario}",
+                'accion' => "Restablecimiento de contraseña para el usuario @{$user->usuario}",
                 'idUsuario' => $request->user()->idUsuario ?? $user->idUsuario,
             ]);
         } catch (\Exception $e) {

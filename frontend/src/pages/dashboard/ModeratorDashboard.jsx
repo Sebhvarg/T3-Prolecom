@@ -412,27 +412,35 @@ const ModeratorDashboard = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                    {auditorias.map((aud) => (
-                      <tr key={aud.idAuditoria} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="px-6 py-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">
-                          {timeAgo(aud.created_at)}
-                        </td>
-                        <td className="px-6 py-4 font-bold text-slate-900">{aud.nombreUsuario || 'Sistema'}</td>
-                        <td className="px-6 py-4">
-                          <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg font-bold text-[10px] uppercase">
-                            {aud.rolUsuario || 'Usuario'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg font-mono font-bold text-[10px]">
-                            {aud.accion}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 font-semibold text-slate-800">{aud.entidad} #{aud.entidad_id || '-'}</td>
-                        <td className="px-6 py-4 text-slate-600 max-w-xs truncate">{aud.detalles || '-'}</td>
-                        <td className="px-6 py-4 font-mono text-[11px] text-slate-400">{aud.ip_address || '127.0.0.1'}</td>
-                      </tr>
-                    ))}
+                    {auditorias.map((aud, index) => {
+                      const isEven = index % 2 === 0;
+                      return (
+                        <tr
+                          key={aud.idAuditoria}
+                          className={`transition-colors ${
+                            isEven ? 'bg-white' : 'bg-slate-50/75'
+                          } hover:bg-slate-100/70`}
+                        >
+                          <td className="px-6 py-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                            {timeAgo(aud.created_at)}
+                          </td>
+                          <td className="px-6 py-4 font-bold text-slate-900">{aud.nombreUsuario || 'Sistema'}</td>
+                          <td className="px-6 py-4">
+                            <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg font-bold text-[10px] uppercase">
+                              {aud.rolUsuario || 'Usuario'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="px-2.5 py-1 bg-slate-100 text-slate-800 rounded-lg font-mono font-bold text-[10px] border border-slate-200">
+                              {aud.accion}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 font-semibold text-slate-800">{aud.entidad} #{aud.entidad_id || '-'}</td>
+                          <td className="px-6 py-4 text-slate-600 max-w-xs truncate">{aud.detalles || '-'}</td>
+                          <td className="px-6 py-4 font-mono text-[11px] text-slate-400">{aud.ip_address || '127.0.0.1'}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
