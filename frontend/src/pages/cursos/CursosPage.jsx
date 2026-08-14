@@ -690,7 +690,7 @@ const CursosPage = () => {
                     }
                     return (
                       <table className="w-full border-collapse text-left text-sm text-gray-500">
-                        <thead className="bg-gray-50 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 sticky top-0 z-10">
+                        <thead className="bg-[#0f2027] text-xs font-semibold text-white uppercase tracking-wider border-b border-[#1e3a47] sticky top-0 z-10">
                           <tr>
                             <th scope="col" className="px-6 py-3">Nombre</th>
                             <th scope="col" className="px-6 py-3">Email</th>
@@ -760,7 +760,7 @@ const CursosPage = () => {
                     }
                     return (
                       <table className="w-full border-collapse text-left text-sm text-gray-500">
-                        <thead className="bg-gray-50 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 sticky top-0 z-10">
+                        <thead className="bg-[#0f2027] text-xs font-semibold text-white uppercase tracking-wider border-b border-[#1e3a47] sticky top-0 z-10">
                           <tr>
                             <th scope="col" className="px-6 py-3">Nombre</th>
                             <th scope="col" className="px-6 py-3">Email</th>

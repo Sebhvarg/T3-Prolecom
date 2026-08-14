@@ -405,7 +405,7 @@ const ModeratorDashboard = () => {
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
-                  <thead className="bg-slate-100/90 text-slate-600 uppercase tracking-wider font-semibold border-b border-slate-200 text-[11px]">
+                  <thead className="bg-[#0f2027] text-white uppercase tracking-wider font-semibold border-b border-[#1e3a47] text-[11px]">
                     <tr>
                       <th className="px-5 py-3.5">Fecha y Hora</th>
                       <th className="px-5 py-3.5">Usuario</th>

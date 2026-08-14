@@ -142,7 +142,7 @@ const SystemHealthMonitor = () => {
               <div className="overflow-x-auto rounded-xl border border-slate-200/80 shadow-2xs">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="bg-slate-100/90 text-slate-600 font-semibold uppercase tracking-wider border-b border-slate-200 text-[11px]">
+                    <tr className="bg-[#0f2027] text-white font-semibold uppercase tracking-wider border-b border-[#1e3a47] text-[11px]">
                       <th className="py-3 px-4">Fecha / Hora</th>
                       <th className="py-3 px-4">Usuario</th>
                       <th className="py-3 px-4">Acción Registrada en BD (logs_actividad)</th>
