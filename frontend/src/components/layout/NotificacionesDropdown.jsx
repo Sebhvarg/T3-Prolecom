@@ -193,7 +193,7 @@ const NotificacionesDropdown = () => {
       {isOpen && (
         <div className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-3xl shadow-2xl border border-gray-100 z-50 overflow-hidden animate-fade-in">
           {/* Header del Dropdown */}
-          <div className="p-4 bg-gradient-to-r from-[#0f2027] via-[#203a43] to-[#2c5364] text-white flex items-center justify-between">
+          <div className="p-4 bg-[#1e293b] text-white flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bell size={18} />
               <h3 className="font-bold text-sm">Notificaciones</h3>

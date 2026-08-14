@@ -75,7 +75,7 @@ const AyudanteDashboard = () => {
   return (
     <DashboardContainer title="Panel de Cátedra & Mentoría" user={user}>
       {/* Header Banner de Ayudante */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-[#0f2027] via-[#203a43] to-[#2c5364] text-white p-6 sm:p-8 rounded-2xl shadow-xl mb-8 border border-slate-700/50">
+      <div className="relative overflow-hidden bg-[#1e293b] text-white p-6 sm:p-8 rounded-2xl shadow-sm mb-8 border border-slate-800">
         <div className="absolute right-0 top-0 -mr-12 -mt-12 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">

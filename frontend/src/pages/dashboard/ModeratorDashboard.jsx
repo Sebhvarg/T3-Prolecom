@@ -289,7 +289,7 @@ const ModeratorDashboard = () => {
         )}
 
         {/* Header Hero Banner */}
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-[#2c5364] rounded-3xl p-6 md:p-8 text-white shadow-xl flex justify-between items-center relative overflow-hidden">
+        <div className="bg-[#1e293b] rounded-2xl border border-slate-800 p-6 md:p-8 text-white shadow-sm flex justify-between items-center relative overflow-hidden">
           <div className="space-y-2 relative z-10">
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 bg-red-500/20 text-red-300 border border-red-400/30 text-xs font-bold rounded-full uppercase tracking-wider flex items-center gap-1.5">
@@ -304,7 +304,7 @@ const ModeratorDashboard = () => {
           <button
             type="button"
             onClick={fetchModeracionData}
-            className="p-3 bg-white/10 hover:bg-white/20 rounded-2xl backdrop-blur-md transition-all text-white border border-white/20 cursor-pointer hidden sm:flex items-center gap-2 text-xs font-bold shrink-0"
+            className="p-3 bg-slate-700 hover:bg-slate-600 rounded-xl transition-all text-white border border-slate-600 cursor-pointer hidden sm:flex items-center gap-2 text-xs font-bold shrink-0"
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             <span>Actualizar</span>

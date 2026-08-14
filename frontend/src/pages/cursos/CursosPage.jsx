@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { cursosService } from '../../api/cursosService';
-import { BookOpen, Plus, Edit2, Trash2, X, AlertCircle, CheckCircle, Users, UserPlus, Filter, Loader2 } from 'lucide-react';
+import { BookOpen, Plus, Edit2, Trash2, X, AlertCircle, CheckCircle, Users, UserPlus, Filter, Loader2, LayoutGrid, List } from 'lucide-react';
 import PropTypes from 'prop-types';
 import Modal from '../../components/ui/Modal';
 
@@ -30,6 +30,7 @@ const CursosPage = () => {
 
   // Matriculación y Filtros states
   const [activeTab, setActiveTab] = useState('mis_cursos'); // 'mis_cursos', 'disponibles'
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
   const [filterLp, setFilterLp] = useState('');
   const [filterTipo, setFilterTipo] = useState('');
   const [filterCategoria, setFilterCategoria] = useState('');
@@ -309,15 +310,36 @@ const CursosPage = () => {
     }
     if (cursos.length === 0) {
       return (
-        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
-          <BookOpen className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-bold text-gray-900">No hay cursos disponibles</h3>
-          <p className="text-gray-500 mt-1 max-w-sm mx-auto">Actualmente no se han encontrado cursos en la plataforma con estos filtros.</p>
+        <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 shadow-xs">
+          <BookOpen className="mx-auto h-12 w-12 text-slate-300 mb-4" />
+          <h3 className="text-lg font-bold text-slate-900">No hay cursos disponibles</h3>
+          <p className="text-slate-500 mt-1 max-w-sm mx-auto text-xs font-medium">Actualmente no se han encontrado cursos en la plataforma con estos filtros.</p>
         </div>
       );
     }
+
+    if (viewMode === 'list') {
+      return (
+        <div className="space-y-3 animate-fade-in">
+          {cursos.map((curso) => (
+            <CursoListItem
+              key={curso.idCurso}
+              curso={curso}
+              canManage={canManage}
+              handleOpenAlumnosModal={handleOpenAlumnosModal}
+              handleOpenEditModal={handleOpenEditModal}
+              handleDelete={handleDelete}
+              handleDesmatricular={handleDesmatricular}
+              handleInscribir={handleInscribir}
+              navigate={navigate}
+            />
+          ))}
+        </div>
+      );
+    }
+
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
         {cursos.map((curso) => (
           <CursoCard
             key={curso.idCurso}
@@ -442,6 +464,30 @@ const CursosPage = () => {
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Toggle Vista Grid / Lista */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0 ml-auto">
+            <button
+              type="button"
+              onClick={() => setViewMode('grid')}
+              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                viewMode === 'grid' ? 'bg-white text-[#2c5364] shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900'
+              }`}
+              title="Vista en Cuadrícula (Grid)"
+            >
+              <LayoutGrid size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                viewMode === 'list' ? 'bg-white text-[#2c5364] shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900'
+              }`}
+              title="Vista en Lista"
+            >
+              <List size={16} />
+            </button>
           </div>
         </div>
       </div>
@@ -782,137 +828,241 @@ const CursoCard = ({
   const canViewDetails = canManage || curso.esta_matriculado || curso.tipo === 'público';
 
   return (
-    <div 
-      className={`relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-row group h-full ${
-        canViewDetails ? 'hover:-translate-y-1 transform' : ''
-      }`}
-    >
-      <div className="p-6 flex-1 flex flex-col justify-between">
-        <div>
-          <div className="flex justify-between items-start mb-4 gap-2 flex-wrap">
-            <div className="flex gap-1.5 flex-wrap">
-              <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full uppercase tracking-wider">
-                {curso.lp}
-              </span>
-              {curso.categoria && (
-                <span className="px-3 py-1 bg-purple-50 text-purple-700 text-xs font-bold rounded-full tracking-wider">
-                  {curso.categoria.nombre}
-                </span>
-              )}
+    <div className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col justify-between h-full hover:border-slate-300 transition-colors shadow-xs">
+      <div>
+        {/* Header: Logo + Title + Status */}
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <img alt={curso.lp || 'Python'} className="w-9 h-9 shrink-0 drop-shadow-xs" src={getLanguageLogo(curso.lp)} />
+            <div className="min-w-0 flex-1">
+              <h3 className="text-base md:text-lg font-extrabold text-slate-900 line-clamp-1 leading-snug">
+                {canViewDetails ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/cursos/${curso.idCurso}`)}
+                    className="text-left font-extrabold text-slate-900 hover:text-[#2c5364] focus:outline-none bg-transparent border-0 p-0 cursor-pointer transition-colors"
+                  >
+                    {curso.titulo}
+                  </button>
+                ) : (
+                  curso.titulo
+                )}
+              </h3>
             </div>
-            <span className={`px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wider ${
-              curso.tipo === 'público' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-            }`}>
-              {curso.tipo}
-            </span>
           </div>
-
-          <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#2c5364] transition-colors line-clamp-2">
-            {canViewDetails ? (
-              <button
-                type="button"
-                onClick={() => navigate(`/cursos/${curso.idCurso}`)}
-                className="text-left font-bold text-gray-900 hover:text-[#2c5364] hover:underline focus:outline-none bg-transparent border-0 p-0 cursor-pointer"
-              >
-                {curso.titulo}
-              </button>
-            ) : (
-              curso.titulo
-            )}
-          </h3>
-          
-          <p className="text-gray-500 mt-3 text-sm line-clamp-3 leading-relaxed">
-            {curso.descripcion}
-          </p>
+          {curso.esta_matriculado && (
+            <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-800 text-[10px] font-extrabold rounded-md border border-emerald-200 shrink-0">
+              ✓ Inscrito
+            </span>
+          )}
         </div>
 
-        {/* Footer section based on permissions/roles */}
-        {canManage ? (
-          <div className="mt-6 pt-4 border-t border-gray-50 flex justify-between items-center text-xs text-gray-400">
-            <span className="font-medium text-gray-600">
-              Profesor: <span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span>
+        {/* Badges Neutros y Equilibrados */}
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          <span className="px-2.5 py-0.5 bg-slate-100 text-slate-800 text-[10px] font-extrabold uppercase rounded-md border border-slate-200">
+            {curso.lp}
+          </span>
+          {curso.categoria && (
+            <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-medium rounded-md border border-slate-200">
+              {curso.categoria.nombre}
             </span>
-            
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleOpenAlumnosModal(curso)}
-                className="relative z-10 flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold rounded-lg transition-colors"
-                title="Ver y Gestionar Alumnos"
-              >
-                <Users size={14} />
-                <span>Alumnos</span>
-              </button>
-              <button
-                onClick={() => handleOpenEditModal(curso)}
-                className="relative z-10 p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Editar Curso"
-              >
-                <Edit2 size={16} />
-              </button>
-              <button
-                onClick={() => handleDelete(curso.idCurso)}
-                className="relative z-10 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                title="Eliminar Curso"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
+          )}
+          <span className="px-2.5 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase rounded-md border border-slate-200">
+            {curso.tipo}
+          </span>
+        </div>
+
+        {/* Descripción */}
+        <p className="text-slate-500 text-xs font-medium line-clamp-3 leading-relaxed">
+          {curso.descripcion}
+        </p>
+      </div>
+
+      {/* Footer / Acciones */}
+      <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-3 text-xs">
+        <span className="font-medium text-slate-500 truncate text-[11px]">
+          Profesor: <span className="font-bold text-slate-800">{curso.creador?.nombreCompleto || 'Desconocido'}</span>
+        </span>
+
+        {canManage ? (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => handleOpenAlumnosModal(curso)}
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition-colors cursor-pointer text-xs"
+              title="Ver y Gestionar Alumnos"
+            >
+              <Users size={13} />
+              <span>Alumnos</span>
+            </button>
+            <button
+              onClick={() => handleOpenEditModal(curso)}
+              className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              title="Editar Curso"
+            >
+              <Edit2 size={15} />
+            </button>
+            <button
+              onClick={() => handleDelete(curso.idCurso)}
+              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+              title="Eliminar Curso"
+            >
+              <Trash2 size={15} />
+            </button>
           </div>
         ) : (
-          <div className="mt-6 pt-4 border-t border-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
-            <span className="font-medium text-gray-600">Profesor:{' '}<span className="font-bold text-gray-900">{curso.creador?.nombreCompleto || 'Desconocido'}</span></span>
-            
-            {(() => {
-              if (curso.esta_matriculado) {
-                return (
-                  <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
-                    <button
-                      type="button"
-                      disabled={true}
-                      className="relative z-10 px-3 py-1.5 bg-slate-100 text-slate-500 font-extrabold rounded-lg text-xs cursor-not-allowed border border-slate-200"
-                    >
-                      Ya estás inscrito
-                    </button>
-                    <button
-                      onClick={() => navigate(`/cursos/${curso.idCurso}`)}
-                      className="relative z-10 px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-xs"
-                    >
-                      <BookOpen size={14} />
-                      Ver contenido
-                    </button>
-                    <button
-                      onClick={() => handleDesmatricular(curso.idCurso)}
-                      className="relative z-10 px-2.5 py-1.5 border border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-all"
-                      title="Darse de baja de este curso"
-                    >
-                      Darse de baja
-                    </button>
-                  </div>
-                );
-              }
-              if (curso.tipo === 'público') {
-                return (
-                  <button
-                    onClick={() => handleInscribir(curso.idCurso)}
-                    className="relative z-10 w-full sm:w-auto bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2 rounded-lg font-semibold shadow-sm transition-all hover:shadow-md"
-                  >
-                    Matricularme
-                  </button>
-                );
-              }
-              return (
-                <span className="px-3 py-1.5 bg-gray-50 text-gray-400 font-bold rounded-lg">
-                  Solo invitación
-                </span>
-              );
-            })()}
+          <div className="flex items-center gap-2 shrink-0">
+            {curso.esta_matriculado ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/cursos/${curso.idCurso}`)}
+                  className="px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold rounded-xl flex items-center gap-1 transition-colors shadow-xs text-xs cursor-pointer"
+                >
+                  <BookOpen size={13} />
+                  <span>Ver Contenido</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDesmatricular(curso.idCurso)}
+                  className="px-2 py-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 font-medium rounded-xl transition-colors text-xs cursor-pointer"
+                  title="Darse de baja de este curso"
+                >
+                  Baja
+                </button>
+              </>
+            ) : curso.tipo === 'público' ? (
+              <button
+                type="button"
+                onClick={() => handleInscribir(curso.idCurso)}
+                className="bg-[#2c5364] hover:bg-[#203a43] text-white px-3.5 py-1.5 rounded-xl font-bold text-xs shadow-xs transition-colors cursor-pointer"
+              >
+                Matricularme
+              </button>
+            ) : (
+              <span className="px-2.5 py-1 bg-slate-100 text-slate-400 font-bold rounded-lg text-xs">
+                Solo invitación
+              </span>
+            )}
           </div>
         )}
       </div>
+    </div>
+  );
+};
 
-      <div className="w-32 bg-gray-50 flex flex-col items-center justify-center border-l border-gray-50 gap-2 group-hover:bg-gray-100 transition-colors shrink-0">
-        <img alt={curso.lp || 'Python'} className="w-12 h-12 drop-shadow-xs" src={getLanguageLogo(curso.lp)} />
-        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{curso.lp || 'Python'}</span>
+const CursoListItem = ({
+  curso,
+  canManage,
+  handleOpenAlumnosModal,
+  handleOpenEditModal,
+  handleDelete,
+  handleDesmatricular,
+  handleInscribir,
+  navigate
+}) => {
+  const canViewDetails = canManage || curso.esta_matriculado || curso.tipo === 'público';
+
+  return (
+    <div className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-slate-300 transition-colors shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex items-center gap-4 flex-1 min-w-0">
+        <img alt={curso.lp || 'Python'} className="w-10 h-10 shrink-0 drop-shadow-xs" src={getLanguageLogo(curso.lp)} />
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-base font-extrabold text-slate-900 leading-snug">
+              {canViewDetails ? (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/cursos/${curso.idCurso}`)}
+                  className="text-left font-extrabold text-slate-900 hover:text-[#2c5364] focus:outline-none bg-transparent border-0 p-0 cursor-pointer transition-colors"
+                >
+                  {curso.titulo}
+                </button>
+              ) : (
+                curso.titulo
+              )}
+            </h3>
+
+            <span className="px-2 py-0.5 bg-slate-100 text-slate-800 text-[10px] font-extrabold uppercase rounded-md border border-slate-200">
+              {curso.lp}
+            </span>
+            {curso.categoria && (
+              <span className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-semibold rounded-md border border-slate-200">
+                {curso.categoria.nombre}
+              </span>
+            )}
+            {curso.esta_matriculado && (
+              <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 text-[10px] font-extrabold rounded-md border border-emerald-200">
+                ✓ Inscrito
+              </span>
+            )}
+          </div>
+          {curso.descripcion && (
+            <p className="text-slate-500 text-xs font-medium line-clamp-1">{curso.descripcion}</p>
+          )}
+          <span className="text-[11px] text-slate-400 font-medium block">
+            Profesor: <span className="font-bold text-slate-700">{curso.creador?.nombreCompleto || 'Desconocido'}</span>
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+        {canManage ? (
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => handleOpenAlumnosModal(curso)}
+              className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition-colors cursor-pointer text-xs"
+              title="Ver y Gestionar Alumnos"
+            >
+              <Users size={14} />
+              <span>Alumnos</span>
+            </button>
+            <button
+              onClick={() => handleOpenEditModal(curso)}
+              className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              title="Editar Curso"
+            >
+              <Edit2 size={16} />
+            </button>
+            <button
+              onClick={() => handleDelete(curso.idCurso)}
+              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+              title="Eliminar Curso"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        ) : curso.esta_matriculado ? (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate(`/cursos/${curso.idCurso}`)}
+              className="px-3.5 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold rounded-xl flex items-center gap-1.5 transition-colors shadow-xs text-xs cursor-pointer"
+            >
+              <BookOpen size={14} />
+              <span>Ver Contenido</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDesmatricular(curso.idCurso)}
+              className="px-2.5 py-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 font-medium rounded-xl transition-colors text-xs cursor-pointer"
+              title="Darse de baja de este curso"
+            >
+              Baja
+            </button>
+          </div>
+        ) : curso.tipo === 'público' ? (
+          <button
+            type="button"
+            onClick={() => handleInscribir(curso.idCurso)}
+            className="bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-1.5 rounded-xl font-bold text-xs shadow-xs transition-colors cursor-pointer"
+          >
+            Matricularme
+          </button>
+        ) : (
+          <span className="px-3 py-1.5 bg-slate-100 text-slate-400 font-bold rounded-lg text-xs">
+            Solo invitación
+          </span>
+        )}
       </div>
     </div>
   );
@@ -938,5 +1088,7 @@ CursoCard.propTypes = {
   handleInscribir: PropTypes.func.isRequired,
   navigate: PropTypes.func.isRequired,
 };
+
+CursoListItem.propTypes = CursoCard.propTypes;
 
 export default CursosPage;

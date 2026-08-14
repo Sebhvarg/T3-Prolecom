@@ -209,4 +209,108 @@ class QuizAutomatedGradingTest extends TestCase
             'idEstudiante' => $this->estudiante1->idUsuario,
         ]);
     }
+
+    public function test_student_attempts_are_enforced_by_max_attempts_limit(): void
+    {
+        $quiz = $this->crearQuizDePrueba(['intentos_maximos' => 2]);
+
+        $p1 = $quiz->preguntas[0];
+        $opc1 = $p1->opciones->first();
+        $p2 = $quiz->preguntas[1];
+        $opc2 = $p2->opciones->first();
+
+        $payload = [
+            'respuestas' => [
+                ['idPreguntaQuiz' => $p1->idPreguntaQuiz, 'idOpcionSeleccionada' => $opc1->idOpcionQuiz],
+                ['idPreguntaQuiz' => $p2->idPreguntaQuiz, 'idOpcionSeleccionada' => $opc2->idOpcionQuiz],
+            ],
+        ];
+
+        // Intento 1 (permitido)
+        $resp1 = $this->actingAs($this->estudiante1)
+            ->postJson("/api/quizzes/{$quiz->idQuiz}/intentos", $payload);
+        $resp1->assertStatus(201)
+            ->assertJsonPath('intentos_realizados', 1)
+            ->assertJsonPath('intentos_restantes', 1)
+            ->assertJsonPath('puede_intentar', true);
+
+        // Intento 2 (permitido, alcanza el máximo)
+        $resp2 = $this->actingAs($this->estudiante1)
+            ->postJson("/api/quizzes/{$quiz->idQuiz}/intentos", $payload);
+        $resp2->assertStatus(201)
+            ->assertJsonPath('intentos_realizados', 2)
+            ->assertJsonPath('intentos_restantes', 0)
+            ->assertJsonPath('puede_intentar', false);
+
+        // Intento 3 (bloqueado con 403 Forbidden)
+        $resp3 = $this->actingAs($this->estudiante1)
+            ->postJson("/api/quizzes/{$quiz->idQuiz}/intentos", $payload);
+        $resp3->assertStatus(403)
+            ->assertJsonPath('message', 'Has alcanzado el número máximo de intentos permitidos para este cuestionario (2).');
+    }
+
+    public function test_professor_can_reset_quiz_attempts_for_student(): void
+    {
+        $quiz = $this->crearQuizDePrueba(['intentos_maximos' => 1]);
+
+        $p1 = $quiz->preguntas[0];
+        $opc1 = $p1->opciones->first();
+        $p2 = $quiz->preguntas[1];
+        $opc2 = $p2->opciones->first();
+
+        $payload = [
+            'respuestas' => [
+                ['idPreguntaQuiz' => $p1->idPreguntaQuiz, 'idOpcionSeleccionada' => $opc1->idOpcionQuiz],
+                ['idPreguntaQuiz' => $p2->idPreguntaQuiz, 'idOpcionSeleccionada' => $opc2->idOpcionQuiz],
+            ],
+        ];
+
+        // Intento 1
+        $this->actingAs($this->estudiante1)
+            ->postJson("/api/quizzes/{$quiz->idQuiz}/intentos", $payload)
+            ->assertStatus(201);
+
+        // Intento 2 bloqueado
+        $this->actingAs($this->estudiante1)
+            ->postJson("/api/quizzes/{$quiz->idQuiz}/intentos", $payload)
+            ->assertStatus(403);
+
+        // Profesor reinicia intentos
+        $resetResp = $this->actingAs($this->profesor)
+            ->postJson("/api/quizzes/{$quiz->idQuiz}/reiniciar-intentos", [
+                'idEstudiante' => $this->estudiante1->idUsuario,
+            ]);
+        $resetResp->assertStatus(200);
+
+        // Estudiante puede volver a intentar
+        $this->actingAs($this->estudiante1)
+            ->postJson("/api/quizzes/{$quiz->idQuiz}/intentos", $payload)
+            ->assertStatus(201);
+    }
+
+    public function test_professor_can_configure_xp_recompensa_and_student_receives_xp_on_completion(): void
+    {
+        $quiz = $this->crearQuizDePrueba(['xp_recompensa' => 100]);
+
+        $p1 = $quiz->preguntas[0];
+        $opc1Correcta = $p1->opciones->firstWhere('es_correcta', true);
+        $p2 = $quiz->preguntas[1];
+        $opc2Correcta = $p2->opciones->firstWhere('es_correcta', true);
+
+        $initialXp = $this->estudiante1->fresh()->xp;
+
+        $response = $this->actingAs($this->estudiante1)
+            ->postJson("/api/quizzes/{$quiz->idQuiz}/intentos", [
+                'respuestas' => [
+                    ['idPreguntaQuiz' => $p1->idPreguntaQuiz, 'idOpcionSeleccionada' => $opc1Correcta->idOpcionQuiz],
+                    ['idPreguntaQuiz' => $p2->idPreguntaQuiz, 'idOpcionSeleccionada' => $opc2Correcta->idOpcionQuiz],
+                ],
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('xp_ganado', 100)
+            ->assertJsonPath('user.xp', $initialXp + 100);
+
+        $this->assertEquals($initialXp + 100, $this->estudiante1->fresh()->xp);
+    }
 }

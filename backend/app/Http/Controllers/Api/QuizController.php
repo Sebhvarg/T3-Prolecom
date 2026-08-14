@@ -33,7 +33,7 @@ class QuizController extends Controller
 
         $query = Quiz::with($withRelations)->where('idCurso', $idCurso);
 
-        $userRole = $user ? $user->roles->pluck('rol')->first() : null;
+        $userRole = $user ? ($user->roles->pluck('rol')->first() ?? $user->rol ?? null) : null;
         if ($userRole === 'Estudiante' && Schema::hasColumn('quizzes', 'asignar_a_todos')) {
             $query->where(function ($q) use ($user) {
                 $q->where('asignar_a_todos', true)
@@ -45,14 +45,20 @@ class QuizController extends Controller
 
         $quizzes = $query->orderBy('created_at', 'desc')->get();
 
-        // Adjuntar el último intento del estudiante si corresponde
+        // Adjuntar metadatos de intentos del estudiante si corresponde
         if ($user) {
             foreach ($quizzes as $quiz) {
-                $ultimoIntento = QuizIntento::where('idQuiz', $quiz->idQuiz)
+                $intentosEstudiante = QuizIntento::where('idQuiz', $quiz->idQuiz)
                     ->where('idEstudiante', $user->idUsuario)
                     ->latest()
-                    ->first();
-                $quiz->ultimo_intento = $ultimoIntento;
+                    ->get();
+
+                $quiz->ultimo_intento = $intentosEstudiante->first();
+                $quiz->intentos_realizados = $intentosEstudiante->count();
+                $quiz->intentos_restantes = ($quiz->intentos_maximos > 0)
+                    ? max(0, $quiz->intentos_maximos - $quiz->intentos_realizados)
+                    : null;
+                $quiz->puede_intentar = ($quiz->intentos_maximos === 0 || $quiz->intentos_realizados < $quiz->intentos_maximos);
             }
         }
 
@@ -72,7 +78,8 @@ class QuizController extends Controller
             'asignaciones.estudiante:idUsuario,nombreCompleto,correo',
         ])->findOrFail($idQuiz);
 
-        $esProfesor = $user && ($user->rol === 'Profesor' || $user->rol === 'Administrador');
+        $userRole = $user ? ($user->roles->pluck('rol')->first() ?? $user->rol ?? null) : null;
+        $esProfesor = $user && in_array($userRole, ['Profesor', 'Administrador', 'Ayudante']);
 
         // Si es estudiante y no es profesor, ocultar si las opciones son correctas antes de enviar
         if (! $esProfesor) {
@@ -86,13 +93,20 @@ class QuizController extends Controller
             }
         }
 
-        // Adjuntar historial de intentos del estudiante
+        // Adjuntar historial de intentos del estudiante y metadatos de intentos
         if ($user) {
-            $quiz->mis_intentos = QuizIntento::with('respuestas')
+            $intentos = QuizIntento::with('respuestas')
                 ->where('idQuiz', $idQuiz)
                 ->where('idEstudiante', $user->idUsuario)
                 ->latest()
                 ->get();
+
+            $quiz->mis_intentos = $intentos;
+            $quiz->intentos_realizados = $intentos->count();
+            $quiz->intentos_restantes = ($quiz->intentos_maximos > 0)
+                ? max(0, $quiz->intentos_maximos - $quiz->intentos_realizados)
+                : null;
+            $quiz->puede_intentar = ($quiz->intentos_maximos === 0 || $quiz->intentos_realizados < $quiz->intentos_maximos);
         }
 
         return response()->json($quiz);
@@ -112,6 +126,7 @@ class QuizController extends Controller
             'idTema' => 'nullable|exists:temas,idTema',
             'limite_tiempo_minutos' => 'nullable|integer|min:0',
             'intentos_maximos' => 'nullable|integer|min:0',
+            'xp_recompensa' => 'nullable|integer|min:0|max:10000',
             'calificacion_maxima' => 'nullable|numeric|min:1',
             'mostrar_retroalimentacion' => 'nullable|boolean',
             'asignar_a_todos' => 'nullable|boolean',
@@ -144,6 +159,7 @@ class QuizController extends Controller
                 'idTema' => $request->idTema,
                 'limite_tiempo_minutos' => $request->limite_tiempo_minutos ?? 0,
                 'intentos_maximos' => $request->intentos_maximos ?? 0,
+                'xp_recompensa' => $request->xp_recompensa ?? 50,
                 'calificacion_maxima' => $calificacionMaxima,
                 'mostrar_retroalimentacion' => $request->boolean('mostrar_retroalimentacion', true),
                 'estado' => 'publicado',
@@ -189,6 +205,7 @@ class QuizController extends Controller
             'idTema' => 'nullable|exists:temas,idTema',
             'limite_tiempo_minutos' => 'nullable|integer|min:0',
             'intentos_maximos' => 'nullable|integer|min:0',
+            'xp_recompensa' => 'nullable|integer|min:0|max:10000',
             'calificacion_maxima' => 'nullable|numeric|min:1',
             'mostrar_retroalimentacion' => 'nullable|boolean',
             'asignar_a_todos' => 'nullable|boolean',
@@ -212,6 +229,7 @@ class QuizController extends Controller
                 'idTema' => $request->idTema,
                 'limite_tiempo_minutos' => $request->limite_tiempo_minutos ?? 0,
                 'intentos_maximos' => $request->intentos_maximos ?? 0,
+                'xp_recompensa' => $request->xp_recompensa ?? 50,
                 'calificacion_maxima' => $calificacionMaxima,
                 'mostrar_retroalimentacion' => $request->boolean('mostrar_retroalimentacion', true),
                 'asignar_a_todos' => $request->boolean('asignar_a_todos', true),
@@ -350,9 +368,9 @@ class QuizController extends Controller
 
             $aprobado = ($porcentaje >= 60.00);
 
-            $puntajeMaximoAnterior = QuizIntento::where('idQuiz', $quiz->idQuiz)
+            $porcentajeMaximoAnterior = QuizIntento::where('idQuiz', $quiz->idQuiz)
                 ->where('idEstudiante', $user->idUsuario)
-                ->max('puntaje_obtenido') ?? 0.00;
+                ->max('porcentaje') ?? 0.00;
 
             $intento = QuizIntento::create([
                 'idQuiz' => $quiz->idQuiz,
@@ -375,8 +393,9 @@ class QuizController extends Controller
                 ]);
             }
 
-            $mejoraPuntaje = max(0, $calificacionEscalada - $puntajeMaximoAnterior);
-            $xpGanada = (int) round($mejoraPuntaje * 10);
+            $mejoraPorcentaje = max(0.00, $porcentaje - (float) $porcentajeMaximoAnterior);
+            $xpMaximoQuiz = (int) ($quiz->xp_recompensa ?? 50);
+            $xpGanada = (int) round(($mejoraPorcentaje / 100.00) * $xpMaximoQuiz);
             if ($xpGanada > 0) {
                 $user->increment('xp', $xpGanada);
             }
@@ -388,9 +407,21 @@ class QuizController extends Controller
                 'respuestas.opcionSeleccionada',
             ]);
 
+            $intentosRealizados = QuizIntento::where('idQuiz', $quiz->idQuiz)
+                ->where('idEstudiante', $user->idUsuario)
+                ->count();
+
+            $intentosRestantes = ($quiz->intentos_maximos > 0)
+                ? max(0, $quiz->intentos_maximos - $intentosRealizados)
+                : null;
+
             return response()->json([
                 'message' => 'Quiz evaluado automáticamente con éxito.',
                 'intento' => $intento,
+                'intentos_realizados' => $intentosRealizados,
+                'intentos_restantes' => $intentosRestantes,
+                'intentos_maximos' => $quiz->intentos_maximos,
+                'puede_intentar' => ($quiz->intentos_maximos === 0 || $intentosRealizados < $quiz->intentos_maximos),
                 'xp_ganado' => $xpGanada,
                 'user' => [
                     'idUsuario' => $user->idUsuario,
@@ -407,7 +438,7 @@ class QuizController extends Controller
     private function validarIntentoQuiz(Request $request, Quiz $quiz, $user)
     {
         // Solo estudiantes pueden resolver quizzes
-        $rolUsuario = $user?->roles?->pluck('rol')?->first();
+        $rolUsuario = $user?->roles?->pluck('rol')?->first() ?? $user?->rol;
         if ($rolUsuario !== 'Estudiante') {
             return response()->json([
                 'message' => 'Solo los estudiantes pueden enviar intentos de cuestionarios.',
@@ -431,7 +462,7 @@ class QuizController extends Controller
                 ->count();
             if ($intentosPreviosCount >= $quiz->intentos_maximos) {
                 return response()->json([
-                    'message' => 'Has alcanzado el número máximo de intentos permitidos para este cuestionario.',
+                    'message' => "Has alcanzado el número máximo de intentos permitidos para este cuestionario ({$quiz->intentos_maximos}).",
                 ], 403);
             }
         }

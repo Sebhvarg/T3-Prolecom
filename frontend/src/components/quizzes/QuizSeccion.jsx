@@ -5,7 +5,7 @@ import QuizFormModal from './QuizFormModal';
 import QuizResolverModal from './QuizResolverModal';
 import { 
   HelpCircle, Plus, Play, CheckCircle2, Clock, 
-  Trash2, Pencil, AlertCircle, Loader2, Award, Users, BookOpen, Check, RotateCcw
+  Trash2, Pencil, AlertCircle, Loader2, Award, Users, BookOpen, Check, RotateCcw, Sparkles
 } from 'lucide-react';
 
 const QuizSeccion = ({ idCurso, user, temas, onQuizCompleted }) => {
@@ -100,7 +100,9 @@ const QuizSeccion = ({ idCurso, user, temas, onQuizCompleted }) => {
   };
 
   const handleStartResolver = (quiz) => {
-    if (quiz.intentos_maximos > 0 && quiz.intentos_realizados >= quiz.intentos_maximos) {
+    const intentosMaximos = quiz.intentos_maximos ?? 0;
+    const intentosRealizados = quiz.intentos_realizados ?? (quiz.ultimo_intento ? 1 : 0);
+    if (intentosMaximos > 0 && intentosRealizados >= intentosMaximos) {
       alert('Has agotado el límite de intentos permitidos para este cuestionario.');
       return;
     }
@@ -165,19 +167,20 @@ const QuizSeccion = ({ idCurso, user, temas, onQuizCompleted }) => {
           {quizzes.map((quiz) => {
             const ultimoIntento = quiz.ultimo_intento;
             const haCompletado = Boolean(ultimoIntento);
-            const intentosMaximos = quiz.intentos_maximos || 0;
-            const intentosRealizados = quiz.intentos_realizados || (haCompletado ? 1 : 0);
-            const sinIntentos = intentosMaximos > 0 && intentosRealizados >= intentosMaximos;
+            const intentosMaximos = quiz.intentos_maximos ?? 0;
+            const intentosRealizados = quiz.intentos_realizados ?? (haCompletado ? 1 : 0);
+            const puedeIntentar = quiz.puede_intentar ?? (intentosMaximos === 0 || intentosRealizados < intentosMaximos);
+            const sinIntentos = !puedeIntentar;
 
             const getButtonClassName = () => {
-              if (sinIntentos) return 'bg-slate-200 text-slate-500 cursor-not-allowed';
+              if (sinIntentos) return 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed';
               if (haCompletado) return 'bg-slate-200 hover:bg-slate-300 text-slate-900';
               return 'bg-[#2c5364] hover:bg-[#203a43] text-white';
             };
 
             const getButtonLabel = () => {
               if (sinIntentos) return 'Intentos Agotados';
-              if (haCompletado) return 'Volver a Intentar';
+              if (haCompletado) return `Volver a Intentar (${intentosRealizados}/${intentosMaximos > 0 ? intentosMaximos : '∞'})`;
               return 'Resolver Quiz';
             };
 
@@ -232,13 +235,20 @@ const QuizSeccion = ({ idCurso, user, temas, onQuizCompleted }) => {
                         </span>
                       )}
 
-                      <span className="flex items-center gap-1">
-                        <RotateCcw size={14} className="text-[#2c5364]" />
+                      <span className={`flex items-center gap-1 px-2 py-0.5 rounded-lg ${
+                        sinIntentos ? 'bg-red-50 text-red-700 border border-red-200 font-black' : 'bg-slate-100 text-slate-700 border border-slate-200'
+                      }`}>
+                        <RotateCcw size={14} className={sinIntentos ? 'text-red-600' : 'text-[#2c5364]'} />
                         <span>
                           {intentosMaximos > 0 
                             ? `Intentos: ${intentosRealizados} / ${intentosMaximos}` 
                             : 'Intentos Ilimitados'}
                         </span>
+                      </span>
+
+                      <span className="flex items-center gap-1 text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg font-black">
+                        <Sparkles size={14} className="text-amber-500 fill-amber-500" />
+                        <span>{quiz.xp_recompensa ?? 50} XP</span>
                       </span>
 
                       <span className="flex items-center gap-1">

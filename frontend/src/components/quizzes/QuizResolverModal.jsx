@@ -148,6 +148,8 @@ const QuizResolverModal = ({ isOpen, onClose, quizId, onQuizCompleted }) => {
   const totalPreguntas = quiz.preguntas?.length || 0;
   const preguntaActual = quiz.preguntas?.[currentPreguntaIndex];
 
+  const sinIntentosPermitidos = !resultadoIntento && (quiz.puede_intentar === false || (quiz.intentos_maximos > 0 && (quiz.intentos_realizados ?? quiz.mis_intentos?.length) >= quiz.intentos_maximos));
+
   return (
     <div className="fixed top-16 left-0 md:left-64 right-0 bottom-0 bg-slate-50 z-40 flex flex-col overflow-hidden animate-fade-in border-l border-slate-200">
       
@@ -159,12 +161,16 @@ const QuizResolverModal = ({ isOpen, onClose, quizId, onQuizCompleted }) => {
           </div>
           <div>
             <h2 className="text-xl font-black text-slate-900 tracking-tight">{quiz.titulo}</h2>
-            <p className="text-xs text-slate-600 font-semibold">Evaluación y Autocalificación en Línea</p>
+            <p className="text-xs text-slate-600 font-semibold">
+              {quiz.intentos_maximos > 0 
+                ? `Límite de Intentos: ${quiz.intentos_realizados ?? quiz.mis_intentos?.length ?? 0} / ${quiz.intentos_maximos}`
+                : 'Intentos Ilimitados'}
+            </p>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
-          {quiz.limite_tiempo_minutos > 0 && !resultadoIntento && (
+          {quiz.limite_tiempo_minutos > 0 && !resultadoIntento && !sinIntentosPermitidos && (
             <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 border border-slate-300 text-slate-900 text-xs font-black font-mono">
               <Clock size={16} className="text-[#2c5364]" />
               <span>{formatTiempo(segundosTranscurridos)}</span>
@@ -193,8 +199,40 @@ const QuizResolverModal = ({ isOpen, onClose, quizId, onQuizCompleted }) => {
       <div ref={mainContainerRef} className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
         <div className="max-w-4xl mx-auto space-y-6">
 
-          {/* CASO A: RESULTADO DE CALIFICACIÓN FINAL */}
-          {resultadoIntento ? (
+          {/* CASO A: SIN INTENTOS PERMITIDOS */}
+          {sinIntentosPermitidos ? (
+            <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm text-center space-y-5 animate-fade-in">
+              <div className="p-4 bg-amber-50 text-amber-800 rounded-2xl border border-amber-200 inline-block">
+                <AlertCircle size={36} className="mx-auto text-amber-600 mb-2" />
+                <h3 className="text-lg font-black text-amber-950">Has alcanzado el límite máximo de intentos</h3>
+                <p className="text-xs font-semibold text-amber-800 mt-1">
+                  Has realizado {quiz.intentos_realizados ?? quiz.mis_intentos?.length ?? 0} de {quiz.intentos_maximos} intento(s) permitidos para este cuestionario.
+                </p>
+              </div>
+
+              {quiz.mis_intentos && quiz.mis_intentos.length > 0 && (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left space-y-3">
+                  <h4 className="text-xs font-black text-slate-900 uppercase">Tus Intentos Previos</h4>
+                  {quiz.mis_intentos.map((int, idx) => (
+                    <div key={int.idIntentoQuiz || idx} className="p-3 bg-white border border-slate-200 rounded-xl flex justify-between items-center text-xs font-bold">
+                      <span>Intento #{quiz.mis_intentos.length - idx}</span>
+                      <span>Nota: {int.puntaje_obtenido} / {int.puntaje_maximo} ({int.porcentaje}%)</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="px-6 py-2.5 bg-[#2c5364] hover:bg-[#203a43] text-white text-xs font-extrabold rounded-xl transition-colors cursor-pointer shadow-md"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          ) : resultadoIntento ? (
             <div className="space-y-6 animate-fade-in">
               {/* Tarjeta Limpia de Resumen de Calificación */}
               <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm text-center space-y-5">
@@ -212,6 +250,16 @@ const QuizResolverModal = ({ isOpen, onClose, quizId, onQuizCompleted }) => {
                     <span className="text-xs font-black text-slate-500 uppercase tracking-wider block mb-1">Porcentaje</span>
                     <span className="text-4xl md:text-5xl font-black text-slate-900">
                       {resultadoIntento.porcentaje}%
+                    </span>
+                  </div>
+
+                  <div className="h-12 w-px bg-slate-200" />
+
+                  <div className="text-center">
+                    <span className="text-xs font-black text-slate-500 uppercase tracking-wider block mb-1">XP Ganado</span>
+                    <span className="text-4xl md:text-5xl font-black text-amber-500 flex items-center justify-center gap-1">
+                      <Sparkles size={32} className="fill-amber-400 text-amber-500" />
+                      +{resultadoIntento.xp_ganado ?? 0}
                     </span>
                   </div>
                 </div>

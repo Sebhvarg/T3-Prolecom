@@ -121,12 +121,8 @@ const StudentDashboard = () => {
     <DashboardContainer title="Panel de Estudiante" user={user}>
       <div className="space-y-8">
         {/* Header Hero Banner with XP & Progress Stats (Figure 8 in Report) */}
-        <div className="bg-gradient-to-r from-[#0f2027] via-[#203a43] to-[#2c5364] rounded-3xl p-6 md:p-8 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
+        <div className="bg-[#1e293b] rounded-2xl border border-slate-800 p-6 md:p-8 text-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
           <div className="space-y-2 relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 text-xs font-bold tracking-wide uppercase border border-amber-300/30">
-              <span className="text-amber-400">⚡</span>
-              <span>Puntos de Experiencia: {user?.xp ?? 0} XP</span>
-            </div>
             <h2 className="text-2xl md:text-3xl font-black tracking-tight">
               ¡Bienvenido, {user?.nombreCompleto || user?.usuario || 'Estudiante'}!
             </h2>
