@@ -198,7 +198,7 @@ const checkCanManage = (user) => {
   return rol === 'Administrador' || rol === 'Profesor' || rol === 'Ayudante';
 };
 
-const CursoHeroCard = ({ curso, user }) => {
+const CursoHeroCard = ({ curso, user, onNavigateTab, handleOpenSecureViewer }) => {
   const progreso = curso.progreso || { porcentaje: 0, itemsCompletados: 0, totalItems: 0, xpGanado: 0, xpTotal: 0 };
   const isPrivado = curso.esPrivado;
   const badgeClass = isPrivado ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200';
@@ -227,7 +227,18 @@ const CursoHeroCard = ({ curso, user }) => {
       </div>
 
       {user?.rol === 'Estudiante' && (
-        <CourseProgressBar idCurso={curso.idCurso} progreso={progreso} />
+        <CourseProgressBar
+          idCurso={curso.idCurso}
+          progreso={progreso}
+          onNavigateTab={onNavigateTab}
+          onSelectMaterial={(matId) => {
+            const allItems = (curso.temas || []).flatMap(t => t.items || []);
+            const targetMat = allItems.find(i => (i.idMaterial === matId || i.itemable_id === matId || i.idItem === matId));
+            if (targetMat && handleOpenSecureViewer) {
+              handleOpenSecureViewer(targetMat);
+            }
+          }}
+        />
       )}
     </div>
   );
@@ -485,7 +496,12 @@ const CursoDetallePage = () => {
         )}
 
         {/* Hero Card del Curso */}
-        <CursoHeroCard curso={curso} user={user} />
+        <CursoHeroCard
+          curso={curso}
+          user={user}
+          onNavigateTab={setActiveTab}
+          handleOpenSecureViewer={handleOpenSecureViewer}
+        />
 
         {/* Navegación por pestañas */}
         <CursoNavTabs
