@@ -3,10 +3,12 @@ export const USERS = {
   profesor: { user: 'profesor', password: 'password123', rol: 'Profesor' },
   ayudante: { user: 'ayudante', password: 'password123', rol: 'Ayudante' },
   estudiante: { user: 'estudiante', password: 'password123', rol: 'Estudiante' },
+  moderador: { user: 'moderador', password: 'password123', rol: 'Moderador' },
 };
 
 export const ROLE_REDIRECTS = {
   Administrador: '/admin',
+  Moderador: '/moderador/dashboard',
   Profesor: '/profesor/dashboard',
   Ayudante: '/ayudante/dashboard',
   Estudiante: '/dashboard/estudiante',

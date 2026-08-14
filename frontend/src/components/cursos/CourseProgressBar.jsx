@@ -12,28 +12,25 @@ import { BookOpen, Code2, TrendingUp } from 'lucide-react';
 
 // ── Círculo SVG de progreso ───────────────────────────────────────────────
 const CircularProgress = ({ porcentaje = 0, size = 80, color = '#2c5364' }) => {
-  // Mejora: Asegurar que el porcentaje nunca se salga de los límites (0-100)
   const porcentajeSeguro = Math.min(Math.max(porcentaje, 0), 100);
   const radio     = (size - 10) / 2;
   const circunf   = 2 * Math.PI * radio;
   const offset    = circunf - (porcentajeSeguro / 100) * circunf;
 
   return (
-    <svg 
-      width={size} 
-      height={size} 
+    <svg
+      width={size}
+      height={size}
       className="rotate-[-90deg]"
-      role="progressbar" 
-      aria-valuenow={porcentajeSeguro} 
-      aria-valuemin="0" 
+      role="progressbar"
+      aria-valuenow={porcentajeSeguro}
+      aria-valuemin="0"
       aria-valuemax="100"
     >
-      {/* Fondo gris */}
       <circle
         cx={size / 2} cy={size / 2} r={radio}
         fill="none" stroke="#e5e7eb" strokeWidth={8}
       />
-      {/* Arco de progreso animado */}
       <circle
         cx={size / 2} cy={size / 2} r={radio}
         fill="none" stroke={color} strokeWidth={8}
@@ -49,13 +46,13 @@ const CircularProgress = ({ porcentaje = 0, size = 80, color = '#2c5364' }) => {
 // ── Barra de progreso lineal ──────────────────────────────────────────────
 const LinearBar = ({ porcentaje = 0, color = 'bg-[#2c5364]' }) => {
   const porcentajeSeguro = Math.min(Math.max(porcentaje, 0), 100);
-  
+
   return (
-    <div 
+    <div
       className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden"
-      role="progressbar" 
-      aria-valuenow={porcentajeSeguro} 
-      aria-valuemin="0" 
+      role="progressbar"
+      aria-valuenow={porcentajeSeguro}
+      aria-valuemin="0"
       aria-valuemax="100"
     >
       <div
@@ -68,11 +65,15 @@ const LinearBar = ({ porcentaje = 0, color = 'bg-[#2c5364]' }) => {
 
 // ── Componente principal ──────────────────────────────────────────────────
 const CourseProgressBar = ({ idCurso }) => {
-  const [progreso, setProgreso]   = useState(null);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState('');
+  const [progreso, setProgreso] = useState(null);
+  // FIX (react-hooks/set-state-in-effect): el estado inicial de `loading`
+  // se deriva directamente de si hay idCurso, en lugar de arrancar
+  // siempre en `true` y luego llamar setLoading(false) de forma síncrona
+  // dentro del efecto cuando falta idCurso. Esto evita el render en
+  // cascada que la regla de ESLint detecta.
+  const [loading, setLoading] = useState(() => Boolean(idCurso));
+  const [error, setError] = useState('');
 
-  // ── Lógica de colores extraída (De la Versión 2) ──
   const getColorTotal = (pct) => {
     if (pct >= 80) return '#16a34a';
     if (pct >= 50) return '#2c5364';
@@ -81,19 +82,17 @@ const CourseProgressBar = ({ idCurso }) => {
   };
 
   useEffect(() => {
-    // Protección de la Versión 1: Previene el infinite loading
-    if (!idCurso) {
-      setLoading(false);
-      return;
-    }
+    // Si no hay idCurso, no hay nada que buscar. `loading` ya arrancó en
+    // `false` para este caso (ver useState de arriba), así que no
+    // necesitamos tocar el estado aquí — solo salimos.
+    if (!idCurso) return;
 
-    // Protección de la Versión 1: Previene memory leaks (Race conditions)
     let cancelado = false;
 
     const fetchProgreso = async () => {
       setLoading(true);
       setError('');
-      
+
       try {
         const data = await authService.apiFetch(`/cursos/${idCurso}/progreso`);
         if (!cancelado) setProgreso(data);
@@ -108,12 +107,13 @@ const CourseProgressBar = ({ idCurso }) => {
     };
 
     fetchProgreso();
-    
-    // Cleanup function
+
     return () => { cancelado = true; };
   }, [idCurso]);
 
-  // ── Renderizados tempranos (Early returns) ──
+  // Sin idCurso no hay nada que renderizar (curso aún no disponible).
+  if (!idCurso) return null;
+
   if (loading) {
     return (
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 animate-pulse" aria-busy="true">
@@ -140,13 +140,11 @@ const CourseProgressBar = ({ idCurso }) => {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
 
-      {/* Encabezado */}
       <div className="flex items-center gap-2">
         <TrendingUp size={20} className="text-[#2c5364]" aria-hidden="true" />
         <h3 className="text-base font-bold text-gray-800">Mi Progreso</h3>
       </div>
 
-      {/* Progreso total — círculo central */}
       <div className="flex items-center gap-6">
         <div className="relative flex-shrink-0">
           <CircularProgress porcentaje={progreso_total} size={90} color={colorTotal} />
@@ -168,7 +166,6 @@ const CourseProgressBar = ({ idCurso }) => {
 
       <hr className="border-gray-100" />
 
-      {/* Desafíos */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
@@ -183,7 +180,6 @@ const CourseProgressBar = ({ idCurso }) => {
         <LinearBar porcentaje={desafios.porcentaje} color="bg-[#2c5364]" />
       </div>
 
-      {/* Materiales */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">

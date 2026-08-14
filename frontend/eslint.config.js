@@ -22,4 +22,14 @@ export default defineConfig([
       'react-hooks/exhaustive-deps': 'error',
     },
   },
+  {
+    // SCRUM-63: archivos de configuración que corren en Node (no en el
+    // navegador) — playwright.config.js, vite.config.js, etc. Necesitan
+    // los globals de Node (`process`, `__dirname`, ...) en lugar de los
+    // globals de browser que usa el resto del código fuente de React.
+    files: ['playwright.config.js', 'vite.config.js', 'eslint.config.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ])

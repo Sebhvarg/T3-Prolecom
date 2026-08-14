@@ -23,6 +23,11 @@ test.describe('Autenticación por rol', () => {
     await expect(page).toHaveURL(/\/dashboard\/estudiante/);
   });
 
+  test('Moderador inicia sesión y llega a su dashboard', async ({ page }) => {
+    await login(page, USERS.moderador);
+    await expect(page).toHaveURL(/\/moderador\/dashboard/);
+  });
+
   test('Login con credenciales inválidas muestra error y no redirige', async ({ page }) => {
     await page.goto('/login');
     await page.locator('#user').fill('estudiante');
