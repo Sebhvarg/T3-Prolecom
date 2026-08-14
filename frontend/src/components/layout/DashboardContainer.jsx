@@ -3,8 +3,15 @@ import Breadcrumbs from './Breadcrumbs';
 import NotificacionesDropdown from './NotificacionesDropdown';
 import { User } from 'lucide-react';
 import PropTypes from 'prop-types';
+import { useAuth } from '../../context/AuthContext';
 
-const DashboardContainer = ({ title, user, children }) => {
+const DashboardContainer = ({ title, user: propUser, children }) => {
+  const { user: authUser } = useAuth();
+  const user = propUser || authUser;
+
+  const displayName = user?.nombreCompleto || user?.usuario || (authUser ? 'Usuario' : 'Cargando...');
+  const displayRole = user?.rol || 'Usuario';
+
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
@@ -18,8 +25,8 @@ const DashboardContainer = ({ title, user, children }) => {
                 <User size={20} className="text-gray-600" />
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-700 leading-tight">{user?.usuario?.toUpperCase() || 'Cargando...'}</span>
-                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full w-fit uppercase tracking-tighter mt-1">{user?.rol || 'Usuario'}</span>
+                <span className="text-sm font-medium text-gray-700 leading-tight">{displayName}</span>
+                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full w-fit uppercase tracking-tighter mt-1">{displayRole}</span>
               </div>
             </div>
           </div>

@@ -7,6 +7,7 @@ class ClienteDashboard extends BaseDashboard
     protected function getSidebar(): array
     {
         return [
+            ['name' => 'Catálogo de Cursos', 'route' => '/cursos'],
             ['name' => 'Mi Perfil', 'route' => '/cliente/perfil'],
             ['name' => 'Mis Compras', 'route' => '/cliente/compras'],
             ['name' => 'Soporte', 'route' => '/cliente/soporte'],
