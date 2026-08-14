@@ -354,6 +354,29 @@ class TestUserSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
+        DB::table('soluciones')->insert([
+            [
+                'idDesafio' => $d1Id,
+                'idEstudiante' => $users['teresa'],
+                'codigoEnviado' => "def invertir_cadena(s):\n    return s[::-1]\n",
+                'estado' => 'aprobado',
+                'resultadoEjecucion' => 'Todos los casos de prueba pasaron correctamente.',
+                'puntosOtorgados' => 10,
+                'created_at' => now()->subDays(2),
+                'updated_at' => now()->subDays(2),
+            ],
+            [
+                'idDesafio' => $d2Id,
+                'idEstudiante' => $users['karla'],
+                'codigoEnviado' => "def contar_palabras(frases):\n    return {'hola': 2}\n",
+                'estado' => 'aprobado',
+                'resultadoEjecucion' => 'Todos los casos de prueba pasaron correctamente.',
+                'puntosOtorgados' => 20,
+                'created_at' => now()->subDays(1),
+                'updated_at' => now()->subDays(1),
+            ],
+        ]);
+
         return ['d1' => $d1Id, 'd2' => $d2Id];
     }
 

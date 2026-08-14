@@ -357,6 +357,19 @@ class CursoController extends Controller
 
         $curso->ayudantes()->attach($ayudante->idUsuario, ['idAsignador' => $user->idUsuario]);
 
+        // Asignar el rol de Ayudante en la base de datos si aún no lo posee
+        if (! $ayudante->roles()->where('roles.rol', 'Ayudante')->exists()) {
+            $rolAyudante = DB::table('roles')->where('rol', 'Ayudante')->first();
+            if ($rolAyudante) {
+                DB::table('usuario_roles')->insert([
+                    'idUsuario' => $ayudante->idUsuario,
+                    'idRol' => $rolAyudante->idRol,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+
         return response()->json([
             'message' => 'Ayudante asignado exitosamente al curso',
             'ayudante' => [

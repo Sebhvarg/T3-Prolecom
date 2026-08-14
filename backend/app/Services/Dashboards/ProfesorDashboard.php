@@ -55,7 +55,12 @@ class ProfesorDashboard extends BaseDashboard
 
     protected function getActividadReciente(): array
     {
-        $cursosProfe = Curso::where('idProfeCreador', $this->usuario->idUsuario)->pluck('idCurso')->toArray();
+        $cursosCreados = Curso::where('idProfeCreador', $this->usuario->idUsuario)->pluck('idCurso')->toArray();
+        $cursosAsignados = \Illuminate\Support\Facades\Schema::hasTable('ayudantes_cursos')
+            ? \Illuminate\Support\Facades\DB::table('ayudantes_cursos')->where('idUsuarioAyudante', $this->usuario->idUsuario)->pluck('idCurso')->toArray()
+            : [];
+        $cursosProfe = array_values(array_unique(array_filter(array_merge($cursosCreados, $cursosAsignados))));
+
         $actPreguntas = $this->getActividadPreguntas($cursosProfe);
         $actSoluciones = $this->getActividadSoluciones($cursosProfe);
 
@@ -68,9 +73,37 @@ class ProfesorDashboard extends BaseDashboard
 
     private function getActividadPreguntas(array $cursosProfe): array
     {
-        return Pregunta::whereHas('foro.itemTema.tema', function ($q) use ($cursosProfe) {
-            $q->whereIn('idCurso', $cursosProfe);
-        })
+        if (empty($cursosProfe)) {
+            return [];
+        }
+
+        $forosItems = \Illuminate\Support\Facades\DB::table('items_tema')
+            ->join('temas', 'items_tema.idTema', '=', 'temas.idTema')
+            ->whereIn('temas.idCurso', $cursosProfe)
+            ->where(function ($q) {
+                $q->where('items_tema.itemable_type', \App\Models\Foro::class)
+                    ->orWhere('items_tema.itemable_type', 'Foro')
+                    ->orWhere('items_tema.itemable_type', 'foro')
+                    ->orWhere('items_tema.itemable_type', 'App\\Models\\Foro');
+            })
+            ->pluck('items_tema.itemable_id')
+            ->toArray();
+
+        $forosDirect = [];
+        if (\Illuminate\Support\Facades\Schema::hasColumn('foros', 'idCurso')) {
+            $forosDirect = \Illuminate\Support\Facades\DB::table('foros')
+                ->whereIn('idCurso', $cursosProfe)
+                ->pluck('idForo')
+                ->toArray();
+        }
+
+        $allForoIds = array_values(array_unique(array_filter(array_merge($forosItems, $forosDirect))));
+
+        if (empty($allForoIds)) {
+            return [];
+        }
+
+        return Pregunta::whereIn('idForo', $allForoIds)
             ->with(['creador:idUsuario,nombreCompleto', 'foro.itemTema.tema.curso:idCurso,titulo'])
             ->latest()
             ->take(5)
@@ -95,9 +128,34 @@ class ProfesorDashboard extends BaseDashboard
 
     private function getActividadSoluciones(array $cursosProfe): array
     {
-        return Solucion::whereHas('desafio', function ($q) use ($cursosProfe) {
-            $q->whereIn('idCurso', $cursosProfe);
-        })
+        if (empty($cursosProfe)) {
+            return [];
+        }
+
+        $challengeIdsDirect = \Illuminate\Support\Facades\DB::table('desafios')
+            ->whereIn('idCurso', $cursosProfe)
+            ->pluck('idDesafio')
+            ->toArray();
+
+        $challengeIdsItems = \Illuminate\Support\Facades\DB::table('items_tema')
+            ->join('temas', 'items_tema.idTema', '=', 'temas.idTema')
+            ->whereIn('temas.idCurso', $cursosProfe)
+            ->where(function ($q) {
+                $q->where('items_tema.itemable_type', \App\Models\Desafio::class)
+                    ->orWhere('items_tema.itemable_type', 'Desafio')
+                    ->orWhere('items_tema.itemable_type', 'desafio')
+                    ->orWhere('items_tema.itemable_type', 'App\\Models\\Desafio');
+            })
+            ->pluck('items_tema.itemable_id')
+            ->toArray();
+
+        $allChallengeIds = array_values(array_unique(array_filter(array_merge($challengeIdsDirect, $challengeIdsItems))));
+
+        if (empty($allChallengeIds)) {
+            return [];
+        }
+
+        return Solucion::whereIn('idDesafio', $allChallengeIds)
             ->with(['estudiante:idUsuario,nombreCompleto', 'desafio.curso'])
             ->where('estado', 'aprobado')
             ->latest()
