@@ -12,18 +12,28 @@ import { BookOpen, Code2, TrendingUp } from 'lucide-react';
 
 // ── Círculo SVG de progreso ───────────────────────────────────────────────
 const CircularProgress = ({ porcentaje = 0, size = 80, color = '#2c5364' }) => {
+  // Mejora: Asegurar que el porcentaje nunca se salga de los límites (0-100)
+  const porcentajeSeguro = Math.min(Math.max(porcentaje, 0), 100);
   const radio     = (size - 10) / 2;
   const circunf   = 2 * Math.PI * radio;
-  const offset    = circunf - (porcentaje / 100) * circunf;
+  const offset    = circunf - (porcentajeSeguro / 100) * circunf;
 
   return (
-    <svg width={size} height={size} className="rotate-[-90deg]">
+    <svg 
+      width={size} 
+      height={size} 
+      className="rotate-[-90deg]"
+      role="progressbar" 
+      aria-valuenow={porcentajeSeguro} 
+      aria-valuemin="0" 
+      aria-valuemax="100"
+    >
       {/* Fondo gris */}
       <circle
         cx={size / 2} cy={size / 2} r={radio}
         fill="none" stroke="#e5e7eb" strokeWidth={8}
       />
-      {/* Arco de progreso */}
+      {/* Arco de progreso animado */}
       <circle
         cx={size / 2} cy={size / 2} r={radio}
         fill="none" stroke={color} strokeWidth={8}
@@ -37,14 +47,24 @@ const CircularProgress = ({ porcentaje = 0, size = 80, color = '#2c5364' }) => {
 };
 
 // ── Barra de progreso lineal ──────────────────────────────────────────────
-const LinearBar = ({ porcentaje = 0, color = 'bg-[#2c5364]' }) => (
-  <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-    <div
-      className={`h-2.5 rounded-full transition-all duration-700 ${color}`}
-      style={{ width: `${porcentaje}%` }}
-    />
-  </div>
-);
+const LinearBar = ({ porcentaje = 0, color = 'bg-[#2c5364]' }) => {
+  const porcentajeSeguro = Math.min(Math.max(porcentaje, 0), 100);
+  
+  return (
+    <div 
+      className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden"
+      role="progressbar" 
+      aria-valuenow={porcentajeSeguro} 
+      aria-valuemin="0" 
+      aria-valuemax="100"
+    >
+      <div
+        className={`h-2.5 rounded-full transition-all duration-700 ${color}`}
+        style={{ width: `${porcentajeSeguro}%` }}
+      />
+    </div>
+  );
+};
 
 // ── Componente principal ──────────────────────────────────────────────────
 const CourseProgressBar = ({ idCurso }) => {
@@ -52,28 +72,51 @@ const CourseProgressBar = ({ idCurso }) => {
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState('');
 
+  // ── Lógica de colores extraída (De la Versión 2) ──
+  const getColorTotal = (pct) => {
+    if (pct >= 80) return '#16a34a';
+    if (pct >= 50) return '#2c5364';
+    if (pct >= 25) return '#d97706';
+    return '#dc2626';
+  };
+
   useEffect(() => {
-    if (!idCurso) return;
+    // Protección de la Versión 1: Previene el infinite loading
+    if (!idCurso) {
+      setLoading(false);
+      return;
+    }
+
+    // Protección de la Versión 1: Previene memory leaks (Race conditions)
+    let cancelado = false;
 
     const fetchProgreso = async () => {
       setLoading(true);
+      setError('');
+      
       try {
         const data = await authService.apiFetch(`/cursos/${idCurso}/progreso`);
-        setProgreso(data);
+        if (!cancelado) setProgreso(data);
       } catch (err) {
-        setError('No se pudo cargar el progreso.');
-        console.error(err);
+        if (!cancelado) {
+          setError('No se pudo cargar el progreso.');
+          console.error(err);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelado) setLoading(false);
       }
     };
 
     fetchProgreso();
+    
+    // Cleanup function
+    return () => { cancelado = true; };
   }, [idCurso]);
 
+  // ── Renderizados tempranos (Early returns) ──
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 animate-pulse">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 animate-pulse" aria-busy="true">
         <div className="h-4 bg-gray-200 rounded w-1/3 mb-4" />
         <div className="h-3 bg-gray-100 rounded w-full mb-2" />
         <div className="h-3 bg-gray-100 rounded w-3/4" />
@@ -83,7 +126,7 @@ const CourseProgressBar = ({ idCurso }) => {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl p-4">
+      <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl p-4" role="alert">
         {error}
       </div>
     );
@@ -92,15 +135,6 @@ const CourseProgressBar = ({ idCurso }) => {
   if (!progreso) return null;
 
   const { progreso_total, desafios, materiales } = progreso;
-
-  // Color del progreso total según nivel
-  const getColorTotal = (pct) => {
-    if (pct >= 80) return '#16a34a';
-    if (pct >= 50) return '#2c5364';
-    if (pct >= 25) return '#d97706';
-    return '#dc2626';
-  };
-
   const colorTotal = getColorTotal(progreso_total);
 
   return (
@@ -108,7 +142,7 @@ const CourseProgressBar = ({ idCurso }) => {
 
       {/* Encabezado */}
       <div className="flex items-center gap-2">
-        <TrendingUp size={20} className="text-[#2c5364]" />
+        <TrendingUp size={20} className="text-[#2c5364]" aria-hidden="true" />
         <h3 className="text-base font-bold text-gray-800">Mi Progreso</h3>
       </div>
 
@@ -132,14 +166,13 @@ const CourseProgressBar = ({ idCurso }) => {
         </div>
       </div>
 
-      {/* Separador */}
       <hr className="border-gray-100" />
 
       {/* Desafíos */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Code2 size={16} className="text-[#2c5364]" />
+            <Code2 size={16} className="text-[#2c5364]" aria-hidden="true" />
             <span>Desafíos superados</span>
           </div>
           <span className="text-sm font-bold text-gray-800">
@@ -154,7 +187,7 @@ const CourseProgressBar = ({ idCurso }) => {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <BookOpen size={16} className="text-amber-500" />
+            <BookOpen size={16} className="text-amber-500" aria-hidden="true" />
             <span>Materiales vistos</span>
           </div>
           <span className="text-sm font-bold text-gray-800">
