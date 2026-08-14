@@ -6,6 +6,7 @@ use App\Models\Desafio;
 use App\Models\MaterialAprendizaje;
 use App\Models\Quiz;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ProgresoService
 {
@@ -130,16 +131,15 @@ class ProgresoService
 
         $pendingMateriales = DB::table('materiales_aprendizaje')
             ->whereIn('idMaterial', $pendingMaterialIds)
-            ->select('idMaterial as id', 'titulo', 'tipo', 'archivo_url')
             ->get()
             ->map(function ($item) {
                 return [
-                    'id' => $item->id,
+                    'id' => $item->idMaterial,
                     'tipo' => 'material',
                     'etiqueta' => 'Material de Lectura',
                     'titulo' => $item->titulo,
                     'detalle' => 'Formato: ' . strtoupper($item->tipo ?? 'PDF'),
-                    'archivo_url' => $item->archivo_url,
+                    'archivo_url' => $item->archivo_url ?? $item->enlaceArchivo ?? null,
                 ];
             })
             ->toArray();
@@ -148,47 +148,51 @@ class ProgresoService
         $quizIdsFromItems = DB::table('items_tema')
             ->join('temas', 'items_tema.idTema', '=', 'temas.idTema')
             ->where('temas.idCurso', $idCurso)
-            ->where(function ($q) {
-                $q->where('items_tema.itemable_type', Quiz::class)
-                    ->orWhere('items_tema.itemable_type', 'Quiz')
-                    ->orWhere('items_tema.itemable_type', 'quiz')
-                    ->orWhere('items_tema.itemable_type', 'App\\Models\\Quiz');
-            })
+            ->where('items_tema.itemable_type', 'LIKE', '%Quiz%')
             ->pluck('items_tema.itemable_id')
             ->toArray();
 
-        $quizIdsDirect = DB::table('quizzes')
-            ->where('idCurso', $idCurso)
-            ->pluck('idQuiz')
-            ->toArray();
+        $quizIdsDirect = Schema::hasTable('quizzes')
+            ? DB::table('quizzes')
+                ->where('idCurso', $idCurso)
+                ->pluck('idQuiz')
+                ->toArray()
+            : [];
 
         $allQuizIds = array_values(array_unique(array_filter(array_merge($quizIdsFromItems, $quizIdsDirect))));
 
-        $completedQuizIds = DB::table('quizzes_intentos')
-            ->whereIn('idQuiz', $allQuizIds)
-            ->where('idEstudiante', $idEstudiante)
-            ->where(function ($q) {
-                $q->where('estado', 'completado')->orWhere('estado', 'Completado');
-            })
-            ->pluck('idQuiz')
-            ->toArray();
+        $tablaQuizIntentos = Schema::hasTable('quizzes_intentos')
+            ? 'quizzes_intentos'
+            : (Schema::hasTable('quiz_intentos') ? 'quiz_intentos' : null);
 
-        $pendingQuizIds = array_diff($allQuizIds, $completedQuizIds);
+        $completedQuizIds = ($tablaQuizIntentos && !empty($allQuizIds))
+            ? DB::table($tablaQuizIntentos)
+                ->whereIn('idQuiz', $allQuizIds)
+                ->where('idEstudiante', $idEstudiante)
+                ->where(function ($q) {
+                    $q->where('estado', 'completado')->orWhere('estado', 'Completado');
+                })
+                ->pluck('idQuiz')
+                ->toArray()
+            : [];
 
-        $pendingQuizzes = DB::table('quizzes')
-            ->whereIn('idQuiz', $pendingQuizIds)
-            ->select('idQuiz as id', 'titulo')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'id' => $item->id,
-                    'tipo' => 'quiz',
-                    'etiqueta' => 'Evaluación / Quiz',
-                    'titulo' => $item->titulo,
-                    'detalle' => 'Cuestionario de Evaluación',
-                ];
-            })
-            ->toArray();
+        $pendingQuizzes = (Schema::hasTable('quizzes') && !empty($pendingQuizIds))
+            ? DB::table('quizzes')
+                ->whereIn('idQuiz', $pendingQuizIds)
+                ->select('idQuiz as id', 'titulo')
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'tipo' => 'quiz',
+                        'etiqueta' => 'Evaluación / Quiz',
+                        'titulo' => $item->titulo,
+                        'detalle' => 'Cuestionario de Evaluación',
+                        'archivo_url' => null,
+                    ];
+                })
+                ->toArray()
+            : [];
 
         return array_values(array_merge($pendingDesafios, $pendingMateriales, $pendingQuizzes));
     }
@@ -197,7 +201,9 @@ class ProgresoService
     {
         $challengeIdsFromItems = DB::table('items_tema')
             ->join('temas', 'items_tema.idTema', '=', 'temas.idTema')
+            ->join('desafios', 'items_tema.itemable_id', '=', 'desafios.idDesafio')
             ->where('temas.idCurso', $idCurso)
+            ->where('desafios.estado', 'publicado')
             ->where(function ($q) {
                 $q->where('items_tema.itemable_type', Desafio::class)
                     ->orWhere('items_tema.itemable_type', 'Desafio')
@@ -209,6 +215,7 @@ class ProgresoService
 
         $challengeIdsDirect = DB::table('desafios')
             ->where('idCurso', $idCurso)
+            ->where('estado', 'publicado')
             ->pluck('idDesafio')
             ->toArray();
 
@@ -316,14 +323,20 @@ class ProgresoService
             ];
         }
 
-        $completados = DB::table('quizzes_intentos')
-            ->whereIn('idQuiz', $allQuizIds)
-            ->where('idEstudiante', $idEstudiante)
-            ->where(function ($q) {
-                $q->where('estado', 'completado')->orWhere('estado', 'Completado');
-            })
-            ->distinct('idQuiz')
-            ->count('idQuiz');
+        $tablaQuizIntentos = Schema::hasTable('quizzes_intentos')
+            ? 'quizzes_intentos'
+            : (Schema::hasTable('quiz_intentos') ? 'quiz_intentos' : null);
+
+        $completados = ($tablaQuizIntentos && !empty($allQuizIds))
+            ? DB::table($tablaQuizIntentos)
+                ->whereIn('idQuiz', $allQuizIds)
+                ->where('idEstudiante', $idEstudiante)
+                ->where(function ($q) {
+                    $q->where('estado', 'completado')->orWhere('estado', 'Completado');
+                })
+                ->distinct('idQuiz')
+                ->count('idQuiz')
+            : 0;
 
         $porcentaje = round(($completados / $total) * 100, 1);
 

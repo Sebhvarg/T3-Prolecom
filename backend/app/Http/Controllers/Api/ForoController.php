@@ -63,7 +63,7 @@ class ForoController extends Controller
      */
     public function store(Request $request, $idTema)
     {
-        Tema::findOrFail($idTema);
+        $tema = Tema::findOrFail($idTema);
 
         $validator = Validator::make($request->all(), [
             'titulo' => 'required|string|max:200',
