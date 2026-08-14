@@ -404,8 +404,6 @@ const CursoDetallePage = () => {
     );
   }
 
-  const progreso = curso.progreso || { porcentaje: 0, itemsCompletados: 0, totalItems: 0, xpGanado: 0, xpTotal: 0 };
-
   const renderActiveTabContent = () => {
     if (activeTab === 'foro') {
       return <ForoSeccion idCurso={id} user={user} />;
@@ -661,7 +659,7 @@ const CursoDetallePage = () => {
 
           {/* Componente Modular de Barra de Progreso */}
           {user?.rol === 'Estudiante' && (
-            <CourseProgressBar progreso={progreso} />
+            <CourseProgressBar idCurso={curso.idCurso} />
           )}
         </div>
 

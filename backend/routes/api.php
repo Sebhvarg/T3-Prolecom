@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\NotificacionController;
 use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\TemaController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\PerfilController;
+use App\Http\Controllers\Api\ProgresoController;
 use Illuminate\Support\Facades\Route;
 
 if (! defined('ROUTE_CURSO_ID')) {
@@ -51,6 +53,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/mis-cursos', [CursoController::class, 'misCursos']);
     Route::post(ROUTE_CURSO_ID.'/inscribir', [CursoController::class, 'inscribir']);
     Route::delete(ROUTE_CURSO_ID.'/desmatricular', [CursoController::class, 'desmatricular']);
+    Route::get(ROUTE_CURSO_ID.'/progreso', [ProgresoController::class, 'show']);
+    Route::put('/perfil/password', [PerfilController::class, 'cambiarPassword']);
 
     // Temas (Módulos)
     Route::post('/cursos/{id}/temas', [TemaController::class, 'store']);

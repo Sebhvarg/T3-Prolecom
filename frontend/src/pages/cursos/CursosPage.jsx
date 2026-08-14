@@ -765,6 +765,7 @@ const CursoCard = ({
             {hasAccess ? (
               <button
                 type="button"
+                data-testid="curso-titulo-link"
                 onClick={() => navigate(`/cursos/${curso.idCurso}`)}
                 className="text-left font-bold text-gray-900 hover:text-[#2c5364] hover:underline focus:outline-none bg-transparent border-0 p-0 cursor-pointer after:absolute after:inset-0 after:z-0"
               >
