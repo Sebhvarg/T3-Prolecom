@@ -4,6 +4,7 @@ import PrivateRoute from './routes/PrivateRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import SoporteDashboard from './pages/soporte/SoporteDashboard';
 import StudentDashboard from './pages/estudiante/StudentDashboard';
 import ProfesorDashboard from './pages/profesor/ProfesorDashboard';
 import CursosPage from './pages/cursos/CursosPage';
@@ -12,8 +13,7 @@ import DesafioDetallePage from './pages/cursos/DesafioDetallePage';
 import PerfilPage from './pages/perfil/PerfilPage';
 
 import ModeratorDashboard from './pages/dashboard/ModeratorDashboard';
-
-const AyudanteDashboard = () => <h1>Panel de Ayudante</h1>;
+import AyudanteDashboard from './pages/ayudante/AyudanteDashboard';
 
 function App() {
   return (
@@ -26,7 +26,7 @@ function App() {
           {/* Rutas protegidas */}
           <Route element={<PrivateRoute allowedRoles={[1, 4]} />}>
             <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/soporte/dashboard" element={<AdminDashboard />} />
+            <Route path="/soporte/dashboard" element={<SoporteDashboard />} />
           </Route>
           
           <Route element={<PrivateRoute allowedRoles={[1, 2]} />}>
@@ -47,12 +47,17 @@ function App() {
             <Route path="/dashboard/estudiante" element={<StudentDashboard />} />
           </Route>
 
-          <Route element={<PrivateRoute allowedRoles={[1, 2, 3, 4, 5, 6]} />}>
+          {/* Cursos y Desafíos — Solo Estudiantes, Profesores, Ayudantes y Moderadores */}
+          <Route element={<PrivateRoute allowedRoles={[2, 3, 5, 6]} />}>
             <Route path="/cursos" element={<CursosPage />} />
             <Route path="/cursos/:id" element={<CursoDetallePage />} />
             <Route path="/cursos/:id/desafios/:idDesafio" element={<DesafioDetallePage />} />
             <Route path="/desafios/:idDesafio" element={<DesafioDetallePage />} />
             <Route path="/desafios/:id" element={<DesafioDetallePage />} />
+          </Route>
+
+          {/* Perfil accesible para todos los roles autenticados */}
+          <Route element={<PrivateRoute allowedRoles={[1, 2, 3, 4, 5, 6]} />}>
             <Route path="/perfil" element={<PerfilPage />} />
           </Route>
 

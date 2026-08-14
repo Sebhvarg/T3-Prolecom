@@ -49,6 +49,18 @@ class User extends Authenticatable
             ->withPivot('fechaInscripcion');
     }
 
+    public function cursosComoModerador()
+    {
+        return $this->belongsToMany(Curso::class, 'moderadores_cursos', 'idUsuarioModerador', 'idCurso')
+            ->withTimestamps();
+    }
+
+    public function cursosComoAyudante()
+    {
+        return $this->belongsToMany(Curso::class, 'ayudantes_cursos', 'idUsuarioAyudante', 'idCurso')
+            ->withTimestamps();
+    }
+
     protected function casts(): array
     {
         return [

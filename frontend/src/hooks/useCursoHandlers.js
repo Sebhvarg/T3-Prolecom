@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { cursosService } from '../api/cursosService';
 import { desafiosService } from '../api/desafiosService';
+import { foroService } from '../api/foroService';
 import { validateMaterialFile } from '../utils/validateMaterialFile';
 import { executeAsyncAction } from '../utils/asyncHandler';
 
@@ -19,6 +20,8 @@ export const useCursoHandlers = ({
   desafioLenguaje,
   desafioPlantillaCodigo,
   desafioTestCases,
+  foroTitulo,
+  foroDescripcion,
   setSubmitting,
   setError,
   setSuccess,
@@ -32,6 +35,9 @@ export const useCursoHandlers = ({
   setMaterialFile,
   setIsMaterialModalOpen,
   setIsDesafioModalOpen,
+  setIsForoModalOpen,
+  setForoTitulo,
+  setForoDescripcion,
   setDesafioTitulo,
   setDesafioDescripcion,
   setDesafioDificultad,
@@ -179,6 +185,58 @@ export const useCursoHandlers = ({
     });
   }, [setSuccess, setError, fetchCurso]);
 
+  const handleOpenForoModal = useCallback((idTema = null) => {
+    if (idTema) {
+      setActiveTemaId(idTema);
+    }
+    setForoTitulo('');
+    setForoDescripcion('');
+    setIsForoModalOpen(true);
+  }, [setActiveTemaId, setForoTitulo, setForoDescripcion, setIsForoModalOpen]);
+
+  const handleSaveForo = useCallback(async (e) => {
+    e.preventDefault();
+    if (!activeTemaId) {
+      setError('Debes seleccionar un tema para el foro.');
+      return;
+    }
+    if (!foroTitulo.trim()) {
+      setError('El título del foro es obligatorio.');
+      return;
+    }
+    await executeAsyncAction({
+      action: () => foroService.createForo(activeTemaId, {
+        titulo: foroTitulo.trim(),
+        descripcion: foroDescripcion.trim(),
+      }),
+      setLoading: setSubmitting,
+      setError,
+      setSuccess,
+      successMessage: 'Foro de discusión creado exitosamente.',
+      errorMessage: 'Error al crear el foro.',
+      onSuccess: () => {
+        setIsForoModalOpen(false);
+        fetchCurso();
+      },
+    });
+  }, [activeTemaId, foroTitulo, foroDescripcion, setSubmitting, setError, setSuccess, setIsForoModalOpen, fetchCurso]);
+
+  const handleDeleteForo = useCallback(async (idForo) => {
+    const targetForoId = typeof idForo === 'object'
+      ? (idForo?.idForo || idForo?.itemable_id || idForo?.itemable?.idForo)
+      : idForo;
+    if (!targetForoId) { setError('ID de foro no encontrado para eliminar.'); return; }
+    if (!window.confirm('¿Estás seguro de eliminar este foro de discusión?')) return;
+    await executeAsyncAction({
+      action: () => foroService.deleteForo(targetForoId),
+      setError,
+      setSuccess,
+      successMessage: 'Foro eliminado exitosamente.',
+      errorMessage: 'Error al eliminar el foro.',
+      onSuccess: fetchCurso,
+    });
+  }, [setError, setSuccess, fetchCurso]);
+
   return {
     handleOpenTemaModal,
     handleSaveTema,
@@ -189,5 +247,9 @@ export const useCursoHandlers = ({
     handleOpenDesafioModal,
     handleSaveDesafio,
     handleDeleteDesafio,
+    handleOpenForoModal,
+    handleSaveForo,
+    handleDeleteForo,
   };
 };
+

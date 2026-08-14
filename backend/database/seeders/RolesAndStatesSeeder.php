@@ -31,7 +31,13 @@ class RolesAndStatesSeeder extends Seeder
         DB::table('rutas')->insertOrIgnore([
             ['idRol' => 1, 'ruta' => '/admin'],
             ['idRol' => 1, 'ruta' => '/administrar-cursos'],
+            ['idRol' => 2, 'ruta' => '/moderador/dashboard'],
+            ['idRol' => 3, 'ruta' => '/profesor/dashboard'],
+            ['idRol' => 4, 'ruta' => '/soporte/dashboard'],
+            ['idRol' => 4, 'ruta' => '/admin'],
+            ['idRol' => 5, 'ruta' => '/ayudante/dashboard'],
             ['idRol' => 6, 'ruta' => '/dashboard'],
+            ['idRol' => 6, 'ruta' => '/dashboard/estudiante'],
         ]);
     }
 }

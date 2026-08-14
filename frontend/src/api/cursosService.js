@@ -115,5 +115,41 @@ export const cursosService = {
   getCategorias: async () => {
     return await authService.apiFetch('/categorias');
   },
+
+  // Gestión de Ayudantes por Curso
+  getAyudantes: async (id) => {
+    return await authService.apiFetch(`/cursos/${id}/ayudantes`);
+  },
+
+  asignarAyudante: async (id, data) => {
+    return await authService.apiFetch(`/cursos/${id}/ayudantes`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  desasignarAyudante: async (id, idAyudante) => {
+    return await authService.apiFetch(`/cursos/${id}/ayudantes/${idAyudante}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Gestión de Moderadores por Curso
+  getModeradores: async (id) => {
+    return await authService.apiFetch(`/cursos/${id}/moderadores`);
+  },
+
+  asignarModerador: async (id, data) => {
+    return await authService.apiFetch(`/cursos/${id}/moderadores`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  desasignarModerador: async (id, idModerador) => {
+    return await authService.apiFetch(`/cursos/${id}/moderadores/${idModerador}`, {
+      method: 'DELETE',
+    });
+  },
 };
 

@@ -59,6 +59,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post(ROUTE_CURSO_ID.'/inscribir', [CursoController::class, 'inscribir']);
     Route::delete(ROUTE_CURSO_ID.'/desmatricular', [CursoController::class, 'desmatricular']);
 
+    // Ayudantes de Curso
+    Route::get(ROUTE_CURSO_ID.'/ayudantes', [CursoController::class, 'getAyudantes']);
+    Route::post(ROUTE_CURSO_ID.'/ayudantes', [CursoController::class, 'asignarAyudante']);
+    Route::delete(ROUTE_CURSO_ID.'/ayudantes/{idAyudante}', [CursoController::class, 'desasignarAyudante']);
+
+    // Moderadores de Curso
+    Route::get(ROUTE_CURSO_ID.'/moderadores', [CursoController::class, 'getModeradores']);
+    Route::post(ROUTE_CURSO_ID.'/moderadores', [CursoController::class, 'asignarModerador']);
+    Route::delete(ROUTE_CURSO_ID.'/moderadores/{idModerador}', [CursoController::class, 'desasignarModerador']);
+
     // Temas (Módulos)
     Route::post('/cursos/{id}/temas', [TemaController::class, 'store']);
     Route::put('/temas/{id}', [TemaController::class, 'update']);

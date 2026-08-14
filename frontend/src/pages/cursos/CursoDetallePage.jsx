@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { useSecureViewer } from '../../hooks/useSecureViewer';
@@ -58,6 +58,7 @@ const TemaItemCard = ({
   handleDownloadMaterial,
   handleDeleteMaterial,
   handleDeleteDesafio,
+  handleDeleteForo,
   navigate,
   idCurso,
   setActiveTab,
@@ -161,6 +162,16 @@ const TemaItemCard = ({
                 <Trash2 size={14} />
               </button>
             )}
+            {isForo && (
+              <button
+                type="button"
+                onClick={() => handleDeleteForo(item.idForo || item.itemable_id || item.itemable?.idForo)}
+                className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                title="Eliminar Foro"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -244,6 +255,8 @@ const CursoDetallePage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
 
+  const location = useLocation();
+
   const {
     curso,
     loading,
@@ -264,6 +277,7 @@ const CursoDetallePage = () => {
   const [isTemaModalOpen, setIsTemaModalOpen] = useState(false);
   const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
   const [isDesafioModalOpen, setIsDesafioModalOpen] = useState(false);
+  const [isForoModalOpen, setIsForoModalOpen] = useState(false);
 
   const [temaEditId, setTemaEditId] = useState(null);
   const [activeTemaId, setActiveTemaId] = useState(null);
@@ -286,6 +300,10 @@ const CursoDetallePage = () => {
   const [desafioTestCases, setDesafioTestCases] = useState([
     { id: generateTestCaseId(), input: '', expected_output: '', is_public: true }
   ]);
+
+  // Form Foro
+  const [foroTitulo, setForoTitulo] = useState('');
+  const [foroDescripcion, setForoDescripcion] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -311,6 +329,9 @@ const CursoDetallePage = () => {
     handleOpenDesafioModal,
     handleSaveDesafio,
     handleDeleteDesafio,
+    handleOpenForoModal,
+    handleSaveForo,
+    handleDeleteForo,
   } = useCursoHandlers({
     id,
     temaEditId,
@@ -326,6 +347,8 @@ const CursoDetallePage = () => {
     desafioLenguaje,
     desafioPlantillaCodigo,
     desafioTestCases,
+    foroTitulo,
+    foroDescripcion,
     setSubmitting,
     setError,
     setSuccess,
@@ -339,6 +362,9 @@ const CursoDetallePage = () => {
     setMaterialFile,
     setIsMaterialModalOpen,
     setIsDesafioModalOpen,
+    setIsForoModalOpen,
+    setForoTitulo,
+    setForoDescripcion,
     setDesafioTitulo,
     setDesafioDescripcion,
     setDesafioDificultad,
@@ -348,6 +374,21 @@ const CursoDetallePage = () => {
     generateTestCaseId,
     fetchCurso,
   });
+
+  useEffect(() => {
+    if (location.state?.action && curso?.temas?.length > 0) {
+      const action = location.state.action;
+      const firstTemaId = curso.temas[0].idTema;
+      if (action === 'createMaterial') {
+        handleOpenMaterialModal(firstTemaId);
+      } else if (action === 'createDesafio') {
+        handleOpenDesafioModal(firstTemaId);
+      } else if (action === 'createForo') {
+        handleOpenForoModal(firstTemaId);
+      }
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, curso?.temas, handleOpenMaterialModal, handleOpenDesafioModal, handleOpenForoModal]);
 
   const handleAddTestCase = () => {
     setDesafioTestCases((prev) => [
@@ -446,6 +487,7 @@ const CursoDetallePage = () => {
           handleOpenTemaModal={handleOpenTemaModal}
           handleOpenMaterialModal={handleOpenMaterialModal}
           handleOpenDesafioModal={handleOpenDesafioModal}
+          handleOpenForoModal={handleOpenForoModal}
           handleDeleteTema={handleDeleteTema}
           toggleTema={toggleTema}
           expandedTemas={expandedTemas}
@@ -453,6 +495,7 @@ const CursoDetallePage = () => {
           handleDownloadMaterial={handleDownloadMaterial}
           handleDeleteMaterial={handleDeleteMaterial}
           handleDeleteDesafio={handleDeleteDesafio}
+          handleDeleteForo={handleDeleteForo}
           navigate={navigate}
         />
 
@@ -698,6 +741,79 @@ const CursoDetallePage = () => {
         </form>
       </Modal>
 
+      {/* Modal Foro de Discusión */}
+      <Modal
+        isOpen={isForoModalOpen}
+        onClose={() => setIsForoModalOpen(false)}
+        title="Crear Foro de Discusión"
+      >
+        <form onSubmit={handleSaveForo} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+              Tema del Curso
+            </label>
+            <select
+              value={activeTemaId || ''}
+              onChange={(e) => setActiveTemaId(Number(e.target.value))}
+              required
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            >
+              <option value="" disabled>Selecciona un tema...</option>
+              {curso.temas?.map((t) => (
+                <option key={t.idTema} value={t.idTema}>
+                  {t.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+              Título del Foro
+            </label>
+            <input
+              type="text"
+              required
+              value={foroTitulo}
+              onChange={(e) => setForoTitulo(e.target.value)}
+              placeholder="Ej: Foro de Consultas - Unidad 1"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+              Descripción / Instrucciones (Opcional)
+            </label>
+            <textarea
+              rows={3}
+              value={foroDescripcion}
+              onChange={(e) => setForoDescripcion(e.target.value)}
+              placeholder="Espacio para resolver dudas y debatir sobre este tema..."
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setIsForoModalOpen(false)}
+              className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-4 py-2 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+            >
+              {submitting && <Loader2 size={14} className="animate-spin" />}
+              <span>Crear Foro</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
+
       {/* Modal Secure Viewer */}
       {activeViewerMaterial && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
@@ -751,6 +867,7 @@ const CursoTabContent = ({
   handleOpenTemaModal,
   handleOpenMaterialModal,
   handleOpenDesafioModal,
+  handleOpenForoModal,
   handleDeleteTema,
   toggleTema,
   expandedTemas,
@@ -758,10 +875,25 @@ const CursoTabContent = ({
   handleDownloadMaterial,
   handleDeleteMaterial,
   handleDeleteDesafio,
+  handleDeleteForo,
   navigate,
 }) => {
   if (activeTab === 'foro') {
-    return <ForoSeccion idCurso={id} user={user} temas={curso.temas} onBack={() => setActiveTab('temas')} />;
+    return (
+      <ForoSeccion
+        idCurso={id}
+        user={user}
+        temas={curso.temas}
+        onBack={() => setActiveTab('temas')}
+        onOpenCreateForoModal={() => {
+          if (curso.temas?.length > 0) {
+            handleOpenForoModal(curso.temas[0].idTema);
+          } else {
+            handleOpenTemaModal();
+          }
+        }}
+      />
+    );
   }
 
   if (activeTab === 'quizzes') {
@@ -834,6 +966,14 @@ const CursoTabContent = ({
                       </button>
                       <button
                         type="button"
+                        onClick={() => handleOpenForoModal(tema.idTema)}
+                        className="p-1.5 text-slate-700 hover:text-purple-600 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                        title="Crear Foro de Discusión"
+                      >
+                        <MessageSquare size={16} />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleOpenTemaModal(tema)}
                         className="p-1.5 text-slate-700 hover:text-[#2c5364] hover:bg-white rounded-lg transition-colors cursor-pointer"
                         title="Editar Tema"
@@ -877,6 +1017,7 @@ const CursoTabContent = ({
                         handleDownloadMaterial={handleDownloadMaterial}
                         handleDeleteMaterial={handleDeleteMaterial}
                         handleDeleteDesafio={handleDeleteDesafio}
+                        handleDeleteForo={handleDeleteForo}
                         navigate={navigate}
                         idCurso={id}
                         setActiveTab={setActiveTab}

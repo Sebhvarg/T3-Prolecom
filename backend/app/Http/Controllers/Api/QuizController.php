@@ -13,6 +13,7 @@ use App\Models\QuizPregunta;
 use App\Models\QuizRespuestaIntento;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
 class QuizController extends Controller
@@ -25,11 +26,15 @@ class QuizController extends Controller
         $user = $request->user('sanctum') ?? auth()->user();
         Curso::findOrFail($idCurso);
 
-        $query = Quiz::with(['creador:idUsuario,nombreCompleto', 'tema:idTema,nombre'])
-            ->where('idCurso', $idCurso);
+        $withRelations = ['creador:idUsuario,nombreCompleto'];
+        if (Schema::hasColumn('quizzes', 'idTema')) {
+            $withRelations[] = 'tema:idTema,nombre';
+        }
+
+        $query = Quiz::with($withRelations)->where('idCurso', $idCurso);
 
         $userRole = $user ? $user->roles->pluck('rol')->first() : null;
-        if ($userRole === 'Estudiante') {
+        if ($userRole === 'Estudiante' && Schema::hasColumn('quizzes', 'asignar_a_todos')) {
             $query->where(function ($q) use ($user) {
                 $q->where('asignar_a_todos', true)
                     ->orWhereHas('asignaciones', function ($sub) use ($user) {
@@ -130,12 +135,13 @@ class QuizController extends Controller
         try {
             $calificacionMaxima = $this->calcularCalificacionMaxima($request->preguntas, $request->calificacion_maxima);
 
-            $quiz = Quiz::create([
+            $payload = $this->buildQuizPayload([
                 'titulo' => $request->titulo,
                 'descripcion' => $request->descripcion,
                 'idCurso' => $idCurso,
-                'idTema' => $request->idTema,
                 'idCreador' => $user->idUsuario,
+            ], [
+                'idTema' => $request->idTema,
                 'limite_tiempo_minutos' => $request->limite_tiempo_minutos ?? 0,
                 'intentos_maximos' => $request->intentos_maximos ?? 0,
                 'calificacion_maxima' => $calificacionMaxima,
@@ -144,8 +150,10 @@ class QuizController extends Controller
                 'asignar_a_todos' => $request->boolean('asignar_a_todos', true),
             ]);
 
+            $quiz = Quiz::create($payload);
+
             // Registrar en items_tema si pertenece a un Tema
-            if ($request->filled('idTema')) {
+            if (Schema::hasColumn('quizzes', 'idTema') && $request->filled('idTema')) {
                 $maxOrden = ItemTema::where('idTema', $request->idTema)->max('orden') ?? 0;
                 ItemTema::create([
                     'idTema' => $request->idTema,
@@ -195,11 +203,12 @@ class QuizController extends Controller
         DB::beginTransaction();
         try {
             $calificacionMaxima = $this->calcularCalificacionMaxima($request->preguntas, $request->calificacion_maxima);
-            $oldTemaId = $quiz->idTema;
+            $oldTemaId = Schema::hasColumn('quizzes', 'idTema') ? $quiz->idTema : null;
 
-            $quiz->update([
+            $payload = $this->buildQuizPayload([
                 'titulo' => $request->titulo,
                 'descripcion' => $request->descripcion,
+            ], [
                 'idTema' => $request->idTema,
                 'limite_tiempo_minutos' => $request->limite_tiempo_minutos ?? 0,
                 'intentos_maximos' => $request->intentos_maximos ?? 0,
@@ -208,8 +217,10 @@ class QuizController extends Controller
                 'asignar_a_todos' => $request->boolean('asignar_a_todos', true),
             ]);
 
+            $quiz->update($payload);
+
             // Actualizar itemTema si cambió el idTema
-            if ($oldTemaId !== $request->idTema) {
+            if (Schema::hasColumn('quizzes', 'idTema') && $oldTemaId !== $request->idTema) {
                 ItemTema::where('itemable_type', Quiz::class)->where('itemable_id', $quiz->idQuiz)->delete();
                 if ($request->filled('idTema')) {
                     $maxOrden = ItemTema::where('idTema', $request->idTema)->max('orden') ?? 0;
@@ -242,6 +253,18 @@ class QuizController extends Controller
         }, 0.00);
 
         return $sumPuntos > 0 ? $sumPuntos : (float) ($fallback ?? 10.00);
+    }
+
+    private function buildQuizPayload(array $baseData, array $optionalData): array
+    {
+        $payload = $baseData;
+        foreach ($optionalData as $column => $value) {
+            if (Schema::hasColumn('quizzes', $column)) {
+                $payload[$column] = $value;
+            }
+        }
+
+        return $payload;
     }
 
     private function guardarPreguntasYOpciones(int $idQuiz, array $preguntas): void

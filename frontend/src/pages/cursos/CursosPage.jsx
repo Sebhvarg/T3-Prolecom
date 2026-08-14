@@ -340,7 +340,7 @@ const CursosPage = () => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Gestión de Cursos</h2>
-          <p className="text-gray-500 mt-1">Explora, crea o edita la oferta académica de la comunidad</p>
+          <p className="text-gray-500 mt-1">Explora, los cursos de la comunidad</p>
         </div>
         
         {canManage && (

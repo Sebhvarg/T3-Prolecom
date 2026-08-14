@@ -67,7 +67,7 @@ const resolveTargetForoIdHelper = (idForo, temas) => {
   return null;
 };
 
-const ForoSeccion = ({ idForo, user, temas, onBack }) => {
+const ForoSeccion = ({ idForo, user, temas, onBack, onOpenCreateForoModal }) => {
   const [searchParams] = useSearchParams();
   const initialPreguntaId = searchParams.get('preguntaId');
 
@@ -158,7 +158,7 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
 
   if (!loading && !targetForoId) {
     return (
-      <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-xs p-8 max-w-lg mx-auto my-6 space-y-3">
+      <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-xs p-8 max-w-lg mx-auto my-6 space-y-4">
         <div className="w-16 h-16 bg-purple-50 text-purple-700 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
           <MessageSquare className="w-8 h-8" />
         </div>
@@ -168,6 +168,18 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
             Este curso aún no cuenta con un foro de preguntas agregado a sus temas. Los profesores pueden crear uno agregando una actividad de tipo Foro en cualquier tema.
           </p>
         </div>
+        {canManageForo && onOpenCreateForoModal && (
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={onOpenCreateForoModal}
+              className="inline-flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold text-xs px-5 py-3 rounded-xl shadow-md transition-all cursor-pointer"
+            >
+              <Plus size={16} />
+              <span>Crear Foro de Discusión</span>
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -474,9 +486,11 @@ const ForoMainContent = ({
 };
 
 ForoSeccion.propTypes = {
-  idForo: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  idForo: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   user: PropTypes.object,
+  temas: PropTypes.array,
   onBack: PropTypes.func,
+  onOpenCreateForoModal: PropTypes.func,
 };
 
 export default ForoSeccion;

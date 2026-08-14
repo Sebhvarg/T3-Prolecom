@@ -13,6 +13,7 @@ use App\Models\VotoRespuesta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
 class ForoController extends Controller
@@ -28,12 +29,28 @@ class ForoController extends Controller
     private function puedeModificar(Request $request, $recurso, string $campoOwner): bool
     {
         $user = $request->user();
-        $esOwner = $recurso->{$campoOwner} === $user->idUsuario;
-        $esSuperior = $user->roles->pluck('rol')
-            ->intersect(['Administrador', 'Moderador'])
-            ->isNotEmpty();
+        if (! $user) {
+            return false;
+        }
 
-        return $esOwner || $esSuperior;
+        $esOwner = $recurso->{$campoOwner} === $user->idUsuario;
+        $roles = $user->roles->pluck('rol');
+        $isAdmin = $roles->contains('Administrador');
+
+        if ($esOwner || $isAdmin) {
+            return true;
+        }
+
+        if ($roles->contains('Moderador')) {
+            $idCurso = $recurso->idCurso ?? $recurso->foro?->itemTema?->tema?->idCurso ?? null;
+            if ($idCurso && \Illuminate\Support\Facades\Schema::hasTable('moderadores_cursos')) {
+                return $user->cursosComoModerador()->where('cursos.idCurso', $idCurso)->exists();
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -298,8 +315,10 @@ class ForoController extends Controller
         $pregunta = Pregunta::with([
             'creador:idUsuario,nombreCompleto,usuario,avatar_path',
             'respuestas' => function ($q) {
-                $q->where('oculta', false)
-                    ->with('usuario:idUsuario,nombreCompleto,usuario,avatar_path', 'usuario.roles:idRol,rol')
+                if (Schema::hasColumn('respuestas', 'oculta')) {
+                    $q->where('oculta', false);
+                }
+                $q->with('usuario:idUsuario,nombreCompleto,usuario,avatar_path', 'usuario.roles:idRol,rol')
                     ->orderByDesc('validada')
                     ->orderByDesc('created_at');
             },

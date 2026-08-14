@@ -14,10 +14,17 @@ const Sidebar = () => {
     user?.roles?.some(r => ['Administrador', 'Moderador'].includes(r.rol || r))
   );
 
+  const isAdminOrSupport = Boolean(
+    ['Administrador', 'Soporte'].includes(user?.rol) ||
+    [1, 4].includes(parseInt(user?.id_rol))
+  );
+
   const getHomePath = (userRole) => {
     if (userRole === 'Estudiante') return '/dashboard/estudiante';
     if (userRole === 'Moderador') return '/moderador/dashboard';
     if (userRole === 'Profesor') return '/profesor/dashboard';
+    if (userRole === 'Soporte') return '/soporte/dashboard';
+    if (userRole === 'Ayudante') return '/ayudante/dashboard';
     return '/admin';
   };
 
@@ -25,7 +32,7 @@ const Sidebar = () => {
 
   const menuItems = [
     { name: 'Principal', path: homePath, icon: <Home size={20} />, show: true },
-    { name: 'Cursos', path: '/cursos', icon: <BookOpen size={20} />, show: true },
+    { name: 'Cursos', path: '/cursos', icon: <BookOpen size={20} />, show: !isAdminOrSupport },
     { name: 'Moderación', path: '/moderador/dashboard', icon: <ShieldAlert size={20} />, show: isModeratorOrAdmin },
   ];
 

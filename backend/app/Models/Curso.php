@@ -38,6 +38,18 @@ class Curso extends Model
             ->withPivot('fechaInscripcion');
     }
 
+    public function ayudantes()
+    {
+        return $this->belongsToMany(User::class, 'ayudantes_cursos', 'idCurso', 'idUsuarioAyudante')
+            ->withTimestamps();
+    }
+
+    public function moderadores()
+    {
+        return $this->belongsToMany(User::class, 'moderadores_cursos', 'idCurso', 'idUsuarioModerador')
+            ->withTimestamps();
+    }
+
     public function temas()
     {
         return $this->hasMany(Tema::class, 'idCurso', 'idCurso');
