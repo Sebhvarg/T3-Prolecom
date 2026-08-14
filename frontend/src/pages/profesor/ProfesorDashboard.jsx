@@ -122,7 +122,7 @@ const ProfesorDashboard = () => {
               {/* Lado izquierdo - Info */}
               <div className="p-6 flex-1 flex flex-col justify-between">
                 <div>
-                  <h4 className="text-lg font-bold text-red-600 mb-4">{curso.titulo}</h4>
+                  <h4 className="text-lg font-black text-slate-900 group-hover:text-[#2c5364] transition-colors mb-4">{curso.titulo}</h4>
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center gap-2 text-gray-600 text-sm">
                       <Users size={16} />
@@ -154,8 +154,8 @@ const ProfesorDashboard = () => {
             <button
               key={curso.idCurso}
               type="button"
-              className="bg-white rounded-3xl border border-red-100 shadow-sm hover:shadow-md transition-all duration-300 flex overflow-hidden cursor-pointer text-left w-full"
-              onClick={() => navigate('/cursos')}
+              className="bg-white rounded-3xl border border-slate-200 shadow-xs hover:border-slate-300 hover:shadow-md transition-all duration-300 flex overflow-hidden cursor-pointer text-left w-full group"
+              onClick={() => navigate(`/cursos/${curso.idCurso}`)}
             >
               {cardContent}
             </button>
@@ -247,14 +247,14 @@ const ProfesorDashboard = () => {
         <div className="flex flex-wrap gap-3 w-full md:w-auto">
           <button
             onClick={handleNewCourse}
-            className="flex items-center justify-center gap-2 border-2 border-red-500 text-red-500 hover:bg-red-50 px-5 py-2.5 rounded-xl font-bold transition-all w-full sm:w-auto"
+            className="flex items-center justify-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-xs cursor-pointer w-full sm:w-auto"
           >
             <PlusCircle size={20} />
             <span>Nuevo Curso</span>
           </button>
           <button
             onClick={handleNewActivity}
-            className="flex items-center justify-center gap-2 border-2 border-red-500 text-red-500 hover:bg-red-50 px-5 py-2.5 rounded-xl font-bold transition-all w-full sm:w-auto"
+            className="flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-xs cursor-pointer w-full sm:w-auto"
           >
             <PlusCircle size={20} />
             <span>Nueva Actividad</span>

@@ -250,7 +250,7 @@ const AyudanteDashboard = () => {
                         </div>
 
                         <button
-                          onClick={() => navigate(`/cursos`)}
+                          onClick={() => navigate(preg.idCurso ? `/cursos/${preg.idCurso}?tab=foro` : '/cursos')}
                           className="inline-flex items-center gap-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer"
                         >
                           <span>Responder / Validar</span>

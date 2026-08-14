@@ -365,6 +365,18 @@ const ModeratorDashboard = () => {
                 : 'border-transparent text-slate-400 hover:text-slate-700'
             }`}
           >
+            Reportes de Moderación ({stats.pendientes || 0})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('auditoria')}
+            className={`px-6 py-3 font-extrabold text-xs transition-all border-b-2 cursor-pointer ${
+              activeTab === 'auditoria'
+                ? 'border-[#2c5364] text-[#2c5364] bg-slate-50/50'
+                : 'border-transparent text-slate-400 hover:text-slate-700'
+            }`}
+          >
+            Registro de Auditoría ({auditorias.length || 0})
           </button>
         </div>
 

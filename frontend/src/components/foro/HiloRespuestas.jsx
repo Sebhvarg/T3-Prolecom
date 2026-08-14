@@ -70,11 +70,11 @@ const HiloRespuestas = ({
         <span>Volver a las Preguntas del Foro</span>
       </button>
 
-      {/* Cabecera con Degradado Premium */}
-      <div className="p-6 md:p-8 bg-gradient-to-r from-[#0f2027] via-[#203a43] to-[#2c5364] text-white rounded-3xl shadow-lg space-y-3 relative overflow-hidden">
+      {/* Cabecera con Diseño Académico Limpio Sólido */}
+      <div className="p-6 md:p-8 bg-[#1e293b] text-white rounded-2xl border border-slate-800 shadow-sm space-y-3">
         <div className="flex items-center gap-2 flex-wrap text-xs">
           {pregunta.fijada && (
-            <span className="px-3 py-1 rounded-full font-bold bg-purple-500/30 text-purple-200 border border-purple-400/40 flex items-center gap-1">
+            <span className="px-3 py-1 rounded-lg font-bold bg-purple-950 text-purple-300 border border-purple-800 flex items-center gap-1">
               <Pin size={11} className="fill-current" /> Fijada
             </span>
           )}
@@ -82,24 +82,24 @@ const HiloRespuestas = ({
           {pregunta.tiene_respuesta_validada || respuestas.some(r => r.validada) ? (
             <OfficialAnswerBadge size="small" validatorRole="Oficial" />
           ) : (
-            <span className="px-3 py-1 rounded-full font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            <span className="px-3 py-1 rounded-lg font-bold bg-amber-950 text-amber-300 border border-amber-800">
               Pregunta Abierta
             </span>
           )}
         </div>
 
-        <h2 className="text-2xl md:text-3xl font-extrabold leading-tight">{pregunta.titulo}</h2>
+        <h2 className="text-2xl md:text-3xl font-extrabold leading-tight text-white">{pregunta.titulo}</h2>
 
-        <div className="flex items-center gap-4 text-xs text-white/80 pt-2 flex-wrap">
+        <div className="flex items-center gap-4 text-xs text-slate-300 pt-2 flex-wrap">
           <span className="flex items-center gap-1.5 font-medium">
             <User size={14} />
-            <span className="font-bold">{authorName}</span>
-            <span className="px-2 py-0.5 rounded bg-white/10 text-[10px] uppercase font-bold">{authorRole}</span>
+            <span className="font-bold text-white">{authorName}</span>
+            <span className="px-2 py-0.5 rounded bg-slate-700 text-slate-200 text-[10px] uppercase font-bold">{authorRole}</span>
           </span>
 
           <span>· {timeAgo(pregunta.created_at)}</span>
 
-          <span className="flex items-center gap-1 font-medium bg-white/10 px-2.5 py-1 rounded-lg">
+          <span className="flex items-center gap-1 font-medium bg-slate-700/60 px-2.5 py-1 rounded-lg">
             <Eye size={14} />
             <span>{pregunta.vistas ?? 0} vistas</span>
           </span>

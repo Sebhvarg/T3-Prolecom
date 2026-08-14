@@ -118,40 +118,96 @@ const StudentDashboard = () => {
   };
 
   return (
-    <DashboardContainer title="Página Principal" user={user}>
+    <DashboardContainer title="Panel de Estudiante" user={user}>
       <div className="space-y-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">¡Bienvenido, {user?.nombreCompleto || user?.usuario?.toUpperCase() || 'Estudiante'}!</h2>
+        {/* Header Hero Banner with XP & Progress Stats (Figure 8 in Report) */}
+        <div className="bg-gradient-to-r from-[#0f2027] via-[#203a43] to-[#2c5364] rounded-3xl p-6 md:p-8 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
+          <div className="space-y-2 relative z-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 text-xs font-bold tracking-wide uppercase border border-amber-300/30">
+              <span className="text-amber-400">⚡</span>
+              <span>Puntos de Experiencia: {user?.xp ?? 0} XP</span>
+            </div>
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight">
+              ¡Bienvenido, {user?.nombreCompleto || user?.usuario || 'Estudiante'}!
+            </h2>
+            <p className="text-slate-300 text-xs md:text-sm max-w-xl font-medium">
+              Continúa tu aprendizaje práctico, resuelve desafíos interactivos de programación y gana XP.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3 relative z-10 w-full md:w-auto">
+            <button
+              onClick={() => navigate('/cursos')}
+              className="bg-white text-[#2c5364] hover:bg-slate-100 px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer w-full sm:w-auto text-center"
+            >
+              Explorar Catálogo de Cursos
+            </button>
+          </div>
+        </div>
+
+        {/* Quick Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
+            <div className="p-3 bg-blue-50 text-[#2c5364] rounded-xl">
+              <BookOpen size={24} />
+            </div>
+            <div>
+              <p className="text-[11px] font-extrabold text-slate-400 uppercase">Cursos Matriculados</p>
+              <h3 className="text-2xl font-black text-slate-900">{cursos.length}</h3>
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
+            <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+              <span className="text-xl font-black">⚡</span>
+            </div>
+            <div>
+              <p className="text-[11px] font-extrabold text-slate-400 uppercase">XP Acumulado</p>
+              <h3 className="text-2xl font-black text-slate-900">{user?.xp ?? 0} PTS</h3>
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+              <Clock size={24} />
+            </div>
+            <div>
+              <p className="text-[11px] font-extrabold text-slate-400 uppercase">Actividades Pendientes</p>
+              <h3 className="text-2xl font-black text-slate-900">{actividades.length}</h3>
+            </div>
+          </div>
+        </div>
         
         <section className="mb-10">
-          <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-             <BookOpen size={20} />
-             Mis Cursos
+          <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+             <BookOpen size={20} className="text-[#2c5364]" />
+             <span>Mis Cursos En Curso</span>
           </h3>
           {renderCursos()}
         </section>
 
         <section>
-          <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-            <Clock size={20} />
-            Actividades Recientes & Notificaciones
+          <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <Clock size={20} className="text-[#2c5364]" />
+            <span>Actividades Recientes & Notificaciones</span>
           </h3>
           
           {actividades.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center text-xs text-gray-400">
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-xs text-slate-400 font-medium">
               No tienes actividades o notificaciones pendientes en tus cursos por ahora.
             </div>
           ) : (
             <div className="space-y-3">
               {actividades.map(act => (
-                <div key={act.id} className="bg-white rounded-xl border border-gray-100 shadow-2xs flex overflow-hidden hover:border-gray-200 transition-colors">
-                  <div className="w-1.5 bg-blue-500"></div>
+                <div key={act.id || act.titulo} className="bg-white rounded-2xl border border-slate-200 shadow-2xs flex overflow-hidden hover:border-slate-300 transition-colors">
+                  <div className="w-1.5 bg-[#2c5364]"></div>
                   <div className="flex-1 p-4 flex justify-between items-center">
                     <div className="space-y-1">
-                      <p className="text-gray-800 text-xs"><strong>{act.tipo}:</strong> {act.titulo}</p>
-                      <p className="text-xs text-gray-500 font-medium">{act.curso}</p>
-                      <p className="text-[10px] text-gray-400 font-mono">{act.fecha}</p>
+                      <p className="text-slate-900 text-xs font-bold"><strong>{act.tipo}:</strong> {act.titulo}</p>
+                      <p className="text-xs text-slate-500 font-semibold">{act.curso}</p>
+                      <p className="text-[10px] text-slate-400 font-mono">{act.fecha}</p>
                     </div>
-                    <div className="p-2.5 rounded-full bg-blue-50 text-blue-600">
+                    <div className="p-2.5 rounded-full bg-slate-100 text-[#2c5364]">
                       <MessageSquare size={18} />
                     </div>
                   </div>

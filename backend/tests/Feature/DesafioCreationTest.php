@@ -237,4 +237,44 @@ class DesafioCreationTest extends TestCase
             'idDesafio' => $desafio->idDesafio,
         ]);
     }
+
+    public function test_desafio_creation_fails_with_invalid_difficulty()
+    {
+        $professor = User::factory()->create();
+        $professor->roles()->attach($this->profesorRol->idRol);
+
+        $course = Curso::create([
+            'titulo' => 'Curso Invalid Difficulty',
+            'descripcion' => 'Testing invalid difficulty',
+            'lp' => 'PHP',
+            'tipo' => self::TIPO_PUBLICO,
+            'idProfeCreador' => $professor->idUsuario,
+        ]);
+
+        $tema = Tema::create([
+            'nombre' => 'Módulo Dificultad',
+            'idCurso' => $course->idCurso,
+        ]);
+
+        Sanctum::actingAs($professor);
+
+        $payload = [
+            'titulo' => 'Desafío Dificultad Inválida',
+            'descripcionProblema' => 'Testing difficulty validation.',
+            'dificultad' => 'Extreme',
+            'testCases' => [
+                [
+                    'input' => '1 2',
+                    'expected_output' => '3',
+                    'is_hidden' => false,
+                ],
+            ],
+            'puntos' => 10,
+        ];
+
+        $response = $this->postJson("/api/temas/{$tema->idTema}/desafios", $payload);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['dificultad']);
+    }
 }

@@ -20,6 +20,9 @@ export const useCursoHandlers = ({
   desafioLenguaje,
   desafioPlantillaCodigo,
   desafioTestCases,
+  foroEditId,
+  foroTitulo,
+  foroDescripcion,
   setSubmitting,
   setError,
   setSuccess,
@@ -34,6 +37,7 @@ export const useCursoHandlers = ({
   setIsMaterialModalOpen,
   setIsDesafioModalOpen,
   setIsForoModalOpen,
+  setForoEditId,
   setForoTitulo,
   setForoDescripcion,
   setDesafioTitulo,
@@ -42,10 +46,6 @@ export const useCursoHandlers = ({
   setDesafioLenguaje,
   setDesafioPlantillaCodigo,
   setDesafioTestCases,
-  setIsForoModalOpen,
-  setForoEditId,
-  setForoTitulo,
-  setForoDescripcion,
   generateTestCaseId,
   fetchCurso,
 }) => {
@@ -186,6 +186,52 @@ export const useCursoHandlers = ({
       onSuccess: fetchCurso,
     });
   }, [setSuccess, setError, fetchCurso]);
+
+  const handleOpenForoModal = useCallback((idTema = null, foro = null) => {
+    setActiveTemaId(idTema);
+    setForoEditId(foro?.idForo || null);
+    setForoTitulo(foro?.titulo || '');
+    setForoDescripcion(foro?.descripcion || '');
+    setIsForoModalOpen(true);
+  }, [setActiveTemaId, setForoEditId, setForoTitulo, setForoDescripcion, setIsForoModalOpen]);
+
+  const handleSaveForo = useCallback(async (e) => {
+    e.preventDefault();
+    if (!foroTitulo) {
+      setError('El título del foro es obligatorio.');
+      return;
+    }
+    const payload = {
+      titulo: foroTitulo,
+      descripcion: foroDescripcion,
+      idTema: activeTemaId,
+      idCurso: id,
+    };
+    await executeAsyncAction({
+      action: () => (foroEditId ? foroService.updateForo(foroEditId, payload) : foroService.createForo(activeTemaId, payload)),
+      setLoading: setSubmitting,
+      setError,
+      setSuccess,
+      successMessage: foroEditId ? 'Foro actualizado exitosamente.' : 'Foro creado exitosamente.',
+      errorMessage: 'Error al guardar el foro.',
+      onSuccess: () => {
+        setIsForoModalOpen(false);
+        fetchCurso();
+      },
+    });
+  }, [foroTitulo, foroDescripcion, activeTemaId, id, foroEditId, setSubmitting, setError, setSuccess, setIsForoModalOpen, fetchCurso]);
+
+  const handleDeleteForo = useCallback(async (idForo) => {
+    if (!window.confirm('¿Estás seguro de eliminar este foro?')) return;
+    await executeAsyncAction({
+      action: () => foroService.deleteForo(idForo),
+      setError,
+      setSuccess,
+      successMessage: 'Foro eliminado exitosamente.',
+      errorMessage: 'Error al eliminar el foro.',
+      onSuccess: fetchCurso,
+    });
+  }, [setError, setSuccess, fetchCurso]);
 
   return {
     handleOpenTemaModal,

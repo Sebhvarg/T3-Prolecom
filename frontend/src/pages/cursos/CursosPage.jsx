@@ -779,12 +779,12 @@ const CursoCard = ({
   handleInscribir,
   navigate
 }) => {
-  const hasAccess = canManage || curso.esta_matriculado;
+  const canViewDetails = canManage || curso.esta_matriculado || curso.tipo === 'público';
 
   return (
     <div 
       className={`relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-row group h-full ${
-        hasAccess ? 'hover:-translate-y-1 transform' : ''
+        canViewDetails ? 'hover:-translate-y-1 transform' : ''
       }`}
     >
       <div className="p-6 flex-1 flex flex-col justify-between">
@@ -808,11 +808,11 @@ const CursoCard = ({
           </div>
 
           <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#2c5364] transition-colors line-clamp-2">
-            {hasAccess ? (
+            {canViewDetails ? (
               <button
                 type="button"
                 onClick={() => navigate(`/cursos/${curso.idCurso}`)}
-                className="text-left font-bold text-gray-900 hover:text-[#2c5364] hover:underline focus:outline-none bg-transparent border-0 p-0 cursor-pointer after:absolute after:inset-0 after:z-0"
+                className="text-left font-bold text-gray-900 hover:text-[#2c5364] hover:underline focus:outline-none bg-transparent border-0 p-0 cursor-pointer"
               >
                 {curso.titulo}
               </button>
@@ -865,7 +865,14 @@ const CursoCard = ({
             {(() => {
               if (curso.esta_matriculado) {
                 return (
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+                    <button
+                      type="button"
+                      disabled={true}
+                      className="relative z-10 px-3 py-1.5 bg-slate-100 text-slate-500 font-extrabold rounded-lg text-xs cursor-not-allowed border border-slate-200"
+                    >
+                      Ya estás inscrito
+                    </button>
                     <button
                       onClick={() => navigate(`/cursos/${curso.idCurso}`)}
                       className="relative z-10 px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-xs"
@@ -875,7 +882,7 @@ const CursoCard = ({
                     </button>
                     <button
                       onClick={() => handleDesmatricular(curso.idCurso)}
-                      className="relative z-10 px-3 py-1.5 border border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-all"
+                      className="relative z-10 px-2.5 py-1.5 border border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-all"
                       title="Darse de baja de este curso"
                     >
                       Darse de baja

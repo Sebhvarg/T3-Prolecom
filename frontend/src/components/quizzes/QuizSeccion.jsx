@@ -22,7 +22,8 @@ const QuizSeccion = ({ idCurso, user, temas, onQuizCompleted }) => {
   const [isResolverModalOpen, setIsResolverModalOpen] = useState(false);
   const [activeQuizId, setActiveQuizId] = useState(null);
 
-  const canManage = user?.rol === 'Administrador' || user?.rol === 'Profesor';
+  const canManage = user?.rol === 'Administrador' || user?.rol === 'Profesor' || user?.rol === 'Ayudante';
+  const canResolve = user?.rol === 'Estudiante';
 
   const reloadQuizzes = () => {
     setReloadKey(k => k + 1);
@@ -257,15 +258,17 @@ const QuizSeccion = ({ idCurso, user, temas, onQuizCompleted }) => {
 
                 {/* Acciones */}
                 <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
-                  <button
-                    type="button"
-                    disabled={sinIntentos}
-                    onClick={() => handleStartResolver(quiz)}
-                    className={`inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-black rounded-xl transition-all shadow-xs hover:shadow-md cursor-pointer disabled:opacity-50 ${getButtonClassName()}`}
-                  >
-                    <Play size={14} fill="currentColor" />
-                    <span>{getButtonLabel()}</span>
-                  </button>
+                  {canResolve && (
+                    <button
+                      type="button"
+                      disabled={sinIntentos}
+                      onClick={() => handleStartResolver(quiz)}
+                      className={`inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-black rounded-xl transition-all shadow-xs hover:shadow-md cursor-pointer disabled:opacity-50 ${getButtonClassName()}`}
+                    >
+                      <Play size={14} fill="currentColor" />
+                      <span>{getButtonLabel()}</span>
+                    </button>
+                  )}
 
                   {canManage && (
                     <div className="flex items-center gap-1 bg-slate-100 border border-slate-300 rounded-xl p-1">
@@ -273,7 +276,7 @@ const QuizSeccion = ({ idCurso, user, temas, onQuizCompleted }) => {
                         type="button"
                         onClick={(e) => handleReiniciarIntentosProfesor(quiz.idQuiz, e)}
                         className="p-2 text-slate-700 hover:text-[#2c5364] hover:bg-white rounded-lg transition-all cursor-pointer"
-                        title="Conceder/Reiniciar Intentos para Estudiantes"
+                        title="Reiniciar intentos para estudiantes"
                       >
                         <RotateCcw size={15} />
                       </button>

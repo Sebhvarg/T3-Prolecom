@@ -223,7 +223,7 @@ class CursoController extends Controller
         }
 
         if ($curso->estudiantes()->where('usuarios.idUsuario', $user->idUsuario)->exists()) {
-            return response()->json(['message' => 'Ya estás inscrito en este curso'], 400);
+            return response()->json(['message' => 'The student is already enrolled in this course'], 422);
         }
 
         $curso->estudiantes()->attach($user->idUsuario, ['fechaInscripcion' => now()]);

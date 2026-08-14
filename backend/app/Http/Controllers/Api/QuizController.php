@@ -406,6 +406,14 @@ class QuizController extends Controller
 
     private function validarIntentoQuiz(Request $request, Quiz $quiz, $user)
     {
+        // Solo estudiantes pueden resolver quizzes
+        $rolUsuario = $user?->roles?->pluck('rol')?->first();
+        if ($rolUsuario !== 'Estudiante') {
+            return response()->json([
+                'message' => 'Solo los estudiantes pueden enviar intentos de cuestionarios.',
+            ], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'respuestas' => 'required|array',
             'respuestas.*.idPreguntaQuiz' => 'required|exists:quiz_preguntas,idPreguntaQuiz',

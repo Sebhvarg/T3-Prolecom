@@ -47,8 +47,8 @@ function App() {
             <Route path="/dashboard/estudiante" element={<StudentDashboard />} />
           </Route>
 
-          {/* Cursos y Desafíos — Solo Estudiantes, Profesores, Ayudantes y Moderadores */}
-          <Route element={<PrivateRoute allowedRoles={[2, 3, 5, 6]} />}>
+          {/* Cursos y Desafíos — Accesible para todos los usuarios autenticados */}
+          <Route element={<PrivateRoute allowedRoles={[1, 2, 3, 4, 5, 6]} />}>
             <Route path="/cursos" element={<CursosPage />} />
             <Route path="/cursos/:id" element={<CursoDetallePage />} />
             <Route path="/cursos/:id/desafios/:idDesafio" element={<DesafioDetallePage />} />

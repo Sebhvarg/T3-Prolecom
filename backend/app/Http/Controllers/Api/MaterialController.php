@@ -97,8 +97,8 @@ class MaterialController extends Controller
         $path = $request->file('archivo')->store('materials', 'local');
 
         $material = MaterialAprendizaje::create([
-            'titulo' => $titulo,
-            'descripcion' => $request->descripcion,
+            'titulo' => strip_tags($titulo),
+            'descripcion' => strip_tags($request->descripcion ?? ''),
             'tipo' => $tipo,
             'enlaceArchivo' => $path,
             'idUsuarioCreador' => $user->idUsuario,

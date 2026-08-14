@@ -1,6 +1,15 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+const getHomePath = (rol) => {
+  if (rol === 'Estudiante') return '/dashboard/estudiante';
+  if (rol === 'Moderador') return '/moderador/dashboard';
+  if (rol === 'Profesor') return '/profesor/dashboard';
+  if (rol === 'Soporte') return '/soporte/dashboard';
+  if (rol === 'Ayudante') return '/ayudante/dashboard';
+  return '/admin';
+};
+
 const PrivateRoute = ({ allowedRoles }) => {
   const { user, loading } = useAuth();
 
@@ -16,8 +25,11 @@ const PrivateRoute = ({ allowedRoles }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(parseInt(user.id_rol))) {
-    return <Navigate to="/" replace />;
+  const idRol = parseInt(user.id_rol, 10);
+
+  if (allowedRoles && !allowedRoles.includes(idRol)) {
+    // Redirect to the user's correct home instead of / (avoids redirect loops)
+    return <Navigate to={getHomePath(user.rol)} replace />;
   }
 
   return <Outlet />;

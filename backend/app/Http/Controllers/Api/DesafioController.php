@@ -96,6 +96,8 @@ class DesafioController extends Controller
             'testCases.*.is_hidden' => 'required|boolean',
             'puntos' => 'integer|min:1',
             'starter_code' => 'nullable|string',
+        ], [
+            'dificultad.in' => 'Difficulty must be Easy, Medium, or Hard',
         ]);
 
         $tema = Tema::findOrFail($idTema);

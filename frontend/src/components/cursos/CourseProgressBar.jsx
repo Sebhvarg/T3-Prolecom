@@ -47,31 +47,38 @@ const LinearBar = ({ porcentaje = 0, color = 'bg-[#2c5364]' }) => (
 );
 
 // ── Componente principal ──────────────────────────────────────────────────
-const CourseProgressBar = ({ idCurso }) => {
-  const [progreso, setProgreso]   = useState(null);
-  const [loading, setLoading]     = useState(true);
+const CourseProgressBar = ({ idCurso, progreso: progresoProp }) => {
+  const [progreso, setProgreso]   = useState(progresoProp || null);
+  const [loading, setLoading]     = useState(!progresoProp && Boolean(idCurso));
   const [error, setError]         = useState('');
 
   useEffect(() => {
-    if (!idCurso) return;
+    if (!idCurso) {
+      if (progresoProp) {
+        setProgreso(progresoProp);
+        setLoading(false);
+      }
+      return;
+    }
 
     const fetchProgreso = async () => {
-      setLoading(true);
       try {
         const data = await authService.apiFetch(`/cursos/${idCurso}/progreso`);
         setProgreso(data);
       } catch (err) {
-        setError('No se pudo cargar el progreso.');
-        console.error(err);
+        console.error('Error cargando progreso:', err);
+        if (!progresoProp) {
+          setError('No se pudo cargar el progreso.');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchProgreso();
-  }, [idCurso]);
+  }, [idCurso, progresoProp]);
 
-  if (loading) {
+  if (loading && !progreso) {
     return (
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 animate-pulse">
         <div className="h-4 bg-gray-200 rounded w-1/3 mb-4" />
@@ -81,17 +88,19 @@ const CourseProgressBar = ({ idCurso }) => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl p-4">
-        {error}
-      </div>
-    );
-  }
+  if (error && !progreso) return null;
 
-  if (!progreso) return null;
-
-  const { progreso_total, desafios, materiales } = progreso;
+  const progreso_total = Math.round(progreso?.progreso_total ?? progreso?.porcentaje ?? 0);
+  const desafios = progreso?.desafios ?? {
+    completados: progreso?.resueltos ?? 0,
+    total: progreso?.totales ?? 0,
+    porcentaje: progreso?.porcentaje ?? 0,
+  };
+  const materiales = progreso?.materiales ?? {
+    vistos: 0,
+    total: 0,
+    porcentaje: 0,
+  };
 
   // Color del progreso total según nivel
   const getColorTotal = (pct) => {
