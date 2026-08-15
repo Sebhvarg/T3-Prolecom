@@ -13,6 +13,7 @@ use App\Models\VotoRespuesta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
 class ForoController extends Controller
@@ -28,12 +29,29 @@ class ForoController extends Controller
     private function puedeModificar(Request $request, $recurso, string $campoOwner): bool
     {
         $user = $request->user();
-        $esOwner = $recurso->{$campoOwner} === $user->idUsuario;
-        $esSuperior = $user->roles->pluck('rol')
-            ->intersect(['Administrador', 'Moderador', 'Profesor'])
-            ->isNotEmpty();
+        if (! $user) {
+            return false;
+        }
 
-        return $esOwner || $esSuperior;
+        $esOwner = $recurso->{$campoOwner} === $user->idUsuario;
+        $roles = $user->roles->pluck('rol');
+        $isAdmin = $roles->contains('Administrador');
+
+        if ($esOwner || $isAdmin) {
+            return true;
+        }
+
+        return $roles->contains('Moderador') && $this->isModeradorOfResource($user, $recurso);
+    }
+
+    private function isModeradorOfResource($user, $recurso): bool
+    {
+        $idCurso = $recurso->idCurso ?? $recurso->foro?->itemTema?->tema->idCurso ?? null;
+        if ($idCurso && Schema::hasTable('moderadores_cursos')) {
+            return $user->cursosComoModerador()->where('cursos.idCurso', $idCurso)->exists();
+        }
+
+        return true;
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -46,7 +64,7 @@ class ForoController extends Controller
      */
     public function store(Request $request, $idTema)
     {
-        Tema::findOrFail($idTema);
+        $tema = Tema::findOrFail($idTema);
 
         $validator = Validator::make($request->all(), [
             'titulo' => 'required|string|max:200',
@@ -78,6 +96,14 @@ class ForoController extends Controller
             ]);
 
             DB::commit();
+
+            Notificacion::notificarEstudiantesDelCurso(
+                $tema->idCurso,
+                'nuevo_foro',
+                'Nuevo Foro de Debate',
+                "Se abrió el foro '{$foro->titulo}' en {$tema->nombre}.",
+                ['idForo' => $foro->idForo]
+            );
 
             $foro->load('creador:idUsuario,nombreCompleto,usuario,avatar_path');
 
@@ -302,8 +328,10 @@ class ForoController extends Controller
         $pregunta = Pregunta::with([
             'creador:idUsuario,nombreCompleto,usuario,avatar_path',
             'respuestas' => function ($q) {
-                $q->where('oculta', false)
-                    ->with(['usuario:idUsuario,nombreCompleto,usuario,avatar_path', 'usuario.roles:idRol,rol', 'votos'])
+                if (Schema::hasColumn('respuestas', 'oculta')) {
+                    $q->where('oculta', false);
+                }
+                $q->with('usuario:idUsuario,nombreCompleto,usuario,avatar_path', 'usuario.roles:idRol,rol')
                     ->orderByDesc('validada')
                     ->orderByDesc('created_at');
             },

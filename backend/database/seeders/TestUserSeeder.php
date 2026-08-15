@@ -36,8 +36,8 @@ class TestUserSeeder extends Seeder
         // 5. Materials (PDFs / Videos) + items_tema
         $this->seedMaterials($users['profesor'], $temas['tema1'], $temas['tema2']);
 
-        // 6. Challenges (Desafíos) + items_tema
-        $this->seedChallenges($users['profesor'], $courses['course1'], $temas['tema1'], $temas['tema2']);
+        // 6. Desafíos (Itemable) + items_tema
+        $this->seedChallenges($users, $courses['course1'], $temas['tema1'], $temas['tema2']);
 
         // 7. Foros (Itemable) + items_tema
         $foros = $this->seedForos($users['profesor'], $users['ayudante'], $temas['tema1'], $temas['tema2'], $temas['tema3']);
@@ -301,8 +301,9 @@ class TestUserSeeder extends Seeder
         ]);
     }
 
-    private function seedChallenges(int $profesorId, int $c1, int $t1, int $t2): array
+    private function seedChallenges(array $users, int $c1, int $t1, int $t2): array
     {
+        $profesorId = $users['profesor'];
         $d1Id = DB::table('desafios')->insertGetId([
             'titulo' => 'Invertir una Cadena de Texto',
             'descripcionProblema' => 'Escribe una función que tome una cadena de texto y la devuelva invertida sin usar slicing directo [::-1].',
@@ -352,6 +353,29 @@ class TestUserSeeder extends Seeder
             'orden' => 2,
             'created_at' => now(),
             'updated_at' => now(),
+        ]);
+
+        DB::table('soluciones')->insert([
+            [
+                'idDesafio' => $d1Id,
+                'idEstudiante' => $users['teresa'],
+                'codigoFuente' => "def invertir_cadena(s):\n    return s[::-1]\n",
+                'estado' => 'aprobado',
+                'stdout' => 'Todos los casos de prueba pasaron correctamente.',
+                'puntos_otorgados' => 10,
+                'created_at' => now()->subDays(2),
+                'updated_at' => now()->subDays(2),
+            ],
+            [
+                'idDesafio' => $d2Id,
+                'idEstudiante' => $users['karla'],
+                'codigoFuente' => "def contar_palabras(frases):\n    return {'hola': 2}\n",
+                'estado' => 'aprobado',
+                'stdout' => 'Todos los casos de prueba pasaron correctamente.',
+                'puntos_otorgados' => 20,
+                'created_at' => now()->subDays(1),
+                'updated_at' => now()->subDays(1),
+            ],
         ]);
 
         return ['d1' => $d1Id, 'd2' => $d2Id];

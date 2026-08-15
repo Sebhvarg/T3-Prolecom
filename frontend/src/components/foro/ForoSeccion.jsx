@@ -14,6 +14,7 @@ import EditPreguntaModal from './EditPreguntaModal';
 import EditRespuestaModal from './EditRespuestaModal';
 import ReporteModal from './ReporteModal';
 import ForoEmptyState from './ForoEmptyState';
+import ConfirmModal from '../ui/ConfirmModal';
 
 const filterAndSortPreguntas = (preguntas, search, filtro, orden, userId) => {
   const filtered = preguntas.filter((p) => {
@@ -67,7 +68,7 @@ const resolveTargetForoIdHelper = (idForo, temas) => {
   return null;
 };
 
-const ForoSeccion = ({ idForo, user, temas, onBack }) => {
+const ForoSeccion = ({ idForo, user, temas, onBack, onOpenCreateForoModal }) => {
   const [searchParams] = useSearchParams();
   const initialPreguntaId = searchParams.get('preguntaId');
 
@@ -106,6 +107,16 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
 
   const targetForoId = resolveTargetForoId();
 
+  const [confirmState, setConfirmState] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Aceptar',
+    cancelText: 'Cancelar',
+    variant: 'danger',
+    onConfirm: () => {},
+  });
+
   const {
     handleCreatePregunta,
     handleEditPreguntaSubmit,
@@ -127,6 +138,7 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
     loadPreguntaDetalle,
     fetchForoData,
     setIsModalNuevaOpen,
+    setConfirmState,
   });
 
   const preguntasProcesadas = filterAndSortPreguntas(preguntas, search, filtro, orden, user?.idUsuario);
@@ -158,7 +170,7 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
 
   if (!loading && !targetForoId) {
     return (
-      <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-xs p-8 max-w-lg mx-auto my-6 space-y-3">
+      <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-xs p-8 max-w-lg mx-auto my-6 space-y-4">
         <div className="w-16 h-16 bg-purple-50 text-purple-700 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
           <MessageSquare className="w-8 h-8" />
         </div>
@@ -168,6 +180,18 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
             Este curso aún no cuenta con un foro de preguntas agregado a sus temas. Los profesores pueden crear uno agregando una actividad de tipo Foro en cualquier tema.
           </p>
         </div>
+        {canManageForo && onOpenCreateForoModal && (
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={onOpenCreateForoModal}
+              className="inline-flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold text-xs px-5 py-3 rounded-xl shadow-md transition-all cursor-pointer"
+            >
+              <Plus size={16} />
+              <span>Crear Foro de Discusión</span>
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -186,44 +210,41 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
         </button>
       )}
 
-      {/* Banner Superior del Foro */}
-      <div className="bg-gradient-to-r from-[#0f2027] via-[#203a43] to-[#2c5364] rounded-3xl p-8 text-white shadow-lg relative overflow-hidden">
-        <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-10 translate-y-10 pointer-events-none">
-          <MessageSquare size={240} />
-        </div>
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
+      {/* Banner Superior del Foro - Diseño Académico Limpio y Sólido */}
+      <div className="bg-[#1e293b] text-white rounded-2xl border border-slate-800 p-6 md:p-8 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-3">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-3 py-1 bg-white/20 backdrop-blur-md text-white text-xs font-bold rounded-full uppercase tracking-wider flex items-center gap-1.5">
-                <ShieldCheck size={14} className="text-emerald-300" />
-                Foro Académico (PB12)
+              <span className="px-3 py-1 bg-slate-700 text-slate-100 border border-slate-600 text-xs font-bold rounded-lg uppercase tracking-wider flex items-center gap-1.5">
+                <ShieldCheck size={14} className="text-emerald-400" />
+                Foro Académico
               </span>
 
               {isForoClosed ? (
-                <span className="px-3 py-1 bg-amber-500/30 text-amber-200 border border-amber-400/40 text-xs font-bold rounded-full flex items-center gap-1">
+                <span className="px-3 py-1 bg-amber-950 text-amber-300 border border-amber-800 text-xs font-bold rounded-lg flex items-center gap-1">
                   <Lock size={12} /> Foro Cerrado
                 </span>
               ) : (
-                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 text-xs font-bold rounded-full flex items-center gap-1">
+                <span className="px-3 py-1 bg-emerald-950 text-emerald-300 border border-emerald-800 text-xs font-bold rounded-lg flex items-center gap-1">
                   <Unlock size={12} /> Foro Abierto
                 </span>
               )}
             </div>
 
-            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
               {foro?.titulo || 'Foro de Discusión'}
             </h2>
-            <p className="text-white/80 text-sm max-w-xl leading-relaxed">
+            <p className="text-slate-300 text-xs md:text-sm max-w-2xl leading-relaxed">
               {foro?.descripcion || 'Espacio académico para resolver dudas y compartir explicaciones con tus compañeros e instructores.'}
             </p>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-3 shrink-0 self-start md:self-center">
             {canManageForo && (
               <button
                 type="button"
                 onClick={handleToggleEstadoForo}
-                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs px-4 py-3 rounded-xl backdrop-blur-md transition border border-white/20"
+                className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl border border-slate-600 transition-colors cursor-pointer"
                 title={isForoClosed ? 'Abrir foro' : 'Cerrar foro'}
               >
                 {isForoClosed ? <Unlock size={16} /> : <Lock size={16} />}
@@ -235,9 +256,9 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
               <button
                 type="button"
                 onClick={() => setIsModalNuevaOpen(true)}
-                className="flex items-center justify-center gap-2 bg-white text-[#203a43] hover:bg-gray-100 font-bold px-5 py-3 rounded-xl shadow-md transition-all shrink-0 cursor-pointer"
+                className="flex items-center justify-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-xs transition-all shrink-0 cursor-pointer"
               >
-                <Plus size={18} />
+                <Plus size={16} />
                 <span>Hacer una Pregunta</span>
               </button>
             )}
@@ -374,6 +395,18 @@ const ForoSeccion = ({ idForo, user, temas, onBack }) => {
         targetId={reportModalData.targetId || 0}
         targetType={reportModalData.targetType}
       />
+
+      {/* ConfirmModal Reutilizable */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmState.onConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        variant={confirmState.variant}
+      />
     </div>
   );
 };
@@ -474,9 +507,11 @@ const ForoMainContent = ({
 };
 
 ForoSeccion.propTypes = {
-  idForo: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  idForo: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   user: PropTypes.object,
+  temas: PropTypes.array,
   onBack: PropTypes.func,
+  onOpenCreateForoModal: PropTypes.func,
 };
 
 export default ForoSeccion;

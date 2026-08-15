@@ -37,7 +37,7 @@ const EditRespuestaModal = ({ isOpen, onClose, onSubmit, respuesta, submitting }
             rows={6}
             value={contenido}
             onChange={(e) => setContenido(e.target.value)}
-            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364] text-xs font-mono resize-none leading-relaxed text-slate-800"
+            className="w-full border border-slate-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364] text-xs font-mono resize-none leading-relaxed text-slate-900 font-bold bg-white"
           />
         </div>
 

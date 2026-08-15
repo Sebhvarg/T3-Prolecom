@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
 class ModeracionController extends Controller
@@ -41,7 +42,7 @@ class ModeracionController extends Controller
                     'id' => $resp->idRespuesta,
                     'titulo' => 'Respuesta en: '.($resp->pregunta->titulo ?? 'Pregunta'),
                     'texto' => $resp->contenido,
-                    'oculta' => (bool) $resp->oculta,
+                    'oculta' => Schema::hasColumn('respuestas', 'oculta') ? (bool) $resp->oculta : false,
                     'idPregunta' => $resp->idPregunta,
                     'idForo' => $resp->pregunta->idForo ?? null,
                 ];
@@ -64,8 +65,18 @@ class ModeracionController extends Controller
 
     public function indexReportes(Request $request)
     {
+        $user = $request->user();
         $estado = $request->query('estado', 'pendiente');
         $tipo = $request->query('tipo', 'todos');
+
+        $assignedCourseIds = null;
+        if ($user && ! $user->roles->pluck('rol')->contains('Administrador')) {
+            if (Schema::hasTable('moderadores_cursos')) {
+                $assignedCourseIds = $user->cursosComoModerador()->pluck('cursos.idCurso')->toArray();
+            } else {
+                $assignedCourseIds = [];
+            }
+        }
 
         $query = DB::table('reportes');
 
@@ -84,7 +95,11 @@ class ModeracionController extends Controller
             $reportador = User::select('idUsuario', 'nombreCompleto', 'usuario', 'email')
                 ->find($rep->idUsuarioReportador);
 
-            [$contenidoReportado, $autorContenido] = $this->resolveContenidoReportado($rep);
+            [$contenidoReportado, $autorContenido, $idCurso] = $this->resolveContenidoReportadoWithCurso($rep);
+
+            if (is_array($assignedCourseIds) && $idCurso && ! in_array($idCurso, $assignedCourseIds)) {
+                continue;
+            }
 
             $reportes[] = [
                 'idReporte' => $rep->idReporte,
@@ -101,6 +116,22 @@ class ModeracionController extends Controller
         }
 
         return response()->json($reportes);
+    }
+
+    private function resolveContenidoReportadoWithCurso($rep): array
+    {
+        [$contenidoReportado, $autorContenido] = $this->resolveContenidoReportado($rep);
+        $idCurso = null;
+
+        if ($rep->tipoPublicacion === 'pregunta') {
+            $preg = Pregunta::find($rep->idPublicacionReportada);
+            $idCurso = $preg->idCurso ?? $preg?->foro?->itemTema?->tema->idCurso;
+        } elseif ($rep->tipoPublicacion === 'respuesta') {
+            $resp = Respuesta::with('pregunta')->find($rep->idPublicacionReportada);
+            $idCurso = $resp?->pregunta->idCurso ?? $resp?->pregunta?->foro?->itemTema?->tema->idCurso;
+        }
+
+        return [$contenidoReportado, $autorContenido, $idCurso];
     }
 
     /**
@@ -144,7 +175,7 @@ class ModeracionController extends Controller
             }
         } elseif ($reporte->tipoPublicacion === 'respuesta') {
             $resp = Respuesta::find($reporte->idPublicacionReportada);
-            if ($resp) {
+            if ($resp && Schema::hasColumn('respuestas', 'oculta')) {
                 $nuevoEstadoOculto = ! $resp->oculta;
                 $resp->update(['oculta' => $nuevoEstadoOculto]);
             }
@@ -215,7 +246,7 @@ class ModeracionController extends Controller
         $pendientes = DB::table('reportes')->where('estado', 'pendiente')->count();
         $resueltos = DB::table('reportes')->where('estado', 'resuelto')->count();
         $preguntasOcultas = Pregunta::where('estado', 'oculta')->count();
-        $respuestasOcultas = Respuesta::where('oculta', true)->count();
+        $respuestasOcultas = Schema::hasColumn('respuestas', 'oculta') ? Respuesta::where('oculta', true)->count() : 0;
         $usuariosBaneados = User::whereIn('idEstado', [3, 4])->count();
 
         return response()->json([
@@ -231,6 +262,10 @@ class ModeracionController extends Controller
      */
     public function indexAuditorias()
     {
+        if (! Schema::hasTable('auditorias')) {
+            return response()->json([]);
+        }
+
         $auditorias = DB::table('auditorias')
             ->orderByDesc('created_at')
             ->limit(100)

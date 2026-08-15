@@ -14,8 +14,7 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $factory = new DashboardFactory;
-        $dashboardService = $factory->create($user);
+        $dashboardService = DashboardFactory::create($user);
 
         return response()->json($dashboardService->render());
     }

@@ -21,6 +21,7 @@ class Quiz extends Model
         'idCreador',
         'limite_tiempo_minutos',
         'intentos_maximos',
+        'xp_recompensa',
         'calificacion_maxima',
         'mostrar_retroalimentacion',
         'estado',
@@ -32,6 +33,7 @@ class Quiz extends Model
         'asignar_a_todos' => 'boolean',
         'limite_tiempo_minutos' => 'integer',
         'intentos_maximos' => 'integer',
+        'xp_recompensa' => 'integer',
         'calificacion_maxima' => 'float',
     ];
 

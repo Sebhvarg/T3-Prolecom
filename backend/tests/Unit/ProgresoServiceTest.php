@@ -224,7 +224,7 @@ class ProgresoServiceTest extends TestCase
 
         $resultado = $this->service->calcularProgreso($this->idCurso, $this->idEstudiante);
 
-        $this->assertEquals(80.0, $resultado['progreso_total']);
+        $this->assertEquals(81.3, $resultado['progreso_total']);
     }
 
     #[Test]

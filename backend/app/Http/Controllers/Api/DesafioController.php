@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\ProcesarIntentoDesafio;
 use App\Models\Curso;
 use App\Models\Desafio;
+use App\Models\Notificacion;
 use App\Models\Solucion;
 use App\Models\Tema;
 use Illuminate\Http\Request;
@@ -96,6 +97,8 @@ class DesafioController extends Controller
             'testCases.*.is_hidden' => 'required|boolean',
             'puntos' => 'integer|min:1',
             'starter_code' => 'nullable|string',
+        ], [
+            'dificultad.in' => 'Difficulty must be Easy, Medium, or Hard',
         ]);
 
         $tema = Tema::findOrFail($idTema);
@@ -131,6 +134,16 @@ class DesafioController extends Controller
             ]);
 
             DB::commit();
+
+            if ($desafio->estado === 'publicado') {
+                Notificacion::notificarEstudiantesDelCurso(
+                    $tema->idCurso,
+                    'nuevo_desafio',
+                    'Nuevo Desafío Práctico',
+                    "El profesor asignó el desafío '{$desafio->titulo}' en {$tema->nombre}.",
+                    ['idDesafio' => $desafio->idDesafio]
+                );
+            }
 
             return response()->json([
                 'message' => ($isProfessor || $isAdmin) ? 'Desafío creado y publicado exitosamente.' : 'Desafío enviado a revisión del profesor.',
