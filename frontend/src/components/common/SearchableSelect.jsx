@@ -50,12 +50,14 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder = 'Selecc
 
         <div className="flex items-center gap-1.5 shrink-0 ml-2">
           {selectedOption && (
-            <span
+            <button
+              type="button"
               onClick={handleClear}
-              className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 cursor-pointer"
+              className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 cursor-pointer border-0 bg-transparent"
+              aria-label="Limpiar selección"
             >
               <X size={14} />
-            </span>
+            </button>
           )}
           <ChevronDown size={14} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </div>

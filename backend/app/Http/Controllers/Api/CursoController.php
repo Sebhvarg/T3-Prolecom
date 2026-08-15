@@ -323,29 +323,18 @@ class CursoController extends Controller
         $user = $request->user();
         $curso = Curso::findOrFail($id);
 
-        $isAuthorized = $user->idUsuario === $curso->idProfeCreador ||
-            $user->roles->pluck('rol')->intersect(['Administrador', 'Soporte'])->isNotEmpty();
-
-        if (! $isAuthorized) {
-            return response()->json(['message' => 'No tienes permisos para asignar ayudantes a este curso'], 403);
+        $authError = $this->validarPermisoGestionCurso($user, $curso, 'asignar ayudantes a este curso');
+        if ($authError) {
+            return $authError;
         }
 
-        $validator = Validator::make($request->all(), [
-            'email' => 'required_without:idUsuarioAyudante|nullable|email',
-            'idUsuarioAyudante' => 'required_without:email|nullable|exists:usuarios,idUsuario',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 400);
-        }
-
-        $ayudante = $request->filled('idUsuarioAyudante')
-            ? User::findOrFail($request->idUsuarioAyudante)
-            : User::where('email', $request->email)->firstOrFail();
-
-        $errorMsg = $this->checkAyudanteEligible($curso, $ayudante);
-        if ($errorMsg) {
-            return response()->json(['message' => $errorMsg], 400);
+        [$ayudante, $errResponse] = $this->resolveAndValidateUser(
+            $request,
+            'idUsuarioAyudante',
+            fn ($target) => $this->checkAyudanteEligible($curso, $target)
+        );
+        if ($errResponse) {
+            return $errResponse;
         }
 
         $curso->ayudantes()->attach($ayudante->idUsuario, ['idAsignador' => $user->idUsuario]);
@@ -359,6 +348,41 @@ class CursoController extends Controller
                 'email' => $ayudante->email,
             ],
         ], 201);
+    }
+
+    private function validarPermisoGestionCurso($user, Curso $curso, string $accion)
+    {
+        $isAuthorized = $user->idUsuario === $curso->idProfeCreador ||
+            $user->roles->pluck('rol')->intersect(['Administrador', 'Soporte'])->isNotEmpty();
+
+        if (! $isAuthorized) {
+            return response()->json(['message' => "No tienes permisos para {$accion}"], 403);
+        }
+
+        return null;
+    }
+
+    private function resolveAndValidateUser(Request $request, string $idKey, callable $checkEligibility)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => "required_without:{$idKey}|nullable|email",
+            $idKey => 'required_without:email|nullable|exists:usuarios,idUsuario',
+        ]);
+
+        if ($validator->fails()) {
+            return [null, response()->json(['errors' => $validator->errors()], 400)];
+        }
+
+        $targetUser = $request->filled($idKey)
+            ? User::findOrFail($request->input($idKey))
+            : User::where('email', $request->email)->firstOrFail();
+
+        $errorMsg = $checkEligibility($targetUser);
+        if ($errorMsg) {
+            return [null, response()->json(['message' => $errorMsg], 400)];
+        }
+
+        return [$targetUser, null];
     }
 
     private function checkAyudanteEligible(Curso $curso, User $ayudante): ?string
@@ -428,29 +452,18 @@ class CursoController extends Controller
         $user = $request->user();
         $curso = Curso::findOrFail($id);
 
-        $isAuthorized = $user->idUsuario === $curso->idProfeCreador ||
-            $user->roles->pluck('rol')->intersect(['Administrador', 'Soporte'])->isNotEmpty();
-
-        if (! $isAuthorized) {
-            return response()->json(['message' => 'No tienes permisos para asignar moderadores a este curso'], 403);
+        $authError = $this->validarPermisoGestionCurso($user, $curso, 'asignar moderadores a este curso');
+        if ($authError) {
+            return $authError;
         }
 
-        $validator = Validator::make($request->all(), [
-            'email' => 'required_without:idUsuarioModerador|nullable|email',
-            'idUsuarioModerador' => 'required_without:email|nullable|exists:usuarios,idUsuario',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 400);
-        }
-
-        $moderador = $request->filled('idUsuarioModerador')
-            ? User::findOrFail($request->idUsuarioModerador)
-            : User::where('email', $request->email)->firstOrFail();
-
-        $errorMsg = $this->checkModeradorEligible($curso, $moderador);
-        if ($errorMsg) {
-            return response()->json(['message' => $errorMsg], 400);
+        [$moderador, $errResponse] = $this->resolveAndValidateUser(
+            $request,
+            'idUsuarioModerador',
+            fn ($target) => $this->checkModeradorEligible($curso, $target)
+        );
+        if ($errResponse) {
+            return $errResponse;
         }
 
         $curso->moderadores()->attach($moderador->idUsuario, ['idAsignador' => $user->idUsuario]);

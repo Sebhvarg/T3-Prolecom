@@ -765,263 +765,282 @@ const CursosPage = () => {
               </button>
             </div>
 
-            {modalActiveTab === 'matriculados' ? (
-              <div className="flex flex-col flex-1 min-h-0">
-                {/* Search and Sort for Enrolled */}
-                <div className="flex flex-col sm:flex-row gap-3 mb-4">
-                  <input
-                    type="text"
-                    placeholder="Buscar estudiante matriculado..."
-                    value={searchEnrolled}
-                    onChange={(e) => setSearchEnrolled(e.target.value)}
-                    className="flex-1 p-2.5 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white shadow-sm transition-all"
-                  />
-                  <select
-                    value={sortEnrolled}
-                    onChange={(e) => setSortEnrolled(e.target.value)}
-                    className="p-2.5 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white cursor-pointer shadow-sm transition-all"
-                  >
-                    <option value="asc">Nombre: A - Z</option>
-                    <option value="desc">Nombre: Z - A</option>
-                  </select>
-                </div>
-
-                {/* List of Enrolled */}
-                <div className="flex-1 overflow-y-auto border border-gray-150 rounded-2xl max-h-[35vh]">
-                  {(() => {
-                    if (alumnosLoading) {
-                      return (
-                        <div className="flex justify-center items-center h-48">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2c5364]"></div>
-                        </div>
-                      );
-                    }
-                    const enrolledFiltered = getFilteredAndSortedEnrolled();
-                    if (enrolledFiltered.length === 0) {
-                      return (
-                        <div className="text-center py-12 text-gray-400">
-                          <p className="font-semibold text-gray-500">No hay alumnos matriculados</p>
-                        </div>
-                      );
-                    }
-                    return (
-                      <table className="w-full border-collapse text-left text-sm text-gray-500">
-                        <thead className="bg-[#0f2027] text-xs font-semibold text-white uppercase tracking-wider border-b border-[#1e3a47] sticky top-0 z-10">
-                          <tr>
-                            <th scope="col" className="px-6 py-3">Nombre</th>
-                            <th scope="col" className="px-6 py-3">Email</th>
-                            <th scope="col" className="px-6 py-3 text-right">Acción</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {enrolledFiltered.map((alumno) => (
-                            <tr key={alumno.idUsuario} className="hover:bg-gray-50/50 transition-colors">
-                              <td className="px-6 py-4 font-semibold text-gray-900">{alumno.nombreCompleto}</td>
-                              <td className="px-6 py-4">{alumno.email}</td>
-                              <td className="px-6 py-4 text-right">
-                                <button
-                                  onClick={() => handleDesmatricularEstudianteManual(alumno.idUsuario)}
-                                  className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                                  title="Desmatricular Alumno"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    );
-                  })()}
-                </div>
-              </div>
-            ) : modalActiveTab === 'matricular' ? (
-              <div className="flex flex-col flex-1 min-h-0">
-                {/* Search and Sort for Available */}
-                <div className="flex flex-col sm:flex-row gap-3 mb-4">
-                  <input
-                    type="text"
-                    placeholder="Buscar estudiante en el sistema..."
-                    value={searchAvailable}
-                    onChange={(e) => setSearchAvailable(e.target.value)}
-                    className="flex-1 p-2.5 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white shadow-sm transition-all"
-                  />
-                  <select
-                    value={sortAvailable}
-                    onChange={(e) => setSortAvailable(e.target.value)}
-                    className="p-2.5 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white cursor-pointer shadow-sm transition-all"
-                  >
-                    <option value="asc">Nombre: A - Z</option>
-                    <option value="desc">Nombre: Z - A</option>
-                  </select>
-                </div>
-
-                {/* List of Available */}
-                <div className="flex-1 overflow-y-auto border border-gray-150 rounded-2xl max-h-[35vh]">
-                  {(() => {
-                    if (alumnosLoading) {
-                      return (
-                        <div className="flex justify-center items-center h-48">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2c5364]"></div>
-                        </div>
-                      );
-                    }
-                    const availableFiltered = getFilteredAndSortedAvailable();
-                    if (availableFiltered.length === 0) {
-                      return (
-                        <div className="text-center py-12 text-gray-400">
-                          <p className="font-semibold text-gray-500">No hay más estudiantes disponibles</p>
-                        </div>
-                      );
-                    }
-                    return (
-                      <table className="w-full border-collapse text-left text-sm text-gray-500">
-                        <thead className="bg-[#0f2027] text-xs font-semibold text-white uppercase tracking-wider border-b border-[#1e3a47] sticky top-0 z-10">
-                          <tr>
-                            <th scope="col" className="px-6 py-3">Nombre</th>
-                            <th scope="col" className="px-6 py-3">Email</th>
-                            <th scope="col" className="px-6 py-3 text-right">Acción</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {availableFiltered.map((est) => (
-                            <tr key={est.idUsuario} className="hover:bg-gray-50/50 transition-colors">
-                              <td className="px-6 py-4 font-semibold text-gray-900">{est.nombreCompleto}</td>
-                              <td className="px-6 py-4">{est.email}</td>
-                              <td className="px-6 py-4 text-right">
-                                <button
-                                  type="button"
-                                  onClick={() => handleMatricularDirect(est)}
-                                  className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-all text-xs flex items-center gap-1.5 ml-auto shadow-sm cursor-pointer"
-                                >
-                                  <UserPlus size={14} />
-                                  <span>Matricular</span>
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    );
-                  })()}
-                </div>
-              </div>
-            ) : (
-              /* TAB: AYUDANTES DE CÁTEDRA */
-              <div className="flex flex-col flex-1 min-h-0 space-y-4">
-                {/* Lista de Ayudantes Asignados */}
-                <div>
-                  <h4 className="text-xs font-extrabold text-slate-700 uppercase mb-2">Ayudantes Asignados a la Cátedra ({ayudantesMatriculados.length})</h4>
-                  {ayudantesLoading ? (
-                    <div className="flex justify-center items-center h-20">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#2c5364]"></div>
-                    </div>
-                  ) : ayudantesMatriculados.length === 0 ? (
-                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-400 text-xs italic">
-                      No hay ayudantes de cátedra asignados a este curso por el momento.
-                    </div>
-                  ) : (
-                    <div className="border border-slate-200 rounded-xl overflow-hidden max-h-36 overflow-y-auto">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead className="bg-[#0f2027] text-white uppercase text-[10px] font-bold sticky top-0 z-10">
-                          <tr>
-                            <th className="px-4 py-2.5">Nombre</th>
-                            <th className="px-4 py-2.5">Email</th>
-                            <th className="px-4 py-2.5 text-right">Acción</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {ayudantesMatriculados.map((ayu) => (
-                            <tr key={ayu.idUsuario} className="hover:bg-slate-50">
-                              <td className="px-4 py-3 font-semibold text-slate-900 flex items-center gap-2">
-                                <span className="p-1 rounded bg-slate-100 text-slate-700"><GraduationCap size={14} /></span>
-                                {ayu.nombreCompleto}
-                              </td>
-                              <td className="px-4 py-3 text-slate-600">{ayu.email}</td>
-                              <td className="px-4 py-3 text-right">
-                                <button
-                                  type="button"
-                                  onClick={() => handleDesasignarAyudanteDirect(ayu.idUsuario)}
-                                  className="p-1 text-red-500 hover:bg-red-50 rounded transition cursor-pointer"
-                                  title="Remover Ayudante"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-
-                {/* Sección: Asignar Nuevo Ayudante */}
-                <div className="pt-3 border-t border-slate-100 flex flex-col flex-1 min-h-0">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-xs font-extrabold text-slate-700 uppercase">Asignar Nuevo Ayudante de Cátedra</h4>
-                    <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 cursor-pointer select-none">
+            {(() => {
+              if (modalActiveTab === 'matriculados') {
+                return (
+                  <div className="flex flex-col flex-1 min-h-0">
+                    {/* Search and Sort for Enrolled */}
+                    <div className="flex flex-col sm:flex-row gap-3 mb-4">
                       <input
-                        type="checkbox"
-                        checked={showAllUsersForTA}
-                        onChange={(e) => setShowAllUsersForTA(e.target.checked)}
-                        className="rounded text-[#2c5364] focus:ring-[#2c5364]"
+                        type="text"
+                        placeholder="Buscar estudiante matriculado..."
+                        value={searchEnrolled}
+                        onChange={(e) => setSearchEnrolled(e.target.value)}
+                        className="flex-1 p-2.5 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white shadow-sm transition-all"
                       />
-                      <span>Ver todos los usuarios</span>
-                    </label>
-                  </div>
-                  
-                  <div className="mb-2">
-                    <input
-                      type="text"
-                      placeholder="Buscar ayudante por nombre o correo..."
-                      value={searchAyudante}
-                      onChange={(e) => setSearchAyudante(e.target.value)}
-                      className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20"
-                    />
-                  </div>
+                      <select
+                        value={sortEnrolled}
+                        onChange={(e) => setSortEnrolled(e.target.value)}
+                        className="p-2.5 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white cursor-pointer shadow-sm transition-all"
+                      >
+                        <option value="asc">Nombre: A - Z</option>
+                        <option value="desc">Nombre: Z - A</option>
+                      </select>
+                    </div>
 
-                  <div className="border border-slate-200 rounded-xl overflow-hidden flex-1 max-h-40 overflow-y-auto divide-y divide-slate-100">
-                    {(() => {
-                      const pool = showAllUsersForTA || ayudantesSistema.length === 0
-                        ? estudiantesSistema
-                        : ayudantesSistema;
-
-                      const availableForTA = pool
-                        .filter((u) => !ayudantesMatriculados.some((a) => a.idUsuario === u.idUsuario))
-                        .filter((u) => !searchAyudante.trim() || u.nombreCompleto.toLowerCase().includes(searchAyudante.toLowerCase()) || u.email.toLowerCase().includes(searchAyudante.toLowerCase()));
-                      
-                      if (availableForTA.length === 0) {
+                    {/* List of Enrolled */}
+                    <div className="flex-1 overflow-y-auto border border-gray-150 rounded-2xl max-h-[35vh]">
+                      {(() => {
+                        if (alumnosLoading) {
+                          return (
+                            <div className="flex justify-center items-center h-48">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2c5364]"></div>
+                            </div>
+                          );
+                        }
+                        const enrolledFiltered = getFilteredAndSortedEnrolled();
+                        if (enrolledFiltered.length === 0) {
+                          return (
+                            <div className="text-center py-12 text-gray-400">
+                              <p className="font-semibold text-gray-500">No hay alumnos matriculados</p>
+                            </div>
+                          );
+                        }
                         return (
-                          <div className="p-4 text-center text-slate-400 text-xs font-medium">
-                            {showAllUsersForTA
-                              ? 'No hay más usuarios disponibles en el sistema.'
-                              : 'No hay más usuarios registrados con el rol de Ayudante.'}
+                          <table className="w-full border-collapse text-left text-sm text-gray-500">
+                            <thead className="bg-[#0f2027] text-xs font-semibold text-white uppercase tracking-wider border-b border-[#1e3a47] sticky top-0 z-10">
+                              <tr>
+                                <th scope="col" className="px-6 py-3">Nombre</th>
+                                <th scope="col" className="px-6 py-3">Email</th>
+                                <th scope="col" className="px-6 py-3 text-right">Acción</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {enrolledFiltered.map((alumno) => (
+                                <tr key={alumno.idUsuario} className="hover:bg-gray-50/50 transition-colors">
+                                  <td className="px-6 py-4 font-semibold text-gray-900">{alumno.nombreCompleto}</td>
+                                  <td className="px-6 py-4">{alumno.email}</td>
+                                  <td className="px-6 py-4 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDesmatricularEstudianteManual(alumno.idUsuario)}
+                                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                      title="Desmatricular Alumno"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                );
+              }
+
+              if (modalActiveTab === 'matricular') {
+                return (
+                  <div className="flex flex-col flex-1 min-h-0">
+                    {/* Search and Sort for Available */}
+                    <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                      <input
+                        type="text"
+                        placeholder="Buscar estudiante en el sistema..."
+                        value={searchAvailable}
+                        onChange={(e) => setSearchAvailable(e.target.value)}
+                        className="flex-1 p-2.5 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white shadow-sm transition-all"
+                      />
+                      <select
+                        value={sortAvailable}
+                        onChange={(e) => setSortAvailable(e.target.value)}
+                        className="p-2.5 border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white cursor-pointer shadow-sm transition-all"
+                      >
+                        <option value="asc">Nombre: A - Z</option>
+                        <option value="desc">Nombre: Z - A</option>
+                      </select>
+                    </div>
+
+                    {/* List of Available */}
+                    <div className="flex-1 overflow-y-auto border border-gray-150 rounded-2xl max-h-[35vh]">
+                      {(() => {
+                        if (alumnosLoading) {
+                          return (
+                            <div className="flex justify-center items-center h-48">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2c5364]"></div>
+                            </div>
+                          );
+                        }
+                        const availableFiltered = getFilteredAndSortedAvailable();
+                        if (availableFiltered.length === 0) {
+                          return (
+                            <div className="text-center py-12 text-gray-400">
+                              <p className="font-semibold text-gray-500">No hay más estudiantes disponibles</p>
+                            </div>
+                          );
+                        }
+                        return (
+                          <table className="w-full border-collapse text-left text-sm text-gray-500">
+                            <thead className="bg-[#0f2027] text-xs font-semibold text-white uppercase tracking-wider border-b border-[#1e3a47] sticky top-0 z-10">
+                              <tr>
+                                <th scope="col" className="px-6 py-3">Nombre</th>
+                                <th scope="col" className="px-6 py-3">Email</th>
+                                <th scope="col" className="px-6 py-3 text-right">Acción</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {availableFiltered.map((est) => (
+                                <tr key={est.idUsuario} className="hover:bg-gray-50/50 transition-colors">
+                                  <td className="px-6 py-4 font-semibold text-gray-900">{est.nombreCompleto}</td>
+                                  <td className="px-6 py-4">{est.email}</td>
+                                  <td className="px-6 py-4 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleMatricularDirect(est)}
+                                      className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-all text-xs flex items-center gap-1.5 ml-auto shadow-sm cursor-pointer"
+                                    >
+                                      <UserPlus size={14} />
+                                      <span>Matricular</span>
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                );
+              }
+
+              /* TAB: AYUDANTES DE CÁTEDRA */
+              return (
+                <div className="flex flex-col flex-1 min-h-0 space-y-4">
+                  {/* Lista de Ayudantes Asignados */}
+                  <div>
+                    <h4 className="text-xs font-extrabold text-slate-700 uppercase mb-2">Ayudantes Asignados a la Cátedra ({ayudantesMatriculados.length})</h4>
+                    {(() => {
+                      if (ayudantesLoading) {
+                        return (
+                          <div className="flex justify-center items-center h-20">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#2c5364]"></div>
                           </div>
                         );
                       }
-
-                      return availableForTA.map((userToAssign) => (
-                        <div key={userToAssign.idUsuario} className="p-3 hover:bg-slate-50 flex justify-between items-center text-xs">
-                          <div>
-                            <span className="font-semibold text-slate-900 block">{userToAssign.nombreCompleto}</span>
-                            <span className="text-slate-500 text-[11px]">{userToAssign.email}</span>
+                      if (ayudantesMatriculados.length === 0) {
+                        return (
+                          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-400 text-xs italic">
+                            No hay ayudantes de cátedra asignados a este curso por el momento.
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => handleAsignarAyudanteDirect(userToAssign)}
-                            className="px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold rounded-lg text-[11px] transition flex items-center gap-1 cursor-pointer shadow-2xs"
-                          >
-                            <UserCheck size={13} />
-                            <span>Asignar Ayudante</span>
-                          </button>
+                        );
+                      }
+                      return (
+                        <div className="border border-slate-200 rounded-xl overflow-hidden max-h-36 overflow-y-auto">
+                          <table className="w-full text-left text-xs border-collapse">
+                            <thead className="bg-[#0f2027] text-white uppercase text-[10px] font-bold sticky top-0 z-10">
+                              <tr>
+                                <th className="px-4 py-2.5">Nombre</th>
+                                <th className="px-4 py-2.5">Email</th>
+                                <th className="px-4 py-2.5 text-right">Acción</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {ayudantesMatriculados.map((ayu) => (
+                                <tr key={ayu.idUsuario} className="hover:bg-slate-50">
+                                  <td className="px-4 py-3 font-semibold text-slate-900 flex items-center gap-2">
+                                    <span className="p-1 rounded bg-slate-100 text-slate-700"><GraduationCap size={14} /></span>
+                                    {ayu.nombreCompleto}
+                                  </td>
+                                  <td className="px-4 py-3 text-slate-600">{ayu.email}</td>
+                                  <td className="px-4 py-3 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDesasignarAyudanteDirect(ayu.idUsuario)}
+                                      className="p-1 text-red-500 hover:bg-red-50 rounded transition cursor-pointer"
+                                      title="Remover Ayudante"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
-                      ));
+                      );
                     })()}
                   </div>
+
+                  {/* Sección: Asignar Nuevo Ayudante */}
+                  <div className="pt-3 border-t border-slate-100 flex flex-col flex-1 min-h-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-xs font-extrabold text-slate-700 uppercase">Asignar Nuevo Ayudante de Cátedra</h4>
+                      <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={showAllUsersForTA}
+                          onChange={(e) => setShowAllUsersForTA(e.target.checked)}
+                          className="rounded text-[#2c5364] focus:ring-[#2c5364]"
+                        />
+                        <span>Ver todos los usuarios</span>
+                      </label>
+                    </div>
+                    
+                    <div className="mb-2">
+                      <input
+                        type="text"
+                        placeholder="Buscar ayudante por nombre o correo..."
+                        value={searchAyudante}
+                        onChange={(e) => setSearchAyudante(e.target.value)}
+                        className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20"
+                      />
+                    </div>
+
+                    <div className="border border-slate-200 rounded-xl overflow-hidden flex-1 max-h-40 overflow-y-auto divide-y divide-slate-100">
+                      {(() => {
+                        const pool = showAllUsersForTA || ayudantesSistema.length === 0
+                          ? estudiantesSistema
+                          : ayudantesSistema;
+
+                        const availableForTA = pool
+                          .filter((u) => !ayudantesMatriculados.some((a) => a.idUsuario === u.idUsuario))
+                          .filter((u) => !searchAyudante.trim() || u.nombreCompleto.toLowerCase().includes(searchAyudante.toLowerCase()) || u.email.toLowerCase().includes(searchAyudante.toLowerCase()));
+                        
+                        if (availableForTA.length === 0) {
+                          return (
+                            <div className="p-4 text-center text-slate-400 text-xs font-medium">
+                              {showAllUsersForTA
+                                ? 'No hay más usuarios disponibles en el sistema.'
+                                : 'No hay más usuarios registrados con el rol de Ayudante.'}
+                            </div>
+                          );
+                        }
+
+                        return availableForTA.map((userToAssign) => (
+                          <div key={userToAssign.idUsuario} className="p-3 hover:bg-slate-50 flex justify-between items-center text-xs">
+                            <div>
+                              <span className="font-semibold text-slate-900 block">{userToAssign.nombreCompleto}</span>
+                              <span className="text-slate-500 text-[11px]">{userToAssign.email}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleAsignarAyudanteDirect(userToAssign)}
+                              className="px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold rounded-lg text-[11px] transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                            >
+                              <UserCheck size={13} />
+                              <span>Asignar Ayudante</span>
+                            </button>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
       )}

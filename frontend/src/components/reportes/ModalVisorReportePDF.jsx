@@ -25,10 +25,7 @@ const ModalVisorReportePDF = ({ isOpen, onClose, tituloReporte, filtroSelecciona
     if (!printWindow) return;
 
     const printDoc = printWindow.document;
-    printDoc.open();
-    printDoc.write(`
-      <!DOCTYPE html>
-      <html>
+    printDoc.documentElement.innerHTML = `
         <head>
           <title>${tituloReporte} - PROLECOM PDF</title>
           <meta charset="utf-8" />
@@ -119,9 +116,10 @@ const ModalVisorReportePDF = ({ isOpen, onClose, tituloReporte, filtroSelecciona
             };
           </script>
         </body>
-      </html>
-    `);
-    printDoc.close();
+    `;
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
   };
 
   return (
