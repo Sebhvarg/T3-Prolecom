@@ -30,7 +30,7 @@ class ForoController extends Controller
         $user = $request->user();
         $esOwner = $recurso->{$campoOwner} === $user->idUsuario;
         $esSuperior = $user->roles->pluck('rol')
-            ->intersect(['Administrador', 'Moderador'])
+            ->intersect(['Administrador', 'Moderador', 'Profesor'])
             ->isNotEmpty();
 
         return $esOwner || $esSuperior;
@@ -99,6 +99,10 @@ class ForoController extends Controller
      */
     public function show($idForo)
     {
+        if (! is_numeric($idForo)) {
+            return response()->json(['message' => 'No se encontró el foro especificado.'], 404);
+        }
+
         $foro = Foro::with('creador:idUsuario,nombreCompleto,usuario,avatar_path')
             ->withCount('preguntas')
             ->findOrFail($idForo);
@@ -224,6 +228,10 @@ class ForoController extends Controller
      */
     public function indexPreguntas($idForo)
     {
+        if (! is_numeric($idForo)) {
+            return response()->json([]);
+        }
+
         Foro::findOrFail($idForo);
 
         $preguntas = Pregunta::where('idForo', $idForo)
@@ -287,10 +295,15 @@ class ForoController extends Controller
      */
     public function showPregunta(Request $request, $idPregunta)
     {
+        if (! is_numeric($idPregunta)) {
+            return response()->json(['error' => 'ID de pregunta inválido.'], 400);
+        }
+
         $pregunta = Pregunta::with([
             'creador:idUsuario,nombreCompleto,usuario,avatar_path',
             'respuestas' => function ($q) {
-                $q->with('usuario:idUsuario,nombreCompleto,usuario,avatar_path', 'usuario.roles:idRol,rol')
+                $q->where('oculta', false)
+                    ->with(['usuario:idUsuario,nombreCompleto,usuario,avatar_path', 'usuario.roles:idRol,rol', 'votos'])
                     ->orderByDesc('validada')
                     ->orderByDesc('created_at');
             },
@@ -298,12 +311,12 @@ class ForoController extends Controller
 
         $pregunta->incrementarVistas();
 
-        $userId = $request->user()->idUsuario;
+        $userId = $request->user()?->idUsuario;
         foreach ($pregunta->respuestas as $respuesta) {
-            $votos = $respuesta->votos;
+            $votos = $respuesta->votos ?? collect();
             $respuesta->likes_count = $votos->where('valor', VotoRespuesta::LIKE)->count();
             $respuesta->dislikes_count = $votos->where('valor', VotoRespuesta::DISLIKE)->count();
-            $votoPropio = $votos->firstWhere('idUsuario', $userId);
+            $votoPropio = $userId ? $votos->firstWhere('idUsuario', $userId) : null;
 
             $miVotoStr = null;
             if ($votoPropio) {

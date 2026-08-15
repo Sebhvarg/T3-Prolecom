@@ -23,7 +23,7 @@ const CodeBlock = ({ content }) => {
                 <span className="text-[10px] text-slate-500">código</span>
               </div>
               <pre className="p-4 text-xs md:text-sm font-mono overflow-x-auto text-slate-200">
-                <code dangerouslySetInnerHTML={{ __html: segment.highlightedHtml }} />
+                <code>{segment.content}</code>
               </pre>
             </div>
           );

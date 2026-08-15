@@ -88,6 +88,20 @@ export const cursosService = {
     });
   },
 
+  uploadMaterial: async (temaId, formData) => {
+    return await authService.apiFetch(`/temas/${temaId}/materiales`, {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
+  updateMaterial: async (id, formData) => {
+    return await authService.apiFetch(`/materiales/${id}`, {
+      method: 'PUT',
+      body: formData,
+    });
+  },
+
   deleteMaterial: async (id) => {
     return await authService.apiFetch(`/materiales/${id}`, {
       method: 'DELETE',
@@ -96,6 +110,10 @@ export const cursosService = {
 
   getLenguajes: async () => {
     return await authService.apiFetch('/lenguajes');
-  }
+  },
+
+  getCategorias: async () => {
+    return await authService.apiFetch('/categorias');
+  },
 };
 

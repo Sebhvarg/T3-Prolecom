@@ -99,6 +99,7 @@ class PerfilController extends Controller
             ->where('idUsuario', $user->idUsuario)
             ->orderByDesc('created_at')
             ->skip(self::HISTORY_LIMIT)
+            ->take(100)
             ->pluck('id');
 
         if ($idsAEliminar->isNotEmpty()) {

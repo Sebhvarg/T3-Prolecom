@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ItemTema;
 use App\Models\MaterialAprendizaje;
 use App\Models\Tema;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -14,11 +15,14 @@ class MaterialController extends Controller
 {
     private const MSG_NO_TEMA = 'El material no está asociado a ningún tema';
 
+    private const MSG_INVALID_ID = 'ID de material no válido';
+
     private function checkPermission($curso, $user)
     {
-        $isAdmin = $user->roles->pluck('rol')->contains('Administrador');
+        $roles = $user->roles->pluck('rol');
+        $isAdminOrTA = $roles->contains('Administrador') || $roles->contains('Ayudante');
 
-        return $isAdmin || $curso->idProfeCreador === $user->idUsuario;
+        return $isAdminOrTA || $curso->idProfeCreador === $user->idUsuario;
     }
 
     private function isAuthorizedToView($curso, $user)
@@ -30,9 +34,17 @@ class MaterialController extends Controller
         return $curso->estudiantes()->where('usuarios.idUsuario', $user->idUsuario)->exists();
     }
 
-    private function resolveItemAndCurso(int $id): array
+    private function resolveItemAndCurso($id): array
     {
-        $material = MaterialAprendizaje::findOrFail($id);
+        if (! is_numeric($id)) {
+            abort(404, self::MSG_INVALID_ID);
+        }
+
+        $material = MaterialAprendizaje::find((int) $id);
+        if (! $material) {
+            abort(404, 'El material solicitado no existe.');
+        }
+
         $itemTema = $material->itemTema;
         if (! $itemTema) {
             abort(404, self::MSG_NO_TEMA);
@@ -52,31 +64,46 @@ class MaterialController extends Controller
         }
 
         $allowedMimes = config('media.allowed_mimes', 'pdf,mp4,mov,avi,mkv,webm');
-        $maxSize = config('media.max_size', 30720);
+        $maxSize = config('media.max_size', 512000);
 
-        $validator = Validator::make($request->all(), [
+        $titulo = $request->titulo ?? $request->nombre;
+        $tipoInput = strtolower((string) $request->tipo);
+        $isVideo = in_array($tipoInput, ['video', 'mp4', 'mov', 'mkv', 'webm']);
+        $tipo = $isVideo ? 'video' : 'PDF';
+        $mimes = $isVideo ? 'mp4,mov,avi,mkv,webm' : 'pdf';
+
+        $payload = array_merge($request->all(), [
+            'titulo' => $titulo,
+            'tipo' => $tipo,
+        ]);
+
+        $validator = Validator::make($payload, [
             'titulo' => 'required|string|max:150',
             'descripcion' => 'nullable|string',
             'tipo' => 'required|in:PDF,video',
-            'archivo' => "required|file|mimes:{$allowedMimes}|max:{$maxSize}",
+            'archivo' => "required|file|mimes:{$mimes}|max:{$maxSize}",
+        ], [
+            'archivo.mimes' => $isVideo
+                ? 'El archivo de video debe tener un formato válido (MP4, MOV, AVI, MKV o WEBM).'
+                : 'El documento debe estar strictly en formato PDF.',
+            'archivo.max' => 'El tamaño máximo permitido para archivos de material es 500 MB.',
+            'titulo.required' => 'El título del material es obligatorio.',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 400);
         }
 
-        // El validador ya garantiza que el archivo existe y es válido
         $path = $request->file('archivo')->store('materials', 'local');
 
         $material = MaterialAprendizaje::create([
-            'titulo' => $request->titulo,
+            'titulo' => $titulo,
             'descripcion' => $request->descripcion,
-            'tipo' => $request->tipo,
+            'tipo' => $tipo,
             'enlaceArchivo' => $path,
             'idUsuarioCreador' => $user->idUsuario,
         ]);
 
-        // Crear el item_tema para asociarlo polimórficamente al tema
         $maxOrden = ItemTema::where('idTema', $tema->idTema)->max('orden') ?? 0;
         ItemTema::create([
             'idTema' => $tema->idTema,
@@ -85,38 +112,93 @@ class MaterialController extends Controller
             'orden' => $maxOrden + 1,
         ]);
 
+        AuditLogService::log('subir_material', 'MaterialAprendizaje', $material->idMaterial, "Material: {$material->titulo}");
+
         return response()->json([
             'message' => 'Material subido con éxito',
             'material' => $material,
         ], 201);
     }
 
+    public function update(Request $request, $id)
+    {
+        [$material, , $curso] = $this->resolveItemAndCurso($id);
+        $user = $request->user();
+
+        if (! $this->checkPermission($curso, $user)) {
+            return response()->json(['message' => 'No tienes permisos para editar este material'], 403);
+        }
+
+        $titulo = $request->titulo ?? $request->nombre ?? $material->titulo;
+        $tipoInput = strtolower((string) ($request->tipo ?? $material->tipo));
+        $isVideo = in_array($tipoInput, ['video', 'mp4', 'mov', 'mkv', 'webm']);
+        $tipo = $isVideo ? 'video' : 'PDF';
+
+        $rules = [
+            'titulo' => 'sometimes|required|string|max:150',
+            'descripcion' => 'nullable|string',
+            'tipo' => 'nullable|in:PDF,video,documento,presentacion,codigo',
+        ];
+
+        if ($request->hasFile('archivo')) {
+            $maxSize = config('media.max_size', 512000);
+            $mimes = $isVideo ? 'mp4,mov,avi,mkv,webm' : 'pdf';
+            $rules['archivo'] = "file|mimes:{$mimes}|max:{$maxSize}";
+        }
+
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 400);
+        }
+
+        if ($request->hasFile('archivo')) {
+            if (Storage::disk('local')->exists($material->enlaceArchivo)) {
+                Storage::disk('local')->delete($material->enlaceArchivo);
+            }
+            $path = $request->file('archivo')->store('materials', 'local');
+            $material->enlaceArchivo = $path;
+        }
+
+        $material->titulo = $titulo;
+        $material->descripcion = $request->descripcion ?? $material->descripcion;
+        $material->tipo = $tipo;
+        $material->save();
+
+        AuditLogService::log('editar_material', 'MaterialAprendizaje', $material->idMaterial, "Material actualizado: {$material->titulo}");
+
+        return response()->json([
+            'message' => 'Material actualizado con éxito',
+            'material' => $material,
+        ]);
+    }
+
     public function destroy(Request $request, $id)
     {
-        [$material, $itemTema, $curso] = $this->resolveItemAndCurso((int) $id);
+        [$material, $itemTema, $curso] = $this->resolveItemAndCurso($id);
         $user = $request->user();
 
         if (! $this->checkPermission($curso, $user)) {
             return response()->json(['message' => 'No tienes permisos para eliminar este material'], 403);
         }
 
-        // Eliminar el archivo del disco local
         if (Storage::disk('local')->exists($material->enlaceArchivo)) {
             Storage::disk('local')->delete($material->enlaceArchivo);
         }
 
-        // Eliminar el item_tema asociado
-        $itemTema->delete();
+        $materialId = $material->idMaterial;
+        $materialTitulo = $material->titulo;
 
+        $itemTema->delete();
         $material->delete();
+
+        AuditLogService::log('eliminar_material', 'MaterialAprendizaje', $materialId, "Material eliminado: {$materialTitulo}");
 
         return response()->json(['message' => 'Material eliminado con éxito']);
     }
 
-    // STREAMING SEGURO (Para reproducir video o cargar PDF en visor seguro)
     public function stream(Request $request, $id)
     {
-        [$material, , $curso] = $this->resolveItemAndCurso((int) $id);
+        [$material, , $curso] = $this->resolveItemAndCurso($id);
         $user = $request->user();
 
         if (! $this->isAuthorizedToView($curso, $user)) {
@@ -129,14 +211,12 @@ class MaterialController extends Controller
 
         $absolutePath = Storage::disk('local')->path($material->enlaceArchivo);
 
-        // response()->file() maneja cabeceras HTTP Range automáticamente, vital para que el navegador reproduzca y navegue (seek) en videos
         return response()->file($absolutePath);
     }
 
-    // DESCARGA SEGURA
     public function download(Request $request, $id)
     {
-        [$material, , $curso] = $this->resolveItemAndCurso((int) $id);
+        [$material, , $curso] = $this->resolveItemAndCurso($id);
         $user = $request->user();
 
         if (! $this->isAuthorizedToView($curso, $user)) {
@@ -147,7 +227,6 @@ class MaterialController extends Controller
             return response()->json(['message' => 'El archivo solicitado no existe'], 404);
         }
 
-        // Obtener la extensión del archivo para preservarla en la descarga
         $ext = pathinfo($material->enlaceArchivo, PATHINFO_EXTENSION);
         $safeName = str_replace(['/', '\\', '?', '%', '*', ':', '|', '"', '<', '>'], '-', $material->titulo);
         $filename = $safeName.($ext ? '.'.$ext : '');

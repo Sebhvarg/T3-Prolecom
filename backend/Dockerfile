@@ -34,9 +34,9 @@ RUN { \
 
 # Configurar límites de subida de PHP para permitir videos
 RUN { \
-    echo 'upload_max_filesize=100M'; \
-    echo 'post_max_size=100M'; \
-    echo 'memory_limit=256M'; \
+    echo 'upload_max_filesize=500M'; \
+    echo 'post_max_size=500M'; \
+    echo 'memory_limit=512M'; \
 } > /usr/local/etc/php/conf.d/docker-php-upload-limits.ini
 
 # Configuración de Apache para apuntar a la carpeta /public de Laravel

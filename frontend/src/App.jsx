@@ -11,7 +11,8 @@ import CursoDetallePage from './pages/cursos/CursoDetallePage';
 import DesafioDetallePage from './pages/cursos/DesafioDetallePage';
 import PerfilPage from './pages/perfil/PerfilPage';
 
-const ModeradorDashboard = () => <h1>Panel de Moderador</h1>;
+import ModeratorDashboard from './pages/dashboard/ModeratorDashboard';
+
 const AyudanteDashboard = () => <h1>Panel de Ayudante</h1>;
 
 function App() {
@@ -23,20 +24,19 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           
           {/* Rutas protegidas */}
-          <Route element={<PrivateRoute allowedRoles={[1]} />}>
+          <Route element={<PrivateRoute allowedRoles={[1, 4]} />}>
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/soporte/dashboard" element={<AdminDashboard />} />
           </Route>
           
-          <Route element={<PrivateRoute allowedRoles={[2]} />}>
-            <Route path="/moderador/dashboard" element={<ModeradorDashboard />} />
+          <Route element={<PrivateRoute allowedRoles={[1, 2]} />}>
+            <Route path="/moderador/dashboard" element={<ModeratorDashboard />} />
+            <Route path="/dashboard/moderador" element={<ModeratorDashboard />} />
+            <Route path="/moderacion" element={<ModeratorDashboard />} />
           </Route>
 
           <Route element={<PrivateRoute allowedRoles={[3]} />}>
             <Route path="/profesor/dashboard" element={<ProfesorDashboard />} />
-          </Route>
-
-          <Route element={<PrivateRoute allowedRoles={[4]} />}>
-            <Route path="/soporte/dashboard" element={<h1>Panel de Soporte</h1>} />
           </Route>
 
           <Route element={<PrivateRoute allowedRoles={[5]} />}>
@@ -51,6 +51,8 @@ function App() {
             <Route path="/cursos" element={<CursosPage />} />
             <Route path="/cursos/:id" element={<CursoDetallePage />} />
             <Route path="/cursos/:id/desafios/:idDesafio" element={<DesafioDetallePage />} />
+            <Route path="/desafios/:idDesafio" element={<DesafioDetallePage />} />
+            <Route path="/desafios/:id" element={<DesafioDetallePage />} />
             <Route path="/perfil" element={<PerfilPage />} />
           </Route>
 
