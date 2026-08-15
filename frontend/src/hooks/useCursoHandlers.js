@@ -36,32 +36,38 @@ export const useCursoHandlers = ({
   setMaterialFile,
   setIsMaterialModalOpen,
   setIsDesafioModalOpen,
+  setIsForoModalOpen,
+  setForoEditId,
+  setForoTitulo,
+  setForoDescripcion,
   setDesafioTitulo,
   setDesafioDescripcion,
   setDesafioDificultad,
   setDesafioLenguaje,
   setDesafioPlantillaCodigo,
   setDesafioTestCases,
-  setIsForoModalOpen,
-  setForoEditId,
-  setForoTitulo,
-  setForoDescripcion,
   generateTestCaseId,
   fetchCurso,
+  setConfirmState,
 }) => {
   const handleOpenTemaModal = useCallback((tema = null) => {
-    setTemaEditId(tema?.idTema || null);
-    setTemaNombre(tema?.nombre || '');
-    setTemaDescripcion(tema?.descripcion || '');
+    if (tema) {
+      setTemaEditId(tema.idTema);
+      setTemaNombre(tema.nombre);
+      setTemaDescripcion(tema.descripcion || '');
+    } else {
+      setTemaEditId(null);
+      setTemaNombre('');
+      setTemaDescripcion('');
+    }
     setIsTemaModalOpen(true);
   }, [setTemaEditId, setTemaNombre, setTemaDescripcion, setIsTemaModalOpen]);
 
   const handleSaveTema = useCallback(async (e) => {
     e.preventDefault();
+    const payload = { nombre: temaNombre, descripcion: temaDescripcion };
     await executeAsyncAction({
-      action: () => temaEditId
-        ? cursosService.updateTema(temaEditId, { nombre: temaNombre, descripcion: temaDescripcion })
-        : cursosService.createTema(id, { nombre: temaNombre, descripcion: temaDescripcion }),
+      action: () => (temaEditId ? cursosService.updateTema(temaEditId, payload) : cursosService.createTema(id, payload)),
       setLoading: setSubmitting,
       setError,
       setSuccess,
@@ -74,17 +80,49 @@ export const useCursoHandlers = ({
     });
   }, [id, temaEditId, temaNombre, temaDescripcion, setSubmitting, setError, setSuccess, setIsTemaModalOpen, fetchCurso]);
 
-  const handleDeleteTema = useCallback(async (idTema) => {
-    if (!window.confirm('¿Estás seguro de eliminar este tema y todo su contenido?')) return;
-    await executeAsyncAction({
-      action: () => cursosService.deleteTema(idTema),
-      setError,
-      setSuccess,
-      successMessage: 'Tema eliminado exitosamente.',
-      errorMessage: 'Error al eliminar el tema.',
-      onSuccess: fetchCurso,
-    });
-  }, [setSuccess, setError, fetchCurso]);
+  const confirmAndDelete = useCallback(
+    async ({ title, message, deleteAction, successMessage, errorMessage }) => {
+      const doDelete = async () => {
+        await executeAsyncAction({
+          action: deleteAction,
+          setError,
+          setSuccess,
+          successMessage,
+          errorMessage,
+          onSuccess: fetchCurso,
+        });
+      };
+
+      if (setConfirmState) {
+        setConfirmState({
+          isOpen: true,
+          title,
+          message,
+          variant: 'danger',
+          confirmText: 'Sí, eliminar',
+          onConfirm: async () => {
+            setConfirmState((prev) => ({ ...prev, isOpen: false }));
+            await doDelete();
+          },
+        });
+      } else {
+        await doDelete();
+      }
+    },
+    [setConfirmState, setError, setSuccess, fetchCurso]
+  );
+
+  const handleDeleteTema = useCallback(
+    (idTema) =>
+      confirmAndDelete({
+        title: 'Eliminar Tema',
+        message: '¿Estás seguro de eliminar este tema y todo su contenido?',
+        deleteAction: () => cursosService.deleteTema(idTema),
+        successMessage: 'Tema eliminado exitosamente.',
+        errorMessage: 'Error al eliminar el tema.',
+      }),
+    [confirmAndDelete]
+  );
 
   const handleOpenMaterialModal = useCallback((idTema) => {
     setActiveTemaId(idTema);
@@ -120,21 +158,26 @@ export const useCursoHandlers = ({
     });
   }, [materialFile, materialTipo, materialNombre, activeTemaId, setSubmitting, setError, setSuccess, setIsMaterialModalOpen, fetchCurso]);
 
-  const handleDeleteMaterial = useCallback(async (item) => {
-    const idMaterial = typeof item === 'object'
-      ? (item?.idMaterial || item?.itemable_id || item?.itemable?.idMaterial || item?.resource?.idMaterial)
-      : item;
-    if (!idMaterial) { setError('ID de material no encontrado para eliminar.'); return; }
-    if (!window.confirm('¿Deseas eliminar este material?')) return;
-    await executeAsyncAction({
-      action: () => cursosService.deleteMaterial(idMaterial),
-      setError,
-      setSuccess,
-      successMessage: 'Material eliminado exitosamente.',
-      errorMessage: 'Error al eliminar el material.',
-      onSuccess: fetchCurso,
-    });
-  }, [setError, setSuccess, fetchCurso]);
+  const handleDeleteMaterial = useCallback(
+    (item) => {
+      const idMaterial =
+        typeof item === 'object'
+          ? item?.idMaterial || item?.itemable_id || item?.itemable?.idMaterial || item?.resource?.idMaterial
+          : item;
+      if (!idMaterial) {
+        setError('ID de material no encontrado para eliminar.');
+        return;
+      }
+      confirmAndDelete({
+        title: 'Eliminar Material',
+        message: '¿Estás seguro de que deseas eliminar este material de estudio?',
+        deleteAction: () => cursosService.deleteMaterial(idMaterial),
+        successMessage: 'Material eliminado exitosamente.',
+        errorMessage: 'Error al eliminar el material.',
+      });
+    },
+    [confirmAndDelete, setError]
+  );
 
   const handleOpenDesafioModal = useCallback((idTema) => {
     setActiveTemaId(idTema);
@@ -175,46 +218,40 @@ export const useCursoHandlers = ({
     });
   }, [desafioTitulo, desafioDescripcion, desafioDificultad, desafioLenguaje, desafioPlantillaCodigo, desafioTestCases, activeTemaId, setSubmitting, setError, setSuccess, setIsDesafioModalOpen, fetchCurso]);
 
-  const handleDeleteDesafio = useCallback(async (idDesafio) => {
-    if (!window.confirm('¿Estás seguro de eliminar este desafío?')) return;
-    await executeAsyncAction({
-      action: () => desafiosService.deleteDesafio(idDesafio),
-      setError,
-      setSuccess,
-      successMessage: 'Desafío eliminado exitosamente.',
-      errorMessage: 'Error al eliminar el desafío.',
-      onSuccess: fetchCurso,
-    });
-  }, [setSuccess, setError, fetchCurso]);
+  const handleDeleteDesafio = useCallback(
+    (idDesafio) =>
+      confirmAndDelete({
+        title: 'Eliminar Desafío',
+        message: '¿Estás seguro de eliminar este desafío práctico?',
+        deleteAction: () => desafiosService.deleteDesafio(idDesafio),
+        successMessage: 'Desafío eliminado exitosamente.',
+        errorMessage: 'Error al eliminar el desafío.',
+      }),
+    [confirmAndDelete]
+  );
 
-  // --- Handlers Foro ---
-  const handleOpenForoModal = useCallback((idTema, itemForo = null) => {
+  const handleOpenForoModal = useCallback((idTema = null, foro = null) => {
     setActiveTemaId(idTema);
-    if (itemForo) {
-      const fId = itemForo.idForo || itemForo.itemable_id || itemForo.itemable?.idForo;
-      const fTitle = itemForo.titulo || itemForo.itemable?.titulo || '';
-      const fDesc = itemForo.descripcion || itemForo.itemable?.descripcion || '';
-      setForoEditId(fId);
-      setForoTitulo(fTitle);
-      setForoDescripcion(fDesc);
-    } else {
-      setForoEditId(null);
-      setForoTitulo('');
-      setForoDescripcion('');
-    }
+    setForoEditId(foro?.idForo || null);
+    setForoTitulo(foro?.titulo || '');
+    setForoDescripcion(foro?.descripcion || '');
     setIsForoModalOpen(true);
   }, [setActiveTemaId, setForoEditId, setForoTitulo, setForoDescripcion, setIsForoModalOpen]);
 
   const handleSaveForo = useCallback(async (e) => {
     e.preventDefault();
-    if (!foroTitulo.trim()) {
+    if (!foroTitulo) {
       setError('El título del foro es obligatorio.');
       return;
     }
+    const payload = {
+      titulo: foroTitulo,
+      descripcion: foroDescripcion,
+      idTema: activeTemaId,
+      idCurso: id,
+    };
     await executeAsyncAction({
-      action: () => foroEditId
-        ? foroService.updateForo(foroEditId, { titulo: foroTitulo, descripcion: foroDescripcion })
-        : foroService.createForo(activeTemaId, { titulo: foroTitulo, descripcion: foroDescripcion }),
+      action: () => (foroEditId ? foroService.updateForo(foroEditId, payload) : foroService.createForo(activeTemaId, payload)),
       setLoading: setSubmitting,
       setError,
       setSuccess,
@@ -225,23 +262,19 @@ export const useCursoHandlers = ({
         fetchCurso();
       },
     });
-  }, [foroEditId, foroTitulo, foroDescripcion, activeTemaId, setSubmitting, setError, setSuccess, setIsForoModalOpen, fetchCurso]);
+  }, [foroTitulo, foroDescripcion, activeTemaId, id, foroEditId, setSubmitting, setError, setSuccess, setIsForoModalOpen, fetchCurso]);
 
-  const handleDeleteForo = useCallback(async (item) => {
-    const idForo = typeof item === 'object'
-      ? (item?.idForo || item?.itemable_id || item?.itemable?.idForo || item?.id)
-      : item;
-    if (!idForo) { setError('ID de foro no encontrado para eliminar.'); return; }
-    if (!window.confirm('¿Estás seguro de que deseas eliminar este foro de discusión y todo su contenido?')) return;
-    await executeAsyncAction({
-      action: () => foroService.deleteForo(idForo),
-      setError,
-      setSuccess,
-      successMessage: 'Foro eliminado exitosamente.',
-      errorMessage: 'Error al eliminar el foro.',
-      onSuccess: fetchCurso,
-    });
-  }, [setError, setSuccess, fetchCurso]);
+  const handleDeleteForo = useCallback(
+    (idForo) =>
+      confirmAndDelete({
+        title: 'Eliminar Foro',
+        message: '¿Estás seguro de eliminar este foro de discusión?',
+        deleteAction: () => foroService.deleteForo(idForo),
+        successMessage: 'Foro eliminado exitosamente.',
+        errorMessage: 'Error al eliminar el foro.',
+      }),
+    [confirmAndDelete]
+  );
 
   return {
     handleOpenTemaModal,
@@ -258,3 +291,4 @@ export const useCursoHandlers = ({
     handleDeleteForo,
   };
 };
+

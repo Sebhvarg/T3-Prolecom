@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { useSecureViewer } from '../../hooks/useSecureViewer';
@@ -8,10 +8,12 @@ import { useCursoDataLoader } from '../../hooks/useCursoDataLoader';
 import ForoSeccion from '../../components/foro/ForoSeccion';
 import QuizSeccion from '../../components/quizzes/QuizSeccion';
 import CourseProgressBar from '../../components/cursos/CourseProgressBar';
+import PDFSecureViewer from '../../components/cursos/PDFSecureViewer';
 import Modal from '../../components/ui/Modal';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import { 
   ArrowLeft, Plus, Trash2, FileText, Play, Download, Eye, 
-  X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code, Pencil,
+  AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code, Pencil,
   MessageSquare, BookOpen, HelpCircle
 } from 'lucide-react';
 
@@ -54,6 +56,7 @@ const TemaItemCard = ({
   itemIdx,
   temaId,
   canManage,
+  canResolve,
   handleOpenSecureViewer,
   handleDownloadMaterial,
   handleDeleteMaterial,
@@ -130,7 +133,7 @@ const TemaItemCard = ({
           </button>
         )}
 
-        {isQuiz && (
+        {isQuiz && canResolve && (
           <button
             type="button"
             onClick={() => setActiveTab('quizzes')}
@@ -196,31 +199,47 @@ const checkCanManage = (user) => {
   return rol === 'Administrador' || rol === 'Profesor' || rol === 'Ayudante';
 };
 
-const CursoHeroCard = ({ curso, user }) => {
+const CursoHeroCard = ({ curso, user, onNavigateTab, handleOpenSecureViewer }) => {
+  const progreso = curso.progreso;
   const isPrivado = curso.esPrivado;
-  const badgeClass = isPrivado ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-900';
+  const badgeClass = isPrivado ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200';
   const badgeText = isPrivado ? 'Curso Privado' : 'Curso Público';
 
   return (
-    <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-6">
-        <div className="space-y-1">
-          <span className="px-3 py-1 rounded-full bg-slate-100 text-[#2c5364] text-xs font-black uppercase tracking-wider">
+    <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-wider border border-slate-200 shrink-0">
             {curso.lenguaje || 'General'}
           </span>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{curso.titulo}</h1>
-          <p className="text-slate-600 text-xs font-medium max-w-2xl">{curso.descripcion}</p>
+          <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight shrink-0">{curso.titulo}</h1>
+          {curso.descripcion && (
+            <span className="hidden md:inline-block text-slate-500 text-xs font-medium border-l border-slate-200 pl-3 truncate max-w-lg">
+              {curso.descripcion}
+            </span>
+          )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className={`px-3 py-1 rounded-xl text-xs font-black ${badgeClass}`}>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`px-3 py-1 rounded-lg text-xs font-black border ${badgeClass}`}>
             {badgeText}
           </span>
         </div>
       </div>
 
       {user?.rol === 'Estudiante' && (
-        <CourseProgressBar idCurso={curso.idCurso} />
+        <CourseProgressBar
+          idCurso={curso.idCurso}
+          progreso={progreso}
+          onNavigateTab={onNavigateTab}
+          onSelectMaterial={(matId) => {
+            const allItems = (curso.temas || []).flatMap(t => t.items || []);
+            const targetMat = allItems.find(i => (i.idMaterial === matId || i.itemable_id === matId || i.idItem === matId));
+            if (targetMat && handleOpenSecureViewer) {
+              handleOpenSecureViewer(targetMat);
+            }
+          }}
+        />
       )}
     </div>
   );
@@ -263,6 +282,8 @@ const CursoDetallePage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+
+  const location = useLocation();
 
   const {
     curso,
@@ -327,6 +348,17 @@ const CursoDetallePage = () => {
 
   const canManage = checkCanManage(user);
 
+  // Confirm Modal State
+  const [confirmState, setConfirmState] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Aceptar',
+    cancelText: 'Cancelar',
+    variant: 'danger',
+    onConfirm: () => {},
+  });
+
   const {
     handleOpenTemaModal,
     handleSaveTema,
@@ -371,19 +403,35 @@ const CursoDetallePage = () => {
     setMaterialFile,
     setIsMaterialModalOpen,
     setIsDesafioModalOpen,
+    setIsForoModalOpen,
+    setForoEditId,
+    setForoTitulo,
+    setForoDescripcion,
     setDesafioTitulo,
     setDesafioDescripcion,
     setDesafioDificultad,
     setDesafioLenguaje,
     setDesafioPlantillaCodigo,
     setDesafioTestCases,
-    setIsForoModalOpen,
-    setForoEditId,
-    setForoTitulo,
-    setForoDescripcion,
     generateTestCaseId,
     fetchCurso,
+    setConfirmState,
   });
+
+  useEffect(() => {
+    if (location.state?.action && curso?.temas?.length > 0) {
+      const action = location.state.action;
+      const firstTemaId = curso.temas[0].idTema;
+      if (action === 'createMaterial') {
+        handleOpenMaterialModal(firstTemaId);
+      } else if (action === 'createDesafio') {
+        handleOpenDesafioModal(firstTemaId);
+      } else if (action === 'createForo') {
+        handleOpenForoModal(firstTemaId);
+      }
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, curso?.temas, handleOpenMaterialModal, handleOpenDesafioModal, handleOpenForoModal]);
 
   const handleAddTestCase = () => {
     setDesafioTestCases((prev) => [
@@ -463,7 +511,12 @@ const CursoDetallePage = () => {
         )}
 
         {/* Hero Card del Curso */}
-        <CursoHeroCard curso={curso} user={user} />
+        <CursoHeroCard
+          curso={curso}
+          user={user}
+          onNavigateTab={setActiveTab}
+          handleOpenSecureViewer={handleOpenSecureViewer}
+        />
 
         {/* Navegación por pestañas */}
         <CursoNavTabs
@@ -605,8 +658,26 @@ const CursoDetallePage = () => {
         title={foroEditId ? "Editar Foro de Discusión" : "Crear Foro de Discusión en Tema"}
       >
         <form onSubmit={handleSaveForo} className="space-y-4">
+          {curso?.temas?.length > 0 && (
+            <div>
+              <label htmlFor="foro-form-tema" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Módulo / Tema del Curso <span className="text-red-500">*</span></label>
+              <select
+                id="foro-form-tema"
+                value={activeTemaId || (curso.temas[0]?.idTema || '')}
+                onChange={(e) => setActiveTemaId(Number(e.target.value))}
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-bold text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#2c5364] cursor-pointer"
+              >
+                {curso.temas.map((t) => (
+                  <option key={t.idTema} value={t.idTema}>
+                    {t.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div>
-            <label htmlFor="foro-form-titulo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Título del Foro</label>
+            <label htmlFor="foro-form-titulo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Título del Foro <span className="text-red-500">*</span></label>
             <input 
               id="foro-form-titulo"
               type="text"
@@ -771,45 +842,264 @@ const CursoDetallePage = () => {
         </form>
       </Modal>
 
-      {/* Modal Secure Viewer */}
-      {activeViewerMaterial && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-4xl w-full h-[85vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200">
-            <div className="p-4 bg-slate-900 text-white flex justify-between items-center shrink-0">
-              <h3 className="font-extrabold text-sm truncate">{activeViewerMaterial.nombre}</h3>
-              <button type="button" onClick={handleCloseSecureViewer} className="p-1 hover:bg-slate-800 rounded-lg transition-colors text-slate-400 hover:text-white">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="flex-1 bg-slate-100 flex items-center justify-center relative">
-              {viewerLoading && (
-                <div className="space-y-3 text-center">
-                  <Loader2 size={36} className="animate-spin text-[#2c5364] mx-auto" />
-                  <p className="text-xs font-bold text-slate-700">Cargando visualización segura...</p>
-                </div>
-              )}
-
-              {viewerError && (
-                <div className="p-6 bg-red-50 text-red-700 rounded-2xl border border-red-200 text-center space-y-2">
-                  <AlertCircle size={32} className="mx-auto" />
-                  <p className="text-xs font-bold">{viewerError}</p>
-                </div>
-              )}
-
-              {!viewerLoading && !viewerError && viewerBlobUrl && (
-                <iframe 
-                  src={viewerBlobUrl} 
-                  title={activeViewerMaterial.nombre}
-                  className="w-full h-full border-none"
-                />
-              )}
-            </div>
+      {/* Modal Foro de Discusión */}
+      <Modal
+        isOpen={isForoModalOpen}
+        onClose={() => setIsForoModalOpen(false)}
+        title="Crear Foro de Discusión"
+      >
+        <form onSubmit={handleSaveForo} className="space-y-4">
+          <div>
+            <label htmlFor="foro-tema-select" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+              Tema del Curso
+            </label>
+            <select
+              id="foro-tema-select"
+              value={activeTemaId || ''}
+              onChange={(e) => setActiveTemaId(Number(e.target.value))}
+              required
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            >
+              <option value="" disabled>Selecciona un tema...</option>
+              {curso.temas?.map((t) => (
+                <option key={t.idTema} value={t.idTema}>
+                  {t.nombre}
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
-      )}
+
+          <div>
+            <label htmlFor="foro-titulo-input" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+              Título del Foro
+            </label>
+            <input
+              id="foro-titulo-input"
+              type="text"
+              required
+              value={foroTitulo}
+              onChange={(e) => setForoTitulo(e.target.value)}
+              placeholder="Ej: Foro de Consultas - Unidad 1"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="foro-descripcion-textarea" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+              Descripción / Instrucciones (Opcional)
+            </label>
+            <textarea
+              id="foro-descripcion-textarea"
+              rows={3}
+              value={foroDescripcion}
+              onChange={(e) => setForoDescripcion(e.target.value)}
+              placeholder="Espacio para resolver dudas y debatir sobre este tema..."
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setIsForoModalOpen(false)}
+              className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-4 py-2 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+            >
+              {submitting && <Loader2 size={14} className="animate-spin" />}
+              <span>Crear Foro</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Secure Viewer (TC-SP2-05) */}
+      <PDFSecureViewer
+        material={activeViewerMaterial}
+        blobUrl={viewerBlobUrl}
+        loading={viewerLoading}
+        error={viewerError}
+        onClose={handleCloseSecureViewer}
+      />
+
+      {/* ConfirmModal Reutilizable */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmState.onConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        variant={confirmState.variant}
+      />
 
     </DashboardContainer>
+  );
+};
+
+// Extrae todos los foros de todos los temas del curso
+const extractForosFromTemas = (temas = []) => {
+  const result = [];
+  for (const tema of temas) {
+    const foroItems = (tema.items || []).filter(item => {
+      const type = item.itemable_type || '';
+      return type.includes('Foro') || Boolean(item.itemable?.idForo) || Boolean(item.idForo);
+    });
+    if (foroItems.length > 0) {
+      result.push({ tema, foros: foroItems });
+    }
+  }
+  return result;
+};
+
+const ForosDelCurso = ({ curso, user, canManage, handleOpenForoModal, handleDeleteForo }) => {
+  const [foroActivoId, setForoActivoId] = useState(null);
+
+  const temasConForos = extractForosFromTemas(curso?.temas);
+  const totalForos = temasConForos.reduce((acc, t) => acc + t.foros.length, 0);
+
+  if (foroActivoId) {
+    return (
+      <ForoSeccion
+        idForo={foroActivoId}
+        user={user}
+        temas={curso.temas}
+        onBack={() => setForoActivoId(null)}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex justify-between items-center flex-wrap gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Foros del Curso</h2>
+          <p className="text-xs text-slate-500 font-semibold mt-1">
+            {totalForos} {totalForos === 1 ? 'foro disponible' : 'foros disponibles'} en este curso
+          </p>
+        </div>
+        {canManage && (
+          <button
+            type="button"
+            onClick={() => {
+              const firstTemaId = curso?.temas?.[0]?.idTema || null;
+              handleOpenForoModal(firstTemaId);
+            }}
+            className="bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <Plus size={16} />
+            <span>Crear Nuevo Foro</span>
+          </button>
+        )}
+      </div>
+
+      {totalForos === 0 ? (
+        <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-4">
+          <MessageSquare className="mx-auto h-12 w-12 text-slate-300" />
+          <h3 className="text-lg font-extrabold text-slate-900">No hay foros disponibles</h3>
+          <p className="text-slate-500 text-xs max-w-sm mx-auto font-medium leading-relaxed">
+            {canManage
+              ? 'Habilita foros de discusión en este curso para interactuar con tus estudiantes.'
+              : 'El profesor aún no ha habilitado foros de discusión en este curso.'}
+          </p>
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => {
+                const firstTemaId = curso?.temas?.[0]?.idTema || null;
+                handleOpenForoModal(firstTemaId);
+              }}
+              className="inline-flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer"
+            >
+              <Plus size={16} />
+              <span>Crear Nuevo Foro</span>
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {temasConForos.map(({ tema, foros }) => (
+            <div key={tema.idTema} className="space-y-3">
+              {/* Encabezado del Tema */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-px flex-1 w-6 bg-slate-200" />
+                  <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider px-2">
+                    {tema.nombre}
+                  </span>
+                  <div className="h-px bg-slate-200 flex-1" />
+                </div>
+                {canManage && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenForoModal(tema.idTema)}
+                    className="flex items-center gap-1 text-[10px] font-extrabold text-[#2c5364] hover:text-[#203a43] px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer ml-2 shrink-0"
+                    title={`Crear foro en "${tema.nombre}"`}
+                  >
+                    <Plus size={12} />
+                    <span>Nuevo Foro</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Foros del Tema */}
+              {foros.map((item) => {
+                const foroId = item.idForo || item.itemable?.idForo || item.itemable_id;
+                const titulo = item.titulo || item.itemable?.titulo || 'Foro de Discusión';
+                const descripcion = item.descripcion || item.itemable?.descripcion || '';
+
+                return (
+                  <div
+                    key={foroId || item.idItem}
+                    className="p-5 bg-white rounded-3xl border border-slate-200 hover:border-[#2c5364]/40 hover:shadow-md transition-all duration-200 flex justify-between items-center gap-4 shadow-xs"
+                  >
+                    <div className="flex items-start gap-4 flex-1 min-w-0">
+                      <div className="p-3 rounded-2xl bg-purple-50 text-purple-700 shrink-0">
+                        <MessageSquare size={20} />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-extrabold text-slate-900 text-base leading-snug truncate">{titulo}</h3>
+                        {descripcion && (
+                          <p className="text-xs text-slate-500 font-medium mt-1 line-clamp-2">{descripcion}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => foroId && setForoActivoId(Number(foroId))}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs hover:shadow-md"
+                      >
+                        <MessageSquare size={14} />
+                        <span>Abrir Foro</span>
+                      </button>
+
+                      {canManage && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteForo(item)}
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                          title="Eliminar Foro"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -836,7 +1126,16 @@ const CursoTabContent = ({
   navigate,
 }) => {
   if (activeTab === 'foro') {
-    return <ForoSeccion idCurso={id} user={user} temas={curso.temas} onBack={() => setActiveTab('temas')} />;
+    return (
+      <ForosDelCurso
+        curso={curso}
+        user={user}
+        canManage={canManage}
+        handleOpenForoModal={handleOpenForoModal}
+        handleDeleteForo={handleDeleteForo}
+        fetchCurso={fetchCurso}
+      />
+    );
   }
 
   if (activeTab === 'quizzes') {
@@ -957,6 +1256,7 @@ const CursoTabContent = ({
                         itemIdx={itemIdx}
                         temaId={tema.idTema}
                         canManage={canManage}
+                        canResolve={user?.rol === 'Estudiante'}
                         handleOpenSecureViewer={handleOpenSecureViewer}
                         handleDownloadMaterial={handleDownloadMaterial}
                         handleDeleteMaterial={handleDeleteMaterial}

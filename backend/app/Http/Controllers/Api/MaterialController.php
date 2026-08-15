@@ -3,13 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Curso;
 use App\Models\ItemTema;
 use App\Models\MaterialAprendizaje;
+use App\Models\Notificacion;
 use App\Models\Tema;
+use App\Models\User;
 use App\Services\AuditLogService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class MaterialController extends Controller
 {
@@ -17,7 +22,7 @@ class MaterialController extends Controller
 
     private const MSG_INVALID_ID = 'ID de material no válido';
 
-    private function checkPermission($curso, $user)
+    private function checkPermission(Curso $curso, User $user): bool
     {
         $roles = $user->roles->pluck('rol');
         $isAdminOrTA = $roles->contains('Administrador') || $roles->contains('Ayudante');
@@ -25,7 +30,7 @@ class MaterialController extends Controller
         return $isAdminOrTA || $curso->idProfeCreador === $user->idUsuario;
     }
 
-    private function isAuthorizedToView($curso, $user)
+    private function isAuthorizedToView(Curso $curso, User $user): bool
     {
         if ($this->checkPermission($curso, $user)) {
             return true;
@@ -34,6 +39,9 @@ class MaterialController extends Controller
         return $curso->estudiantes()->where('usuarios.idUsuario', $user->idUsuario)->exists();
     }
 
+    /**
+     * @param  int|string  $id
+     */
     private function resolveItemAndCurso($id): array
     {
         if (! is_numeric($id)) {
@@ -53,7 +61,10 @@ class MaterialController extends Controller
         return [$material, $itemTema, $itemTema->tema->curso];
     }
 
-    public function store(Request $request, $temaId)
+    /**
+     * @param  int|string  $temaId
+     */
+    public function store(Request $request, $temaId): JsonResponse
     {
         $tema = Tema::findOrFail($temaId);
         $curso = $tema->curso;
@@ -97,8 +108,8 @@ class MaterialController extends Controller
         $path = $request->file('archivo')->store('materials', 'local');
 
         $material = MaterialAprendizaje::create([
-            'titulo' => $titulo,
-            'descripcion' => $request->descripcion,
+            'titulo' => strip_tags($titulo),
+            'descripcion' => strip_tags($request->descripcion ?? ''),
             'tipo' => $tipo,
             'enlaceArchivo' => $path,
             'idUsuarioCreador' => $user->idUsuario,
@@ -114,13 +125,24 @@ class MaterialController extends Controller
 
         AuditLogService::log('subir_material', 'MaterialAprendizaje', $material->idMaterial, "Material: {$material->titulo}");
 
+        Notificacion::notificarEstudiantesDelCurso(
+            $curso->idCurso,
+            'nuevo_material',
+            'Nuevo Material Publicado',
+            "El profesor publicó '{$material->titulo}' en {$tema->nombre}.",
+            ['idMaterial' => $material->idMaterial]
+        );
+
         return response()->json([
             'message' => 'Material subido con éxito',
             'material' => $material,
         ], 201);
     }
 
-    public function update(Request $request, $id)
+    /**
+     * @param  int|string  $id
+     */
+    public function update(Request $request, $id): JsonResponse
     {
         [$material, , $curso] = $this->resolveItemAndCurso($id);
         $user = $request->user();
@@ -172,7 +194,10 @@ class MaterialController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, $id)
+    /**
+     * @param  int|string  $id
+     */
+    public function destroy(Request $request, $id): JsonResponse
     {
         [$material, $itemTema, $curso] = $this->resolveItemAndCurso($id);
         $user = $request->user();
@@ -196,6 +221,10 @@ class MaterialController extends Controller
         return response()->json(['message' => 'Material eliminado con éxito']);
     }
 
+    /**
+     * @param  int|string  $id
+     * @return JsonResponse|BinaryFileResponse
+     */
     public function stream(Request $request, $id)
     {
         [$material, , $curso] = $this->resolveItemAndCurso($id);
@@ -214,6 +243,10 @@ class MaterialController extends Controller
         return response()->file($absolutePath);
     }
 
+    /**
+     * @param  int|string  $id
+     * @return JsonResponse|BinaryFileResponse
+     */
     public function download(Request $request, $id)
     {
         [$material, , $curso] = $this->resolveItemAndCurso($id);
@@ -231,6 +264,8 @@ class MaterialController extends Controller
         $safeName = str_replace(['/', '\\', '?', '%', '*', ':', '|', '"', '<', '>'], '-', $material->titulo);
         $filename = $safeName.($ext ? '.'.$ext : '');
 
-        return Storage::disk('local')->download($material->enlaceArchivo, $filename);
+        $absolutePath = Storage::disk('local')->path($material->enlaceArchivo);
+
+        return response()->download($absolutePath, $filename);
     }
 }

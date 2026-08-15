@@ -178,12 +178,12 @@ const NotificacionesDropdown = () => {
       <button
         type="button"
         onClick={handleToggle}
-        className="relative p-2 text-gray-600 hover:text-[#2c5364] hover:bg-gray-100/70 rounded-full transition-all cursor-pointer focus:outline-none"
+        className="relative p-2 text-slate-200 hover:text-white hover:bg-white/10 rounded-full transition-all cursor-pointer focus:outline-none"
         title="Notificaciones"
       >
         <Bell size={20} />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-xs">
+          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-2xs">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -193,7 +193,7 @@ const NotificacionesDropdown = () => {
       {isOpen && (
         <div className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-3xl shadow-2xl border border-gray-100 z-50 overflow-hidden animate-fade-in">
           {/* Header del Dropdown */}
-          <div className="p-4 bg-gradient-to-r from-[#0f2027] via-[#203a43] to-[#2c5364] text-white flex items-center justify-between">
+          <div className="p-4 bg-[#1e293b] text-white flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bell size={18} />
               <h3 className="font-bold text-sm">Notificaciones</h3>

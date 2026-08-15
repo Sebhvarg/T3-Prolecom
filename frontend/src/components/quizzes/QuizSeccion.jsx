@@ -3,9 +3,10 @@ import PropTypes from 'prop-types';
 import { quizzesService } from '../../api/quizzesService';
 import QuizFormModal from './QuizFormModal';
 import QuizResolverModal from './QuizResolverModal';
+import ConfirmModal from '../ui/ConfirmModal';
 import { 
   HelpCircle, Plus, Play, CheckCircle2, Clock, 
-  Trash2, Pencil, AlertCircle, Loader2, Award, Users, BookOpen, Check, RotateCcw
+  Trash2, Pencil, AlertCircle, Loader2, Award, Users, BookOpen, Check, RotateCcw, Sparkles
 } from 'lucide-react';
 
 const QuizSeccion = ({ idCurso, user, temas, onQuizCompleted }) => {
@@ -22,7 +23,8 @@ const QuizSeccion = ({ idCurso, user, temas, onQuizCompleted }) => {
   const [isResolverModalOpen, setIsResolverModalOpen] = useState(false);
   const [activeQuizId, setActiveQuizId] = useState(null);
 
-  const canManage = user?.rol === 'Administrador' || user?.rol === 'Profesor';
+  const canManage = user?.rol === 'Administrador' || user?.rol === 'Profesor' || user?.rol === 'Ayudante';
+  const canResolve = user?.rol === 'Estudiante';
 
   const reloadQuizzes = () => {
     setReloadKey(k => k + 1);
@@ -72,34 +74,65 @@ const QuizSeccion = ({ idCurso, user, temas, onQuizCompleted }) => {
     }
   };
 
-  const handleDeleteQuiz = async (quizId, e) => {
+  // Confirm Modal State
+  const [confirmState, setConfirmState] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Aceptar',
+    cancelText: 'Cancelar',
+    variant: 'danger',
+    onConfirm: () => {},
+  });
+
+  const handleDeleteQuiz = (quizId, e) => {
     if (e) e.stopPropagation();
-    if (!window.confirm('¿Estás seguro de eliminar este cuestionario? Se eliminarán todas las preguntas e intentos.')) return;
-    try {
-      await quizzesService.deleteQuiz(quizId);
-      setSuccess('Cuestionario eliminado exitosamente.');
-      reloadQuizzes();
-    } catch (err) {
-      console.error(err);
-      setError('Error al eliminar el cuestionario.');
-    }
+    setConfirmState({
+      isOpen: true,
+      title: 'Eliminar Cuestionario',
+      message: '¿Estás seguro de eliminar este cuestionario? Se eliminarán todas las preguntas e intentos asociados.',
+      variant: 'danger',
+      confirmText: 'Sí, eliminar',
+      onConfirm: async () => {
+        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+        try {
+          await quizzesService.deleteQuiz(quizId);
+          setSuccess('Cuestionario eliminado exitosamente.');
+          reloadQuizzes();
+        } catch (err) {
+          console.error(err);
+          setError('Error al eliminar el cuestionario.');
+        }
+      },
+    });
   };
 
-  const handleReiniciarIntentosProfesor = async (quizId, e) => {
+  const handleReiniciarIntentosProfesor = (quizId, e) => {
     if (e) e.stopPropagation();
-    if (!window.confirm('¿Deseas reiniciar todos los intentos de este quiz para permitir que los estudiantes lo vuelvan a realizar?')) return;
-    try {
-      await quizzesService.reiniciarIntentos(quizId);
-      setSuccess('Intentos del cuestionario reiniciados exitosamente.');
-      reloadQuizzes();
-    } catch (err) {
-      console.error(err);
-      setError('Error al reiniciar los intentos.');
-    }
+    setConfirmState({
+      isOpen: true,
+      title: 'Reiniciar Intentos',
+      message: '¿Deseas reiniciar todos los intentos de este quiz para permitir que los estudiantes lo vuelvan a realizar?',
+      variant: 'warning',
+      confirmText: 'Sí, reiniciar',
+      onConfirm: async () => {
+        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+        try {
+          await quizzesService.reiniciarIntentos(quizId);
+          setSuccess('Intentos del cuestionario reiniciados exitosamente.');
+          reloadQuizzes();
+        } catch (err) {
+          console.error(err);
+          setError('Error al reiniciar los intentos.');
+        }
+      },
+    });
   };
 
   const handleStartResolver = (quiz) => {
-    if (quiz.intentos_maximos > 0 && quiz.intentos_realizados >= quiz.intentos_maximos) {
+    const intentosMaximos = quiz.intentos_maximos ?? 0;
+    const intentosRealizados = quiz.intentos_realizados ?? (quiz.ultimo_intento ? 1 : 0);
+    if (intentosMaximos > 0 && intentosRealizados >= intentosMaximos) {
       alert('Has agotado el límite de intentos permitidos para este cuestionario.');
       return;
     }
@@ -164,19 +197,20 @@ const QuizSeccion = ({ idCurso, user, temas, onQuizCompleted }) => {
           {quizzes.map((quiz) => {
             const ultimoIntento = quiz.ultimo_intento;
             const haCompletado = Boolean(ultimoIntento);
-            const intentosMaximos = quiz.intentos_maximos || 0;
-            const intentosRealizados = quiz.intentos_realizados || (haCompletado ? 1 : 0);
-            const sinIntentos = intentosMaximos > 0 && intentosRealizados >= intentosMaximos;
+            const intentosMaximos = quiz.intentos_maximos ?? 0;
+            const intentosRealizados = quiz.intentos_realizados ?? (haCompletado ? 1 : 0);
+            const puedeIntentar = quiz.puede_intentar ?? (intentosMaximos === 0 || intentosRealizados < intentosMaximos);
+            const sinIntentos = !puedeIntentar;
 
             const getButtonClassName = () => {
-              if (sinIntentos) return 'bg-slate-200 text-slate-500 cursor-not-allowed';
+              if (sinIntentos) return 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed';
               if (haCompletado) return 'bg-slate-200 hover:bg-slate-300 text-slate-900';
               return 'bg-[#2c5364] hover:bg-[#203a43] text-white';
             };
 
             const getButtonLabel = () => {
               if (sinIntentos) return 'Intentos Agotados';
-              if (haCompletado) return 'Volver a Intentar';
+              if (haCompletado) return `Volver a Intentar (${intentosRealizados}/${intentosMaximos > 0 ? intentosMaximos : '∞'})`;
               return 'Resolver Quiz';
             };
 
@@ -231,13 +265,20 @@ const QuizSeccion = ({ idCurso, user, temas, onQuizCompleted }) => {
                         </span>
                       )}
 
-                      <span className="flex items-center gap-1">
-                        <RotateCcw size={14} className="text-[#2c5364]" />
+                      <span className={`flex items-center gap-1 px-2 py-0.5 rounded-lg ${
+                        sinIntentos ? 'bg-red-50 text-red-700 border border-red-200 font-black' : 'bg-slate-100 text-slate-700 border border-slate-200'
+                      }`}>
+                        <RotateCcw size={14} className={sinIntentos ? 'text-red-600' : 'text-[#2c5364]'} />
                         <span>
                           {intentosMaximos > 0 
                             ? `Intentos: ${intentosRealizados} / ${intentosMaximos}` 
                             : 'Intentos Ilimitados'}
                         </span>
+                      </span>
+
+                      <span className="flex items-center gap-1 text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg font-black">
+                        <Sparkles size={14} className="text-amber-500 fill-amber-500" />
+                        <span>{quiz.xp_recompensa ?? 50} XP</span>
                       </span>
 
                       <span className="flex items-center gap-1">
@@ -257,15 +298,17 @@ const QuizSeccion = ({ idCurso, user, temas, onQuizCompleted }) => {
 
                 {/* Acciones */}
                 <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
-                  <button
-                    type="button"
-                    disabled={sinIntentos}
-                    onClick={() => handleStartResolver(quiz)}
-                    className={`inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-black rounded-xl transition-all shadow-xs hover:shadow-md cursor-pointer disabled:opacity-50 ${getButtonClassName()}`}
-                  >
-                    <Play size={14} fill="currentColor" />
-                    <span>{getButtonLabel()}</span>
-                  </button>
+                  {canResolve && (
+                    <button
+                      type="button"
+                      disabled={sinIntentos}
+                      onClick={() => handleStartResolver(quiz)}
+                      className={`inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-black rounded-xl transition-all shadow-xs hover:shadow-md cursor-pointer disabled:opacity-50 ${getButtonClassName()}`}
+                    >
+                      <Play size={14} fill="currentColor" />
+                      <span>{getButtonLabel()}</span>
+                    </button>
+                  )}
 
                   {canManage && (
                     <div className="flex items-center gap-1 bg-slate-100 border border-slate-300 rounded-xl p-1">
@@ -273,7 +316,7 @@ const QuizSeccion = ({ idCurso, user, temas, onQuizCompleted }) => {
                         type="button"
                         onClick={(e) => handleReiniciarIntentosProfesor(quiz.idQuiz, e)}
                         className="p-2 text-slate-700 hover:text-[#2c5364] hover:bg-white rounded-lg transition-all cursor-pointer"
-                        title="Conceder/Reiniciar Intentos para Estudiantes"
+                        title="Reiniciar intentos para estudiantes"
                       >
                         <RotateCcw size={15} />
                       </button>
@@ -319,6 +362,18 @@ const QuizSeccion = ({ idCurso, user, temas, onQuizCompleted }) => {
         onClose={() => setIsResolverModalOpen(false)}
         quizId={activeQuizId}
         onQuizCompleted={reloadQuizzes}
+      />
+
+      {/* ConfirmModal Reutilizable */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmState.onConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        variant={confirmState.variant}
       />
     </div>
   );

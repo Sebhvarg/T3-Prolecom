@@ -140,6 +140,7 @@ export const ROLE_REDIRECTS = {
   'Administrador': '/admin',
   'Moderador': '/moderador/dashboard',
   'Profesor': '/profesor/dashboard',
+  'Soporte': '/soporte/dashboard',
   'Ayudante': '/ayudante/dashboard',
   'Estudiante': '/dashboard/estudiante'
 };

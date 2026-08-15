@@ -123,7 +123,7 @@ class InscripcionTest extends TestCase
         // Attempt second time
         $response = $this->postJson("/api/cursos/{$course->idCurso}/inscribir");
 
-        $response->assertStatus(400);
+        $response->assertStatus(422);
     }
 
     public function test_student_can_unenroll()

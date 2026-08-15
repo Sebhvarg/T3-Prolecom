@@ -1,4 +1,8 @@
 import AdminDashboard from './admin/AdminDashboard';
+import SoporteDashboard from './soporte/SoporteDashboard';
+import AyudanteDashboard from './ayudante/AyudanteDashboard';
+import ProfesorDashboard from './profesor/ProfesorDashboard';
+import ModeratorDashboard from './dashboard/ModeratorDashboard';
 import StudentDashboard from './estudiante/StudentDashboard';
 import { useAuth } from '../context/AuthContext';
 
@@ -16,23 +20,29 @@ const Dashboard = () => {
     case 'admin':
     case 'administrador':
       return <AdminDashboard />;
-    
+
+    case 'soporte':
+      return <SoporteDashboard />;
+
+    case 'ayudante':
+    case 'ayudante de cátedra':
+      return <AyudanteDashboard />;
+
+    case 'profesor':
+    case 'docente':
+      return <ProfesorDashboard />;
+
+    case 'moderador':
+      return <ModeratorDashboard />;
+
     case 'estudiante':
     case 'alumno':
     case 'cliente':
     case 'usuario':
       return <StudentDashboard />;
-    
+
     default:
-      // Fallback
-      return (
-        <div className="flex h-screen items-center justify-center bg-gray-100">
-          <div className="text-center p-8 bg-white rounded-xl shadow-sm border border-gray-100">
-            <h1 className="text-2xl font-bold text-gray-800">Acceso no configurado</h1>
-            <p className="mt-2 text-gray-500">No se encontró un panel asignado para tu rol ({roleName}).</p>
-          </div>
-        </div>
-      );
+      return <StudentDashboard />;
   }
 };
 

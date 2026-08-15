@@ -25,10 +25,10 @@ export const getAdminDashboardData = async () => {
 
   return {
     stats: [
-      { id: 1, label: 'Usuarios Activos', value: usuariosActivosCount, icon: 'Users', color: 'bg-slate-50', iconColor: 'text-slate-600' },
-      { id: 2, label: 'Total Registrados', value: usuariosTotalesCount, icon: 'Shield', color: 'bg-purple-50', iconColor: 'text-purple-600' },
-      { id: 3, label: 'Cursos Totales', value: cursosCount, icon: 'BookOpen', color: 'bg-green-50', iconColor: 'text-green-600' },
-      { id: 4, label: 'Estado Base Datos', value: healthLogsData.health?.database || 'OK', icon: 'Database', color: 'bg-blue-50', iconColor: 'text-blue-600' },
+      { id: 1, label: 'Usuarios Activos', value: usuariosActivosCount, icon: 'Users', color: 'bg-slate-50 border-slate-200/80', iconColor: 'text-slate-700' },
+      { id: 2, label: 'Total Registrados', value: usuariosTotalesCount, icon: 'Users', color: 'bg-slate-50 border-slate-200/80', iconColor: 'text-slate-700' },
+      { id: 3, label: 'Cursos Totales', value: cursosCount, icon: 'BookOpen', color: 'bg-slate-50 border-slate-200/80', iconColor: 'text-slate-700' },
+      { id: 4, label: 'Estado Base Datos', value: healthLogsData.health?.database || 'OK', icon: 'Database', color: 'bg-slate-50 border-slate-200/80', iconColor: 'text-slate-700' },
     ],
     health: healthLogsData.health || {},
     summary: healthLogsData.summary || { errors: 0, warnings: 0, info: 0, total: 0 },

@@ -4,7 +4,7 @@ import { quizzesService } from '../../api/quizzesService';
 import { cursosService } from '../../api/cursosService';
 import { 
   X, Plus, Trash2, HelpCircle, CheckCircle2, 
-  Users, Clock, Award, Save, AlertCircle, Loader2, RotateCcw
+  Users, Clock, Award, Save, AlertCircle, Loader2, RotateCcw, Sparkles
 } from 'lucide-react';
 
 let qIdCounter = 0;
@@ -33,6 +33,7 @@ const getInitialForm = (quizToEdit) => {
       idTema: quizToEdit.idTema || '',
       limite_tiempo_minutos: quizToEdit.limite_tiempo_minutos || 0,
       intentos_maximos: quizToEdit.intentos_maximos ?? 0,
+      xp_recompensa: quizToEdit.xp_recompensa ?? 50,
       mostrar_retroalimentacion: quizToEdit.mostrar_retroalimentacion ?? true,
       asignar_a_todos: quizToEdit.asignar_a_todos ?? true,
       estudiantesSeleccionados: quizToEdit.asignaciones ? quizToEdit.asignaciones.map(a => a.idEstudiante) : [],
@@ -59,6 +60,7 @@ const getInitialForm = (quizToEdit) => {
     idTema: '',
     limite_tiempo_minutos: 0,
     intentos_maximos: 0,
+    xp_recompensa: 50,
     mostrar_retroalimentacion: true,
     asignar_a_todos: true,
     estudiantesSeleccionados: [],
@@ -233,6 +235,7 @@ const QuizFormModal = ({ isOpen, onClose, idCurso, quizToEdit, temas, onSuccess 
       idTema: form.idTema || null,
       limite_tiempo_minutos: Number.parseInt(form.limite_tiempo_minutos, 10) || 0,
       intentos_maximos: Number.parseInt(form.intentos_maximos, 10) || 0,
+      xp_recompensa: Number.parseInt(form.xp_recompensa, 10) || 0,
       calificacion_maxima: puntajeTotalCalculado,
       mostrar_retroalimentacion: form.mostrar_retroalimentacion,
       asignar_a_todos: form.asignar_a_todos,
@@ -382,17 +385,17 @@ const QuizFormModal = ({ isOpen, onClose, idCurso, quizToEdit, temas, onSuccess 
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 {/* Vincular a Tema */}
                 <div>
-                  <label htmlFor="quiz-form-idTema" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Tema Asociado (Opcional)</label>
+                  <label htmlFor="quiz-form-idTema" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Tema Asociado</label>
                   <select
                     id="quiz-form-idTema"
                     value={form.idTema}
                     onChange={(e) => setForm({ ...form, idTema: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-[#2c5364] focus:ring-2 focus:ring-[#2c5364]/20 text-slate-900 font-bold text-sm bg-white"
                   >
-                    <option value="">Sin tema (Quiz General)</option>
+                    <option value="">Sin tema (General)</option>
                     {temas?.map(t => (
                       <option key={t.idTema} value={t.idTema}>{t.nombre}</option>
                     ))}
@@ -403,27 +406,80 @@ const QuizFormModal = ({ isOpen, onClose, idCurso, quizToEdit, temas, onSuccess 
                 <div>
                   <label htmlFor="quiz-form-intentosMaximos" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">
                     <RotateCcw size={14} className="inline mr-1 text-[#2c5364]" />
-                    Intentos Permitidos
+                    Intentos
                   </label>
-                  <select
+                  <input 
                     id="quiz-form-intentosMaximos"
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="0 = Ilimitados"
                     value={form.intentos_maximos}
                     onChange={(e) => setForm({ ...form, intentos_maximos: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-[#2c5364] focus:ring-2 focus:ring-[#2c5364]/20 text-slate-900 font-bold text-sm bg-white"
-                  >
-                    <option value={0}>Ilimitados (0)</option>
-                    <option value={1}>1 Intento</option>
-                    <option value={2}>2 Intentos</option>
-                    <option value={3}>3 Intentos</option>
-                    <option value={5}>5 Intentos</option>
-                  </select>
+                  />
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {[
+                      { label: '∞', val: 0 },
+                      { label: '1', val: 1 },
+                      { label: '2', val: 2 },
+                      { label: '3', val: 3 },
+                    ].map(preset => (
+                      <button
+                        key={preset.val}
+                        type="button"
+                        onClick={() => setForm({ ...form, intentos_maximos: preset.val })}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition-colors cursor-pointer ${
+                          Number(form.intentos_maximos) === preset.val
+                            ? 'bg-[#2c5364] text-white border-[#2c5364]'
+                            : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Recompensa XP */}
+                <div>
+                  <label htmlFor="quiz-form-xpRecompensa" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">
+                    <Sparkles size={14} className="inline mr-1 text-amber-500" />
+                    Recompensa XP
+                  </label>
+                  <input 
+                    id="quiz-form-xpRecompensa"
+                    type="number"
+                    min="0"
+                    max="10000"
+                    placeholder="XP a otorgar"
+                    value={form.xp_recompensa}
+                    onChange={(e) => setForm({ ...form, xp_recompensa: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-[#2c5364] focus:ring-2 focus:ring-[#2c5364]/20 text-slate-900 font-bold text-sm bg-white"
+                  />
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {[10, 25, 50, 100].map(val => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setForm({ ...form, xp_recompensa: val })}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition-colors cursor-pointer ${
+                          Number(form.xp_recompensa) === val
+                            ? 'bg-amber-500 text-white border-amber-500'
+                            : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                        }`}
+                      >
+                        {val} XP
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Límite de Tiempo */}
                 <div>
                   <label htmlFor="quiz-form-limiteTiempo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">
                     <Clock size={14} className="inline mr-1 text-[#2c5364]" />
-                    Límite (Minutos)
+                    Límite (Min)
                   </label>
                   <input 
                     id="quiz-form-limiteTiempo"
