@@ -46,7 +46,7 @@ class ForoController extends Controller
 
     private function isModeradorOfResource($user, $recurso): bool
     {
-        $idCurso = $recurso->idCurso ?? $recurso->foro?->itemTema?->tema?->idCurso ?? null;
+        $idCurso = $recurso->idCurso ?? $recurso->foro?->itemTema?->tema->idCurso ?? null;
         if ($idCurso && Schema::hasTable('moderadores_cursos')) {
             return $user->cursosComoModerador()->where('cursos.idCurso', $idCurso)->exists();
         }

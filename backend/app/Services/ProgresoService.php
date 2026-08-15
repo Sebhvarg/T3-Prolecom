@@ -194,7 +194,7 @@ class ProgresoService
                 ->toArray()
             : [];
 
-        return array_values(array_merge($pendingDesafios, $pendingMateriales, $pendingQuizzes));
+        return array_merge($pendingDesafios, $pendingMateriales, $pendingQuizzes);
     }
 
     public function calcularProgresoDesafios(int $idCurso, int $idEstudiante): array
@@ -325,7 +325,7 @@ class ProgresoService
 
         $tablaQuizIntentos = $this->getTablaQuizIntentos();
 
-        $completados = ($tablaQuizIntentos && ! empty($allQuizIds))
+        $completados = $tablaQuizIntentos
             ? DB::table($tablaQuizIntentos)
                 ->whereIn('idQuiz', $allQuizIds)
                 ->where('idEstudiante', $idEstudiante)

@@ -125,10 +125,10 @@ class ModeracionController extends Controller
 
         if ($rep->tipoPublicacion === 'pregunta') {
             $preg = Pregunta::find($rep->idPublicacionReportada);
-            $idCurso = $preg?->idCurso ?? $preg?->foro?->itemTema?->tema?->idCurso;
+            $idCurso = $preg->idCurso ?? $preg?->foro?->itemTema?->tema->idCurso;
         } elseif ($rep->tipoPublicacion === 'respuesta') {
             $resp = Respuesta::with('pregunta')->find($rep->idPublicacionReportada);
-            $idCurso = $resp?->pregunta?->idCurso ?? $resp?->pregunta?->foro?->itemTema?->tema?->idCurso;
+            $idCurso = $resp?->pregunta->idCurso ?? $resp?->pregunta?->foro?->itemTema?->tema->idCurso;
         }
 
         return [$contenidoReportado, $autorContenido, $idCurso];

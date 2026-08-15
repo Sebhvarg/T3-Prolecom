@@ -78,7 +78,7 @@ class UserController extends Controller
         }
 
         try {
-            $nuevoRol = Rol::find($rolesToSync[0] ?? null)?->rol ?? 'Rol';
+            $nuevoRol = Rol::find($rolesToSync[0] ?? null)->rol ?? 'Rol';
             LogActividad::create([
                 'accion' => "Cambio de rol a '{$nuevoRol}' para el usuario @{$user->usuario}",
                 'idUsuario' => $request->user()->idUsuario ?? $user->idUsuario,
@@ -119,7 +119,7 @@ class UserController extends Controller
         }
 
         try {
-            $estadoNombre = EstadoCuenta::find($request->idEstado)?->estado ?? "Estado {$request->idEstado}";
+            $estadoNombre = EstadoCuenta::find($request->idEstado)->estado ?? "Estado {$request->idEstado}";
             LogActividad::create([
                 'accion' => "Cambio de estado a '{$estadoNombre}' para el usuario @{$user->usuario}",
                 'idUsuario' => $request->user()->idUsuario ?? $user->idUsuario,
