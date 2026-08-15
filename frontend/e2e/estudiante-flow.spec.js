@@ -22,16 +22,17 @@ test.describe('Flujo del Estudiante', () => {
 
   test('Puede navegar a la pestaña de Cuestionarios & Quizzes', async ({ page }) => {
     await goToFirstCourse(page);
+
     await page.getByText(/cuestionarios & quizzes/i).click();
     await expect(
       page.getByRole('heading', { name: /cuestionarios y evaluaciones/i })
     ).toBeVisible({ timeout: 8000 });
   });
-  
+
   test('Puede navegar a la pestaña del Foro dentro de un curso', async ({ page }) => {
     await goToFirstCourse(page);
 
-    await page.getByText(/foro de preguntas/i).click();
+    await page.getByText(/foro del curso/i).click();
     await expect(page.getByText(/foro/i).first()).toBeVisible();
   });
 

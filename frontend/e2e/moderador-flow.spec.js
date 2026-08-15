@@ -14,10 +14,14 @@ test.describe('Flujo del Moderador', () => {
     await expect(page.getByText(/reportes resueltos/i)).toBeVisible();
   });
 
-  test('Ve el registro de auditoría de acciones del sistema', async ({ page }) => {
-    await expect(
-      page.getByText(/registro de auditoría de acciones del sistema/i)
-    ).toBeVisible({ timeout: 8000 });
-  });
+  test(
+    'Ve el registro de auditoría de acciones del sistema',
+    async ({ page }) => {
+      await page.getByRole('button', { name: /auditoría/i }).click();
+      await expect(
+        page.getByText(/registro de auditoría de acciones del sistema/i)
+      ).toBeVisible({ timeout: 8000 });
+    }
+  );
 
 });
