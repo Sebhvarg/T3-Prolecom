@@ -1,16 +1,21 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
-import { cursosService } from '../../api/cursosService';
-import { desafiosService } from '../../api/desafiosService';
-import { storage } from '../../utils/crypto';
+import { useSecureViewer } from '../../hooks/useSecureViewer';
+import { useCursoHandlers } from '../../hooks/useCursoHandlers';
+import { useCursoDataLoader } from '../../hooks/useCursoDataLoader';
+import ForoSeccion from '../../components/foro/ForoSeccion';
+import QuizSeccion from '../../components/quizzes/QuizSeccion';
+import CourseProgressBar from '../../components/cursos/CourseProgressBar';
+import PDFSecureViewer from '../../components/cursos/PDFSecureViewer';
+import Modal from '../../components/ui/Modal';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import { 
-  ArrowLeft, Plus, Trash2, FileText, Video, Play, Download, Eye, 
-  X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code 
+  ArrowLeft, Plus, Trash2, FileText, Play, Download, Eye, 
+  AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code, Pencil,
+  MessageSquare, BookOpen, HelpCircle
 } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
 let testCaseIdCounter = 0;
 const generateTestCaseId = () => {
@@ -18,370 +23,439 @@ const generateTestCaseId = () => {
   return `tc-id-${testCaseIdCounter}`;
 };
 
+const renderItemMetadata = (item) => {
+  const typeStr = item.itemable_type || '';
+  const isDesafio = typeStr.includes('Desafio') || Boolean(item.dificultad) || Boolean(item.itemable?.dificultad);
+  const isForo = typeStr.includes('Foro') || Boolean(item.itemable?.idForo) || Boolean(item.idForo) || Boolean(item.titulo?.includes('Foro'));
+  const isQuiz = typeStr.includes('Quiz') || Boolean(item.itemable?.idQuiz) || Boolean(item.titulo?.includes('Evaluación'));
+
+  let icon = <FileText size={18} />;
+  let iconBg = 'bg-slate-100 text-[#2c5364]';
+  let subtitle = `Material (${item.tipo || item.itemable?.tipo || 'Lectura'})`;
+
+  if (isDesafio) {
+    icon = <Code size={18} />;
+    iconBg = 'bg-amber-100 text-amber-900';
+    subtitle = `Desafío (${item.dificultad || item.itemable?.dificultad || 'Práctico'})`;
+  } else if (isForo) {
+    icon = <MessageSquare size={18} />;
+    iconBg = 'bg-purple-100 text-purple-900';
+    subtitle = 'Foro de Discusión';
+  } else if (isQuiz) {
+    icon = <HelpCircle size={18} />;
+    iconBg = 'bg-indigo-100 text-indigo-900';
+    subtitle = 'Evaluación / Quiz';
+  }
+
+  const isMaterial = !isDesafio && !isForo && !isQuiz;
+  return { icon, iconBg, subtitle, isDesafio, isForo, isQuiz, isMaterial };
+};
+
+const TemaItemCard = ({
+  item,
+  itemIdx,
+  temaId,
+  canManage,
+  canResolve,
+  handleOpenSecureViewer,
+  handleDownloadMaterial,
+  handleDeleteMaterial,
+  handleDeleteDesafio,
+  handleOpenForoModal,
+  handleDeleteForo,
+  navigate,
+  idCurso,
+  setActiveTab,
+}) => {
+  const { icon, iconBg, subtitle, isDesafio, isForo, isQuiz, isMaterial } = renderItemMetadata(item);
+  const itemKey = item.idItem || item.idMaterial || item.idDesafio || item.idForo || item.idQuiz || `item-${itemIdx}`;
+
+  return (
+    <div key={itemKey} className="p-4 bg-white rounded-2xl border border-slate-200 flex justify-between items-center gap-4 hover:border-slate-300 transition-all">
+      <div className="flex items-center gap-3">
+        <div className={`p-2 rounded-xl text-xs font-black ${iconBg}`}>
+          {icon}
+        </div>
+        <div>
+          <h4 className="font-extrabold text-xs text-slate-900">
+            {item.titulo || item.itemable?.titulo || item.nombre}
+          </h4>
+          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+            {subtitle}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        {isMaterial && (
+          <>
+            <button
+              type="button"
+              onClick={() => handleOpenSecureViewer(item)}
+              className="px-3 py-1.5 bg-[#2c5364]/10 hover:bg-[#2c5364]/20 text-[#2c5364] font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              <Eye size={14} />
+              <span>Ver Documento</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDownloadMaterial(item)}
+              className="p-2 text-slate-500 hover:text-slate-900 bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              title="Descargar Material"
+            >
+              <Download size={14} />
+            </button>
+          </>
+        )}
+
+        {isDesafio && (
+          <button
+            type="button"
+            onClick={() => {
+              const targetDesafioId = item.idDesafio || item.itemable_id || item.itemable?.idDesafio || item.idItem;
+              navigate(`/cursos/${idCurso}/desafios/${targetDesafioId}`);
+            }}
+            className="px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+          >
+            <Play size={14} fill="currentColor" />
+            <span>Resolver Desafío</span>
+          </button>
+        )}
+
+        {isForo && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('foro')}
+            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+          >
+            <MessageSquare size={14} />
+            <span>Ir al Foro</span>
+          </button>
+        )}
+
+        {isQuiz && canResolve && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('quizzes')}
+            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+          >
+            <HelpCircle size={14} />
+            <span>Rendir Quiz</span>
+          </button>
+        )}
+
+        {canManage && (
+          <div className="flex items-center gap-1 border-l border-slate-200 pl-2">
+            {isMaterial && (
+              <button
+                type="button"
+                onClick={() => handleDeleteMaterial(item)}
+                className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                title="Eliminar Material"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+            {isDesafio && (
+              <button
+                type="button"
+                onClick={() => handleDeleteDesafio(item.idDesafio || item.itemable_id)}
+                className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                title="Eliminar Desafío"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+            {isForo && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleOpenForoModal(temaId, item)}
+                  className="p-1.5 text-slate-400 hover:text-[#2c5364] rounded-lg transition-colors cursor-pointer"
+                  title="Editar Foro"
+                >
+                  <Pencil size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteForo(item)}
+                  className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                  title="Eliminar Foro"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const checkCanManage = (user) => {
+  if (!user) return false;
+  const rol = user.rol;
+  return rol === 'Administrador' || rol === 'Profesor' || rol === 'Ayudante';
+};
+
+const CursoHeroCard = ({ curso, user, onNavigateTab, handleOpenSecureViewer }) => {
+  const progreso = curso.progreso || { porcentaje: 0, itemsCompletados: 0, totalItems: 0, xpGanado: 0, xpTotal: 0 };
+  const isPrivado = curso.esPrivado;
+  const badgeClass = isPrivado ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200';
+  const badgeText = isPrivado ? 'Curso Privado' : 'Curso Público';
+
+  return (
+    <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-wider border border-slate-200 shrink-0">
+            {curso.lenguaje || 'General'}
+          </span>
+          <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight shrink-0">{curso.titulo}</h1>
+          {curso.descripcion && (
+            <span className="hidden md:inline-block text-slate-500 text-xs font-medium border-l border-slate-200 pl-3 truncate max-w-lg">
+              {curso.descripcion}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`px-3 py-1 rounded-lg text-xs font-black border ${badgeClass}`}>
+            {badgeText}
+          </span>
+        </div>
+      </div>
+
+      {user?.rol === 'Estudiante' && (
+        <CourseProgressBar
+          idCurso={curso.idCurso}
+          progreso={progreso}
+          onNavigateTab={onNavigateTab}
+          onSelectMaterial={(matId) => {
+            const allItems = (curso.temas || []).flatMap(t => t.items || []);
+            const targetMat = allItems.find(i => (i.idMaterial === matId || i.itemable_id === matId || i.idItem === matId));
+            if (targetMat && handleOpenSecureViewer) {
+              handleOpenSecureViewer(targetMat);
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+const CursoNavTabs = ({ activeTab, setActiveTab, totalTemas }) => {
+  const tabs = [
+    { id: 'temas', label: `Temas y Módulos (${totalTemas})`, icon: BookOpen },
+    { id: 'quizzes', label: 'Cuestionarios & Quizzes', icon: HelpCircle },
+    { id: 'foro', label: 'Foro del Curso', icon: MessageSquare },
+  ];
+
+  return (
+    <div className="flex border-b border-slate-200 overflow-x-auto">
+      {tabs.map((t) => {
+        const Icon = t.icon;
+        const isActive = activeTab === t.id;
+        const activeClass = isActive
+          ? 'border-[#2c5364] text-[#2c5364]'
+          : 'border-transparent text-slate-500 hover:text-slate-900';
+
+        return (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setActiveTab(t.id)}
+            className={`flex items-center gap-2 px-6 py-3.5 font-bold text-sm border-b-2 transition-all shrink-0 cursor-pointer ${activeClass}`}
+          >
+            <Icon size={18} />
+            <span>{t.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
 const CursoDetallePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  
-  const [curso, setCurso] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+
+  const location = useLocation();
+
+  const {
+    curso,
+    loading,
+    error,
+    setError,
+    expandedTemas,
+    fetchCurso,
+    toggleTema,
+  } = useCursoDataLoader(id);
+
   const [success, setSuccess] = useState('');
-  const [expandedTemas, setExpandedTemas] = useState({});
-
-  // Modales
-  const [isTemaModalOpen, setIsTemaModalOpen] = useState(false);
-  const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
-  const [activeTemaId, setActiveTemaId] = useState(null);
-
-  // Desafio Modal States
-  const [isDesafioModalOpen, setIsDesafioModalOpen] = useState(false);
-  const [desafioForm, setDesafioForm] = useState({
-    titulo: '',
-    descripcionProblema: '',
-    dificultad: 'Easy',
-    puntos: 10,
-    starter_code: '',
-    testCases: [{ id: generateTestCaseId(), input: '', expected_output: '', is_hidden: false }]
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get('tab');
+    return ['temas', 'quizzes', 'foro'].includes(tab) ? tab : 'temas';
   });
 
-  // Forms data
-  const [temaForm, setTemaForm] = useState({ nombre: '', descripcion: '' });
-  const [materialForm, setMaterialForm] = useState({ titulo: '', descripcion: '', tipo: 'PDF' });
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [actionLoading, setActionLoading] = useState(false);
+  // Modales Estado
+  const [isTemaModalOpen, setIsTemaModalOpen] = useState(false);
+  const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
+  const [isDesafioModalOpen, setIsDesafioModalOpen] = useState(false);
+  const [isForoModalOpen, setIsForoModalOpen] = useState(false);
 
-  // Secure Viewer State
-  const [activeViewerMaterial, setActiveViewerMaterial] = useState(null);
-  const [viewerBlobUrl, setViewerBlobUrl] = useState('');
-  const [viewerLoading, setViewerLoading] = useState(false);
-  const [viewerError, setViewerError] = useState('');
+  const [temaEditId, setTemaEditId] = useState(null);
+  const [activeTemaId, setActiveTemaId] = useState(null);
 
-  const canManage = user?.rol === 'Administrador' || user?.rol === 'Profesor';
+  // Form Tema
+  const [temaNombre, setTemaNombre] = useState('');
+  const [temaDescripcion, setTemaDescripcion] = useState('');
 
-  const fetchCurso = async () => {
-    setLoading(true);
-    try {
-      const data = await cursosService.getCurso(id);
-      // Ordenar temas y sus ítems alfabético-numéricamente
-      if (data.temas) {
-        data.temas.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { numeric: true }));
-        data.temas.forEach(t => {
-          if (t.items) t.items.sort((a, b) => a.titulo.localeCompare(b.titulo, 'es', { numeric: true }));
-        });
-      }
-      setCurso(data);
-      
-      // Auto-expandir todos los temas al iniciar
-      const expandMap = {};
-      data.temas?.forEach(t => {
-        expandMap[t.idTema] = true;
-      });
-      setExpandedTemas(expandMap);
-    } catch (err) {
-      console.error(err);
-      setError('No se pudo cargar la información del curso.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Form Material
+  const [materialNombre, setMaterialNombre] = useState('');
+  const [materialTipo, setMaterialTipo] = useState('documento');
+  const [materialFile, setMaterialFile] = useState(null);
+
+  // Form Desafío
+  const [desafioTitulo, setDesafioTitulo] = useState('');
+  const [desafioDescripcion, setDesafioDescripcion] = useState('');
+  const [desafioDificultad, setDesafioDificultad] = useState('Facil');
+  const [desafioLenguaje, setDesafioLenguaje] = useState('python');
+  const [desafioPlantillaCodigo, setDesafioPlantillaCodigo] = useState('');
+  const [desafioTestCases, setDesafioTestCases] = useState([
+    { id: generateTestCaseId(), input: '', expected_output: '', is_public: true }
+  ]);
+
+  // Form Foro
+  const [foroEditId, setForoEditId] = useState(null);
+  const [foroTitulo, setForoTitulo] = useState('');
+  const [foroDescripcion, setForoDescripcion] = useState('');
+
+  const [submitting, setSubmitting] = useState(false);
+
+  const {
+    activeViewerMaterial,
+    viewerBlobUrl,
+    viewerLoading,
+    viewerError,
+    handleOpenSecureViewer,
+    handleCloseSecureViewer,
+    handleDownloadMaterial,
+  } = useSecureViewer();
+
+  const canManage = checkCanManage(user);
+
+  // Confirm Modal State
+  const [confirmState, setConfirmState] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Aceptar',
+    cancelText: 'Cancelar',
+    variant: 'danger',
+    onConfirm: () => {},
+  });
+
+  const {
+    handleOpenTemaModal,
+    handleSaveTema,
+    handleDeleteTema,
+    handleOpenMaterialModal,
+    handleSaveMaterial,
+    handleDeleteMaterial,
+    handleOpenDesafioModal,
+    handleSaveDesafio,
+    handleDeleteDesafio,
+    handleOpenForoModal,
+    handleSaveForo,
+    handleDeleteForo,
+  } = useCursoHandlers({
+    id,
+    temaEditId,
+    temaNombre,
+    temaDescripcion,
+    materialFile,
+    materialTipo,
+    materialNombre,
+    activeTemaId,
+    desafioTitulo,
+    desafioDescripcion,
+    desafioDificultad,
+    desafioLenguaje,
+    desafioPlantillaCodigo,
+    desafioTestCases,
+    foroEditId,
+    foroTitulo,
+    foroDescripcion,
+    setSubmitting,
+    setError,
+    setSuccess,
+    setIsTemaModalOpen,
+    setTemaEditId,
+    setTemaNombre,
+    setTemaDescripcion,
+    setActiveTemaId,
+    setMaterialNombre,
+    setMaterialTipo,
+    setMaterialFile,
+    setIsMaterialModalOpen,
+    setIsDesafioModalOpen,
+    setIsForoModalOpen,
+    setForoEditId,
+    setForoTitulo,
+    setForoDescripcion,
+    setDesafioTitulo,
+    setDesafioDescripcion,
+    setDesafioDificultad,
+    setDesafioLenguaje,
+    setDesafioPlantillaCodigo,
+    setDesafioTestCases,
+    generateTestCaseId,
+    fetchCurso,
+    setConfirmState,
+  });
 
   useEffect(() => {
-    let active = true;
-    const load = async () => {
-      try {
-        const data = await cursosService.getCurso(id);
-        if (!active) return;
-        setCurso(data);
-        
-        // Auto-expandir todos los temas al iniciar
-        const expandMap = {};
-        data.temas?.forEach(t => {
-          expandMap[t.idTema] = true;
-        });
-        setExpandedTemas(expandMap);
-      } catch (err) {
-        if (!active) return;
-        console.error(err);
-        setError('No se pudo cargar la información del curso.');
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
+    if (location.state?.action && curso?.temas?.length > 0) {
+      const action = location.state.action;
+      const firstTemaId = curso.temas[0].idTema;
+      if (action === 'createMaterial') {
+        handleOpenMaterialModal(firstTemaId);
+      } else if (action === 'createDesafio') {
+        handleOpenDesafioModal(firstTemaId);
+      } else if (action === 'createForo') {
+        handleOpenForoModal(firstTemaId);
       }
-    };
-    load();
-    return () => {
-      active = false;
-    };
-  }, [id]);
-
-  const toggleTema = (temaId) => {
-    setExpandedTemas(prev => ({
-      ...prev,
-      [temaId]: !prev[temaId]
-    }));
-  };
-
-  // --- TEMAS (MÓDULOS) LOGIC ---
-  const handleOpenTemaModal = () => {
-    setTemaForm({ nombre: '', descripcion: '' });
-    setIsTemaModalOpen(true);
-  };
-
-  const handleTemaSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setActionLoading(true);
-    try {
-      await cursosService.createTema(id, temaForm);
-      setSuccess('Tema creado exitosamente.');
-      setIsTemaModalOpen(false);
-      fetchCurso();
-    } catch (err) {
-      console.error(err);
-      setError(err.message || 'Error al crear el tema.');
-    } finally {
-      setActionLoading(false);
+      window.history.replaceState({}, document.title);
     }
-  };
-
-  const handleDeleteTema = async (temaId, e) => {
-    e.stopPropagation(); // Evitar colapso de acordeón
-    if (!globalThis.confirm('¿Estás seguro de eliminar este tema y todos sus materiales de aprendizaje?')) return;
-    setError('');
-    try {
-      await cursosService.deleteTema(temaId);
-      setSuccess('Tema eliminado correctamente.');
-      fetchCurso();
-    } catch (err) {
-      console.error(err);
-      setError(err.message || 'Error al eliminar el tema.');
-    }
-  };
-
-  // --- MATERIALES LOGIC ---
-  const handleOpenMaterialModal = (temaId) => {
-    setActiveTemaId(temaId);
-    setMaterialForm({ titulo: '', descripcion: '', tipo: 'PDF' });
-    setSelectedFile(null);
-    setIsMaterialModalOpen(true);
-  };
-
-  const handleFileChange = (e) => {
-    setSelectedFile(e.target.files[0]);
-  };
-
-  const handleMaterialSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedFile) {
-      setError('Debes seleccionar un archivo para subir.');
-      return;
-    }
-    const maxSizeBytes = 100 * 1024 * 1024; // 100MB
-    if (selectedFile.size > maxSizeBytes) {
-      setError('El archivo excede el tamaño máximo permitido por el servidor (100MB).');
-      return;
-    }
-
-    setError('');
-    setActionLoading(true);
-
-    const formData = new FormData();
-    formData.append('titulo', materialForm.titulo);
-    formData.append('descripcion', materialForm.descripcion || '');
-    formData.append('tipo', materialForm.tipo);
-    formData.append('archivo', selectedFile);
-
-    try {
-      await cursosService.createMaterial(activeTemaId, formData);
-      setSuccess('Material subido exitosamente.');
-      setIsMaterialModalOpen(false);
-      fetchCurso();
-    } catch (err) {
-      console.error(err);
-      setError(err.message || 'Error al subir el material.');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // --- DESAFIOS LOGIC ---
-  const handleOpenDesafioModal = (temaId) => {
-    setActiveTemaId(temaId);
-    setDesafioForm({
-      titulo: '',
-      descripcionProblema: '',
-      dificultad: 'Easy',
-      puntos: 10,
-      starter_code: '',
-      testCases: [{ id: generateTestCaseId(), input: '', expected_output: '', is_hidden: false }]
-    });
-    setIsDesafioModalOpen(true);
-  };
+  }, [location.state, curso?.temas, handleOpenMaterialModal, handleOpenDesafioModal, handleOpenForoModal]);
 
   const handleAddTestCase = () => {
-    setDesafioForm(prev => ({
+    setDesafioTestCases((prev) => [
       ...prev,
-      testCases: [...prev.testCases, { id: generateTestCaseId(), input: '', expected_output: '', is_hidden: false }]
-    }));
+      { id: generateTestCaseId(), input: '', expected_output: '', is_public: true },
+    ]);
   };
 
-  const handleRemoveTestCase = (index) => {
-    setDesafioForm(prev => ({
-      ...prev,
-      testCases: prev.testCases.filter((_, i) => i !== index)
-    }));
+  const handleRemoveTestCase = (tcId) => {
+    if (desafioTestCases.length <= 1) return;
+    setDesafioTestCases((prev) => prev.filter((tc) => tc.id !== tcId));
   };
 
-  const handleTestCaseChange = (index, field, value) => {
-    setDesafioForm(prev => {
-      const updated = [...prev.testCases];
-      updated[index] = { ...updated[index], [field]: value };
-      return { ...prev, testCases: updated };
-    });
+  const handleTestCaseChange = (tcId, field, value) => {
+    setDesafioTestCases((prev) =>
+      prev.map((tc) => (tc.id === tcId ? { ...tc, [field]: value } : tc))
+    );
   };
 
-  const handleDesafioSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setActionLoading(true);
-    try {
-      const cleanedDesafioForm = {
-        ...desafioForm,
-        testCases: desafioForm.testCases.map((tc) => {
-          const copy = { ...tc };
-          delete copy.id;
-          return copy;
-        })
-      };
-      await desafiosService.createDesafio(activeTemaId, cleanedDesafioForm);
-      setSuccess('Desafío creado exitosamente.');
-      setIsDesafioModalOpen(false);
-      fetchCurso();
-    } catch (err) {
-      console.error(err);
-      setError(err.message || 'Error al crear el desafío.');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleDeleteMaterial = async (materialId) => {
-    if (!globalThis.confirm('¿Estás seguro de eliminar este material de aprendizaje de forma permanente?')) return;
-    setError('');
-    try {
-      await cursosService.deleteMaterial(materialId);
-      setSuccess('Material eliminado correctamente.');
-      fetchCurso();
-    } catch (err) {
-      console.error(err);
-      setError(err.message || 'Error al eliminar el material.');
-    }
-  };
-
-  const handleDeleteDesafio = async (desafioId) => {
-    if (!globalThis.confirm('¿Estás seguro de eliminar este desafío de forma permanente?')) return;
-    setError('');
-    try {
-      await desafiosService.deleteDesafio(desafioId);
-      setSuccess('Desafío eliminado correctamente.');
-      fetchCurso();
-    } catch (err) {
-      console.error(err);
-      setError(err.message || 'Error al eliminar el desafío.');
-    }
-  };
-
-  // --- SECURE VIEWER LOGIC ---
-  const handleViewSecure = async (material) => {
-    setActiveViewerMaterial(material);
-    setViewerLoading(true);
-    setViewerError('');
-    
-    // Revocar el url anterior si existía
-    if (viewerBlobUrl) {
-      URL.revokeObjectURL(viewerBlobUrl);
-      setViewerBlobUrl('');
-    }
-
-    try {
-      const token = storage.get('token');
-      const response = await fetch(`${API_URL}/materiales/${material.idMaterial}/stream`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('No estás autorizado para ver este recurso.');
-      }
-
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      setViewerBlobUrl(blobUrl);
-    } catch (err) {
-      console.error(err);
-      setViewerError(err.message || 'Error al cargar el visor seguro.');
-    } finally {
-      setViewerLoading(false);
-    }
-  };
-
-  const handleCloseViewer = () => {
-    if (viewerBlobUrl) {
-      URL.revokeObjectURL(viewerBlobUrl);
-      setViewerBlobUrl('');
-    }
-    setActiveViewerMaterial(null);
-  };
-
-  const handleDownloadSecure = async (material) => {
-    try {
-      const token = storage.get('token');
-      const response = await fetch(`${API_URL}/materiales/${material.idMaterial}/download`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        alert('Error al descargar el archivo.');
-        return;
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      
-      // Intentar obtener el nombre del header Content-Disposition
-      const disposition = response.headers.get('Content-Disposition');
-      let filename = material.titulo;
-      if (disposition?.includes('filename=')) {
-        const matches = /filename="?([^"]+)"?/.exec(disposition);
-        if (matches?.[1]) filename = matches[1];
-      } else {
-        filename += material.tipo === 'PDF' ? '.pdf' : '.mp4';
-      }
-
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error(err);
-      alert('Error en la descarga del archivo.');
-    }
-  };
-
-  if (loading) {
+  if (loading && !curso) {
     return (
-      <DashboardContainer title="Detalle del Curso" user={user}>
-        <div className="flex flex-col justify-center items-center h-96 gap-4">
-          <Loader2 className="animate-spin h-12 w-12 text-[#2c5364]" />
-          <p className="text-gray-500 font-semibold">Cargando el contenido del curso...</p>
+      <DashboardContainer activeSection="Cursos" title="Cargando Curso...">
+        <div className="flex items-center justify-center py-20">
+          <Loader2 size={40} className="animate-spin text-[#2c5364]" />
         </div>
       </DashboardContainer>
     );
@@ -389,17 +463,16 @@ const CursoDetallePage = () => {
 
   if (!curso) {
     return (
-      <DashboardContainer title="Curso no encontrado" user={user}>
-        <div className="text-center py-16">
-          <AlertCircle className="mx-auto h-16 w-16 text-red-500 mb-4" />
-          <h3 className="text-xl font-bold text-gray-900">Curso no encontrado</h3>
-          <p className="text-gray-500 mt-2">El curso que intentas ver no existe o fue eliminado.</p>
+      <DashboardContainer activeSection="Cursos" title="Curso no Encontrado">
+        <div className="p-8 bg-red-50 rounded-2xl border border-red-200 text-center space-y-4">
+          <AlertCircle size={48} className="mx-auto text-red-500" />
+          <h2 className="text-xl font-bold text-red-900">No se pudo encontrar el curso solicitado.</h2>
           <button
+            type="button"
             onClick={() => navigate('/cursos')}
-            className="mt-6 inline-flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white px-5 py-2.5 rounded-xl font-semibold shadow"
+            className="px-6 py-2 bg-[#2c5364] text-[#ffffff] rounded-xl font-bold text-sm"
           >
-            <ArrowLeft size={18} />
-            <span>Volver a Cursos</span>
+            Volver a la Lista de Cursos
           </button>
         </div>
       </DashboardContainer>
@@ -407,64 +480,676 @@ const CursoDetallePage = () => {
   }
 
   return (
-    <DashboardContainer title={`Curso: ${curso.titulo}`} user={user}>
-      {/* Botón Volver */}
-      <button
-        onClick={() => navigate('/cursos')}
-        className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors mb-6 font-semibold"
-      >
-        <ArrowLeft size={18} />
-        <span>Volver a Cursos</span>
-      </button>
+    <DashboardContainer activeSection="Cursos" title={curso.titulo}>
+      <div className="space-y-6">
 
-      {/* Cabecera del Curso */}
-      <div className="bg-gradient-to-r from-[#0f2027] via-[#203a43] to-[#2c5364] rounded-3xl p-8 text-white shadow-lg mb-8 relative overflow-hidden">
-        <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-10 translate-y-10">
-          <FileText size={240} />
-        </div>
-        <div className="relative z-10">
-          <div className="flex gap-3 mb-4">
-            <span className="px-3.5 py-1 bg-white/20 backdrop-blur-md text-white text-xs font-bold rounded-full uppercase tracking-wider">
-              {curso.lp}
-            </span>
-            <span className="px-3.5 py-1 bg-white/20 backdrop-blur-md text-white text-xs font-bold rounded-full uppercase tracking-wider">
-              {curso.tipo}
-            </span>
+        {/* Botón Volver */}
+        <button
+          type="button"
+          onClick={() => navigate('/cursos')}
+          className="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-bold text-xs transition-colors cursor-pointer"
+        >
+          <ArrowLeft size={16} />
+          <span>Volver a Cursos</span>
+        </button>
+
+        {/* Alert Notificaciones */}
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-2 text-red-700 text-xs font-bold">
+            <AlertCircle size={18} />
+            <span>{error}</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">{curso.titulo}</h1>
-          <p className="text-white/80 mt-3 max-w-2xl text-sm md:text-base leading-relaxed">{curso.descripcion}</p>
-          <div className="mt-6 flex flex-wrap items-center gap-6 text-sm text-white/70">
-            <div>
-              Profesor: <span className="font-bold text-white">{curso.creador?.nombreCompleto || 'Desconocido'}</span>
-            </div>
-            <div>
-              Temas: <span className="font-bold text-white">{curso.temas?.length || 0}</span>
-            </div>
+        )}
+
+        {success && (
+          <div className="p-4 bg-green-50 border border-green-200 rounded-2xl flex items-center gap-2 text-green-700 text-xs font-bold">
+            <CheckCircle2 size={18} />
+            <span>{success}</span>
           </div>
-        </div>
+        )}
+
+        {/* Hero Card del Curso */}
+        <CursoHeroCard
+          curso={curso}
+          user={user}
+          onNavigateTab={setActiveTab}
+          handleOpenSecureViewer={handleOpenSecureViewer}
+        />
+
+        {/* Navegación por pestañas */}
+        <CursoNavTabs
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          totalTemas={curso.temas?.length || 0}
+        />
+
+        {/* Renderizado Condicional por Pestaña */}
+        <CursoTabContent
+          activeTab={activeTab}
+          id={id}
+          user={user}
+          curso={curso}
+          canManage={canManage}
+          setActiveTab={setActiveTab}
+          fetchCurso={fetchCurso}
+          handleOpenTemaModal={handleOpenTemaModal}
+          handleOpenMaterialModal={handleOpenMaterialModal}
+          handleOpenDesafioModal={handleOpenDesafioModal}
+          handleOpenForoModal={handleOpenForoModal}
+          handleDeleteForo={handleDeleteForo}
+          handleDeleteTema={handleDeleteTema}
+          toggleTema={toggleTema}
+          expandedTemas={expandedTemas}
+          handleOpenSecureViewer={handleOpenSecureViewer}
+          handleDownloadMaterial={handleDownloadMaterial}
+          handleDeleteMaterial={handleDeleteMaterial}
+          handleDeleteDesafio={handleDeleteDesafio}
+          navigate={navigate}
+        />
+
       </div>
 
-      {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-3">
-          <AlertCircle size={20} className="shrink-0" />
-          <p className="text-sm font-medium">{error}</p>
-        </div>
-      )}
+      {/* Modal Crear / Editar Tema */}
+      <Modal
+        isOpen={isTemaModalOpen}
+        onClose={() => setIsTemaModalOpen(false)}
+        title={temaEditId ? "Editar Tema / Módulo" : "Nuevo Tema del Curso"}
+      >
+        <form onSubmit={handleSaveTema} className="space-y-4">
+          <div>
+            <label htmlFor="tema-form-nombre" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Nombre del Tema</label>
+            <input 
+              id="tema-form-nombre"
+              type="text"
+              required
+              placeholder="Ej. Introducción a Funciones y Recursión"
+              value={temaNombre}
+              onChange={(e) => setTemaNombre(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
 
-      {success && (
-        <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl flex items-center gap-3">
-          <CheckCircle2 size={20} className="shrink-0" />
-          <p className="text-sm font-medium">{success}</p>
-        </div>
-      )}
+          <div>
+            <label htmlFor="tema-form-descripcion" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Descripción (Opcional)</label>
+            <textarea 
+              id="tema-form-descripcion"
+              rows="3"
+              placeholder="Explica qué aprenderán los estudiantes en esta sección..."
+              value={temaDescripcion}
+              onChange={(e) => setTemaDescripcion(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs resize-none focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
 
-      {/* Secciones de Contenido */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Temas del Curso</h2>
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button type="button" onClick={() => setIsTemaModalOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">
+              Cancelar
+            </button>
+            <button type="submit" disabled={submitting} className="px-5 py-2.5 bg-[#2c5364] hover:bg-[#203a43] text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5">
+              {submitting ? <Loader2 size={14} className="animate-spin" /> : null}
+              <span>{submitting ? 'Guardando...' : temaEditId ? 'Actualizar Tema' : 'Crear Tema'}</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Subir Material */}
+      <Modal
+        isOpen={isMaterialModalOpen}
+        onClose={() => setIsMaterialModalOpen(false)}
+        title="Subir Material de Aprendizaje"
+      >
+        <form onSubmit={handleSaveMaterial} className="space-y-4">
+          <div>
+            <label htmlFor="mat-form-nombre" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Título del Material</label>
+            <input 
+              id="mat-form-nombre"
+              type="text"
+              required
+              placeholder="Ej. Guía Práctica de Sintaxis"
+              value={materialNombre}
+              onChange={(e) => setMaterialNombre(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="mat-form-tipo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Tipo de Recurso</label>
+            <select 
+              id="mat-form-tipo"
+              value={materialTipo}
+              onChange={(e) => setMaterialTipo(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-bold text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            >
+              <option value="documento">Documento / Guía (PDF)</option>
+              <option value="video">Video Explicativo (MP4)</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="mat-form-archivo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Archivo de Origen</label>
+            <input 
+              id="mat-form-archivo"
+              type="file"
+              required
+              onChange={(e) => setMaterialFile(e.target.files[0])}
+              className="w-full text-xs font-semibold text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#2c5364]/10 file:text-[#2c5364] hover:file:bg-[#2c5364]/20 cursor-pointer"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button type="button" onClick={() => setIsMaterialModalOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">
+              Cancelar
+            </button>
+            <button type="submit" disabled={submitting} className="px-5 py-2.5 bg-[#2c5364] hover:bg-[#203a43] text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5">
+              {submitting ? <Loader2 size={14} className="animate-spin" /> : null}
+              <span>{submitting ? 'Subiendo...' : 'Cargar Material'}</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Crear / Editar Foro */}
+      <Modal
+        isOpen={isForoModalOpen}
+        onClose={() => setIsForoModalOpen(false)}
+        title={foroEditId ? "Editar Foro de Discusión" : "Crear Foro de Discusión en Tema"}
+      >
+        <form onSubmit={handleSaveForo} className="space-y-4">
+          {curso?.temas?.length > 0 && (
+            <div>
+              <label htmlFor="foro-form-tema" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Módulo / Tema del Curso <span className="text-red-500">*</span></label>
+              <select
+                id="foro-form-tema"
+                value={activeTemaId || (curso.temas[0]?.idTema || '')}
+                onChange={(e) => setActiveTemaId(Number(e.target.value))}
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-bold text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#2c5364] cursor-pointer"
+              >
+                {curso.temas.map((t) => (
+                  <option key={t.idTema} value={t.idTema}>
+                    {t.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="foro-form-titulo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Título del Foro <span className="text-red-500">*</span></label>
+            <input 
+              id="foro-form-titulo"
+              type="text"
+              required
+              placeholder="Ej. Foro: Dudas y Consultas sobre Bucles"
+              value={foroTitulo}
+              onChange={(e) => setForoTitulo(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="foro-form-descripcion" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Descripción / Normas (Opcional)</label>
+            <textarea 
+              id="foro-form-descripcion"
+              rows="3"
+              placeholder="Instrucciones o normas para los estudiantes en este espacio..."
+              value={foroDescripcion}
+              onChange={(e) => setForoDescripcion(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs resize-none focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button type="button" onClick={() => setIsForoModalOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">
+              Cancelar
+            </button>
+            <button type="submit" disabled={submitting} className="px-5 py-2.5 bg-[#2c5364] hover:bg-[#203a43] text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5">
+              {submitting ? <Loader2 size={14} className="animate-spin" /> : null}
+              <span>{submitting ? 'Guardando...' : foroEditId ? 'Actualizar Foro' : 'Crear Foro'}</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Desafío Práctico */}
+      <Modal
+        isOpen={isDesafioModalOpen}
+        onClose={() => setIsDesafioModalOpen(false)}
+        title="Crear Desafío Práctico de Código"
+      >
+        <form onSubmit={handleSaveDesafio} className="space-y-4">
+          <div>
+            <label htmlFor="des-form-titulo" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Título del Desafío</label>
+            <input 
+              id="des-form-titulo"
+              type="text"
+              required
+              placeholder="Ej. Suma de Elementos de una Lista"
+              value={desafioTitulo}
+              onChange={(e) => setDesafioTitulo(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="des-form-descripcion" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Enunciado y Problema</label>
+            <textarea 
+              id="des-form-descripcion"
+              rows="3"
+              required
+              placeholder="Explica detalladamente qué debe realizar la función o algoritmo..."
+              value={desafioDescripcion}
+              onChange={(e) => setDesafioDescripcion(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold text-xs resize-none focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="des-form-dificultad" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Dificultad</label>
+              <select 
+                id="des-form-dificultad"
+                value={desafioDificultad}
+                onChange={(e) => setDesafioDificultad(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-bold text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+              >
+                <option value="Facil">Fácil</option>
+                <option value="Medio">Medio</option>
+                <option value="Dificil">Difícil</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="des-form-lenguaje" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Lenguaje de Programación</label>
+              <select 
+                id="des-form-lenguaje"
+                value={desafioLenguaje}
+                onChange={(e) => setDesafioLenguaje(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-bold text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+              >
+                <option value="python">Python 3</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="des-form-plantilla" className="block text-xs font-extrabold text-slate-900 uppercase mb-1">Plantilla Inicial de Código</label>
+            <textarea 
+              id="des-form-plantilla"
+              rows="3"
+              value={desafioPlantillaCodigo}
+              onChange={(e) => setDesafioPlantillaCodigo(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-mono text-xs resize-none bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
+
+          {/* Casos de Prueba */}
+          <div className="space-y-3 pt-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-black text-slate-900 uppercase">Casos de Prueba ({desafioTestCases.length})</span>
+              <button 
+                type="button" 
+                onClick={handleAddTestCase}
+                className="text-xs font-bold text-[#2c5364] hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <Plus size={14} /> Añadir Caso
+              </button>
+            </div>
+
+            {desafioTestCases.map((tc, idx) => (
+              <div key={tc.id} className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[11px] font-bold text-slate-700">Caso #{idx + 1}</span>
+                  {desafioTestCases.length > 1 && (
+                    <button type="button" onClick={() => handleRemoveTestCase(tc.id)} className="text-slate-400 hover:text-red-600 cursor-pointer">
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <input 
+                    type="text"
+                    placeholder="Entrada (Input)..."
+                    value={tc.input}
+                    onChange={(e) => handleTestCaseChange(tc.id, 'input', e.target.value)}
+                    className="px-3 py-1.5 text-xs rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+                  />
+                  <input 
+                    type="text"
+                    required
+                    placeholder="Salida Esperada (Expected Output)..."
+                    value={tc.expected_output}
+                    onChange={(e) => handleTestCaseChange(tc.id, 'expected_output', e.target.value)}
+                    className="px-3 py-1.5 text-xs rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button type="button" onClick={() => setIsDesafioModalOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">
+              Cancelar
+            </button>
+            <button type="submit" disabled={submitting} className="px-5 py-2.5 bg-[#2c5364] hover:bg-[#203a43] text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5">
+              {submitting ? <Loader2 size={14} className="animate-spin" /> : null}
+              <span>{submitting ? 'Creando...' : 'Crear Desafío'}</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Foro de Discusión */}
+      <Modal
+        isOpen={isForoModalOpen}
+        onClose={() => setIsForoModalOpen(false)}
+        title="Crear Foro de Discusión"
+      >
+        <form onSubmit={handleSaveForo} className="space-y-4">
+          <div>
+            <label htmlFor="foro-tema-select" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+              Tema del Curso
+            </label>
+            <select
+              id="foro-tema-select"
+              value={activeTemaId || ''}
+              onChange={(e) => setActiveTemaId(Number(e.target.value))}
+              required
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            >
+              <option value="" disabled>Selecciona un tema...</option>
+              {curso.temas?.map((t) => (
+                <option key={t.idTema} value={t.idTema}>
+                  {t.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="foro-titulo-input" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+              Título del Foro
+            </label>
+            <input
+              id="foro-titulo-input"
+              type="text"
+              required
+              value={foroTitulo}
+              onChange={(e) => setForoTitulo(e.target.value)}
+              placeholder="Ej: Foro de Consultas - Unidad 1"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="foro-descripcion-textarea" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+              Descripción / Instrucciones (Opcional)
+            </label>
+            <textarea
+              id="foro-descripcion-textarea"
+              rows={3}
+              value={foroDescripcion}
+              onChange={(e) => setForoDescripcion(e.target.value)}
+              placeholder="Espacio para resolver dudas y debatir sobre este tema..."
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setIsForoModalOpen(false)}
+              className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-4 py-2 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+            >
+              {submitting && <Loader2 size={14} className="animate-spin" />}
+              <span>Crear Foro</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Secure Viewer (TC-SP2-05) */}
+      <PDFSecureViewer
+        material={activeViewerMaterial}
+        blobUrl={viewerBlobUrl}
+        loading={viewerLoading}
+        error={viewerError}
+        onClose={handleCloseSecureViewer}
+      />
+
+      {/* ConfirmModal Reutilizable */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmState.onConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        variant={confirmState.variant}
+      />
+
+    </DashboardContainer>
+  );
+};
+
+// Extrae todos los foros de todos los temas del curso
+const extractForosFromTemas = (temas = []) => {
+  const result = [];
+  for (const tema of temas) {
+    const foroItems = (tema.items || []).filter(item => {
+      const type = item.itemable_type || '';
+      return type.includes('Foro') || Boolean(item.itemable?.idForo) || Boolean(item.idForo);
+    });
+    if (foroItems.length > 0) {
+      result.push({ tema, foros: foroItems });
+    }
+  }
+  return result;
+};
+
+const ForosDelCurso = ({ curso, user, canManage, handleOpenForoModal, handleDeleteForo }) => {
+  const [foroActivoId, setForoActivoId] = useState(null);
+
+  const temasConForos = extractForosFromTemas(curso?.temas);
+  const totalForos = temasConForos.reduce((acc, t) => acc + t.foros.length, 0);
+
+  if (foroActivoId) {
+    return (
+      <ForoSeccion
+        idForo={foroActivoId}
+        user={user}
+        temas={curso.temas}
+        onBack={() => setForoActivoId(null)}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex justify-between items-center flex-wrap gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Foros del Curso</h2>
+          <p className="text-xs text-slate-500 font-semibold mt-1">
+            {totalForos} {totalForos === 1 ? 'foro disponible' : 'foros disponibles'} en este curso
+          </p>
+        </div>
         {canManage && (
           <button
-            onClick={handleOpenTemaModal}
-            className="flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2.5 rounded-xl font-semibold shadow-sm transition-all hover:shadow-md"
+            type="button"
+            onClick={() => {
+              const firstTemaId = curso?.temas?.[0]?.idTema || null;
+              handleOpenForoModal(firstTemaId);
+            }}
+            className="bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <Plus size={16} />
+            <span>Crear Nuevo Foro</span>
+          </button>
+        )}
+      </div>
+
+      {totalForos === 0 ? (
+        <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-4">
+          <MessageSquare className="mx-auto h-12 w-12 text-slate-300" />
+          <h3 className="text-lg font-extrabold text-slate-900">No hay foros disponibles</h3>
+          <p className="text-slate-500 text-xs max-w-sm mx-auto font-medium leading-relaxed">
+            {canManage
+              ? 'Habilita foros de discusión en este curso para interactuar con tus estudiantes.'
+              : 'El profesor aún no ha habilitado foros de discusión en este curso.'}
+          </p>
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => {
+                const firstTemaId = curso?.temas?.[0]?.idTema || null;
+                handleOpenForoModal(firstTemaId);
+              }}
+              className="inline-flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer"
+            >
+              <Plus size={16} />
+              <span>Crear Nuevo Foro</span>
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {temasConForos.map(({ tema, foros }) => (
+            <div key={tema.idTema} className="space-y-3">
+              {/* Encabezado del Tema */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-px flex-1 w-6 bg-slate-200" />
+                  <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider px-2">
+                    {tema.nombre}
+                  </span>
+                  <div className="h-px bg-slate-200 flex-1" />
+                </div>
+                {canManage && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenForoModal(tema.idTema)}
+                    className="flex items-center gap-1 text-[10px] font-extrabold text-[#2c5364] hover:text-[#203a43] px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer ml-2 shrink-0"
+                    title={`Crear foro en "${tema.nombre}"`}
+                  >
+                    <Plus size={12} />
+                    <span>Nuevo Foro</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Foros del Tema */}
+              {foros.map((item) => {
+                const foroId = item.idForo || item.itemable?.idForo || item.itemable_id;
+                const titulo = item.titulo || item.itemable?.titulo || 'Foro de Discusión';
+                const descripcion = item.descripcion || item.itemable?.descripcion || '';
+
+                return (
+                  <div
+                    key={foroId || item.idItem}
+                    className="p-5 bg-white rounded-3xl border border-slate-200 hover:border-[#2c5364]/40 hover:shadow-md transition-all duration-200 flex justify-between items-center gap-4 shadow-xs"
+                  >
+                    <div className="flex items-start gap-4 flex-1 min-w-0">
+                      <div className="p-3 rounded-2xl bg-purple-50 text-purple-700 shrink-0">
+                        <MessageSquare size={20} />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-extrabold text-slate-900 text-base leading-snug truncate">{titulo}</h3>
+                        {descripcion && (
+                          <p className="text-xs text-slate-500 font-medium mt-1 line-clamp-2">{descripcion}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => foroId && setForoActivoId(Number(foroId))}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs hover:shadow-md"
+                      >
+                        <MessageSquare size={14} />
+                        <span>Abrir Foro</span>
+                      </button>
+
+                      {canManage && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteForo(item)}
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                          title="Eliminar Foro"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const CursoTabContent = ({
+  activeTab,
+  id,
+  user,
+  curso,
+  canManage,
+  setActiveTab,
+  fetchCurso,
+  handleOpenTemaModal,
+  handleOpenMaterialModal,
+  handleOpenDesafioModal,
+  handleOpenForoModal,
+  handleDeleteForo,
+  handleDeleteTema,
+  toggleTema,
+  expandedTemas,
+  handleOpenSecureViewer,
+  handleDownloadMaterial,
+  handleDeleteMaterial,
+  handleDeleteDesafio,
+  navigate,
+}) => {
+  if (activeTab === 'foro') {
+    return (
+      <ForosDelCurso
+        curso={curso}
+        user={user}
+        canManage={canManage}
+        handleOpenForoModal={handleOpenForoModal}
+        handleDeleteForo={handleDeleteForo}
+        fetchCurso={fetchCurso}
+      />
+    );
+  }
+
+  if (activeTab === 'quizzes') {
+    return <QuizSeccion idCurso={id} user={user} temas={curso.temas} onQuizCompleted={fetchCurso} />;
+  }
+
+  return (
+    <>
+      {/* Secciones de Contenido */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Temas del Curso</h2>
+        {canManage && (
+          <button
+            type="button"
+            onClick={() => handleOpenTemaModal()}
+            className="flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-2.5 rounded-xl font-extrabold shadow-sm transition-all hover:shadow-md cursor-pointer text-xs"
           >
             <Plus size={18} />
             <span>Nuevo Tema</span>
@@ -473,100 +1158,114 @@ const CursoDetallePage = () => {
       </div>
 
       {curso.temas?.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
-          <FileText className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-bold text-gray-900">No hay contenido disponible</h3>
-          <p className="text-gray-500 mt-1 max-w-sm mx-auto">Este curso aún no tiene temas ni módulos cargados por el profesor.</p>
+        <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-xs">
+          <FileText className="mx-auto h-12 w-12 text-slate-300 mb-4" />
+          <h3 className="text-lg font-extrabold text-slate-900">No hay contenido disponible</h3>
+          <p className="text-slate-500 text-xs mt-1 max-w-sm mx-auto font-medium">Este curso aún no tiene temas ni módulos cargados por el profesor.</p>
         </div>
       ) : (
         <div className="space-y-4">
           {curso.temas?.map((tema) => (
-            <div key={tema.idTema} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300">
+            <div key={tema.idTema} className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden transition-all duration-300">
               {/* Header Tema */}
-              <div className="p-5 flex justify-between items-center hover:bg-gray-50/50 transition-colors select-none">
+              <div className="p-5 flex justify-between items-center hover:bg-slate-50 transition-colors select-none">
                 <button 
                   type="button"
                   onClick={() => toggleTema(tema.idTema)}
-                  className="flex items-center gap-4 flex-1 text-left focus:outline-none"
-                  aria-expanded={expandedTemas[tema.idTema]}
+                  className="flex items-center gap-4 flex-1 text-left focus:outline-none cursor-pointer"
                 >
-                  <div className="p-2.5 bg-blue-50 text-blue-700 rounded-xl">
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
+                  <div className="p-2.5 bg-slate-100 text-[#2c5364] rounded-2xl">
+                    <BookOpen size={20} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900 text-lg leading-tight">{tema.nombre}</h3>
-                    {tema.descripcion && <p className="text-gray-500 text-sm mt-0.5">{tema.descripcion}</p>}
+                    <h3 className="font-extrabold text-slate-900 text-base md:text-lg">{tema.nombre}</h3>
+                    {tema.descripcion && (
+                      <p className="text-slate-500 text-xs font-medium">{tema.descripcion}</p>
+                    )}
                   </div>
                 </button>
-                
+
                 <div className="flex items-center gap-3">
                   {canManage && (
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-xl p-1">
                       <button
+                        type="button"
                         onClick={() => handleOpenMaterialModal(tema.idTema)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-bold rounded-lg transition-colors"
+                        className="p-1.5 text-slate-700 hover:text-[#2c5364] hover:bg-white rounded-lg transition-colors cursor-pointer"
+                        title="Subir Material"
                       >
-                        <Plus size={14} />
-                        <span>Subir Material</span>
+                        <Plus size={16} />
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleOpenDesafioModal(tema.idTema)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-lg transition-colors"
+                        className="p-1.5 text-slate-700 hover:text-[#2c5364] hover:bg-white rounded-lg transition-colors cursor-pointer"
+                        title="Crear Desafío Práctico"
                       >
-                        <Plus size={14} />
-                        <span>Crear Desafío</span>
+                        <Code size={16} />
                       </button>
                       <button
-                        onClick={(e) => handleDeleteTema(tema.idTema, e)}
-                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        type="button"
+                        onClick={() => handleOpenForoModal(tema.idTema)}
+                        className="p-1.5 text-slate-700 hover:text-purple-700 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                        title="Crear Foro de Discusión en este Tema"
+                      >
+                        <MessageSquare size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenTemaModal(tema)}
+                        className="p-1.5 text-slate-700 hover:text-[#2c5364] hover:bg-white rounded-lg transition-colors cursor-pointer"
+                        title="Editar Tema"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTema(tema.idTema)}
+                        className="p-1.5 text-slate-700 hover:text-red-600 hover:bg-white rounded-lg transition-colors cursor-pointer"
                         title="Eliminar Tema"
                       >
                         <Trash2 size={16} />
                       </button>
                     </div>
                   )}
+
                   <button
                     type="button"
                     onClick={() => toggleTema(tema.idTema)}
-                    className="p-1 text-gray-400 hover:text-gray-600 focus:outline-none"
-                    aria-label={expandedTemas[tema.idTema] ? "Colapsar tema" : "Expandir tema"}
+                    className="p-2 text-slate-400 hover:text-slate-700 cursor-pointer"
                   >
                     {expandedTemas[tema.idTema] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                   </button>
                 </div>
               </div>
 
+              {/* Contenido Expandible */}
               {expandedTemas[tema.idTema] && (
-                <div className="border-t border-gray-50 bg-gray-50/10 p-5 space-y-3">
+                <div className="border-t border-slate-100 p-5 bg-slate-50/50 space-y-3">
                   {tema.items?.length === 0 ? (
-                    <p className="text-gray-400 text-sm italic py-2">No hay contenidos cargados en este tema.</p>
+                    <p className="text-xs text-slate-400 font-medium italic text-center py-4">No hay ítems cargados en este tema.</p>
                   ) : (
-                    tema.items?.map((item) => {
-                      const resource = item.itemable;
-                      if (!resource) return null;
-
-                      const isMaterial = item.itemable_type.includes('MaterialAprendizaje');
-                      const isDesafio = item.itemable_type.includes('Desafio');
-
-                      if (isMaterial) {
-                        return renderMaterialItem(
-                          item,
-                          resource,
-                          canManage,
-                          handleViewSecure,
-                          handleDownloadSecure,
-                          handleDeleteMaterial
-                        );
-                      }
-
-                      if (isDesafio) {
-                        return renderDesafioItem(item, resource, id, navigate, canManage, handleDeleteDesafio);
-                      }
-
-                      return null;
-                    })
+                    tema.items?.map((item, itemIdx) => (
+                      <TemaItemCard
+                        key={item.idItem || item.idMaterial || item.idDesafio || item.idForo || item.idQuiz || `item-${itemIdx}`}
+                        item={item}
+                        itemIdx={itemIdx}
+                        temaId={tema.idTema}
+                        canManage={canManage}
+                        canResolve={user?.rol === 'Estudiante'}
+                        handleOpenSecureViewer={handleOpenSecureViewer}
+                        handleDownloadMaterial={handleDownloadMaterial}
+                        handleDeleteMaterial={handleDeleteMaterial}
+                        handleDeleteDesafio={handleDeleteDesafio}
+                        handleOpenForoModal={handleOpenForoModal}
+                        handleDeleteForo={handleDeleteForo}
+                        navigate={navigate}
+                        idCurso={id}
+                        setActiveTab={setActiveTab}
+                      />
+                    ))
                   )}
                 </div>
               )}
@@ -574,484 +1273,7 @@ const CursoDetallePage = () => {
           ))}
         </div>
       )}
-
-      {/* --- MODAL CREAR TEMA --- */}
-      {isTemaModalOpen && (
-        <div className="fixed inset-0 bg-black/55 backdrop-blur-xs flex justify-center items-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative">
-            <button 
-              onClick={() => setIsTemaModalOpen(false)}
-              className="absolute right-6 top-6 p-1.5 text-gray-400 hover:bg-gray-50 rounded-lg"
-            >
-              <X size={18} />
-            </button>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Crear Nuevo Tema</h3>
-            <p className="text-gray-500 text-sm mb-6">Organiza el contenido del curso creando unidades o secciones.</p>
-            <form onSubmit={handleTemaSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="tema-nombre" className="block text-sm font-bold text-gray-700 mb-1.5">Nombre del Tema <span className="text-red-500">*</span></label>
-                <input 
-                  id="tema-nombre"
-                  type="text" 
-                  required
-                  placeholder="Ej: Fundamentos de bucles, OOP en Python..."
-                  value={temaForm.nombre}
-                  onChange={(e) => setTemaForm(prev => ({ ...prev, nombre: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
-                />
-              </div>
-              <div>
-                <label htmlFor="tema-descripcion" className="block text-sm font-bold text-gray-700 mb-1.5">Descripción (Opcional)</label>
-                <textarea 
-                  id="tema-descripcion"
-                  placeholder="Detalla qué conceptos se cubren en esta sección..."
-                  value={temaForm.descripcion}
-                  onChange={(e) => setTemaForm(prev => ({ ...prev, descripcion: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364] h-24 resize-none"
-                />
-              </div>
-              <div className="flex gap-3 justify-end pt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsTemaModalOpen(false)}
-                  className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold hover:bg-gray-50"
-                  disabled={actionLoading}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-[#2c5364] hover:bg-[#203a43] text-white rounded-xl text-sm font-semibold shadow flex items-center gap-2"
-                  disabled={actionLoading}
-                >
-                  {actionLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>Publicar Tema</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* --- MODAL SUBIR MATERIAL --- */}
-      {isMaterialModalOpen && (
-        <div className="fixed inset-0 bg-black/55 backdrop-blur-xs flex justify-center items-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative">
-            <button 
-              onClick={() => setIsMaterialModalOpen(false)}
-              className="absolute right-6 top-6 p-1.5 text-gray-400 hover:bg-gray-50 rounded-lg"
-            >
-              <X size={18} />
-            </button>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Subir Material de Aprendizaje</h3>
-            <p className="text-gray-500 text-sm mb-6">Añade guías en formato PDF o grabaciones de clase.</p>
-            <form onSubmit={handleMaterialSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="material-titulo" className="block text-sm font-bold text-gray-700 mb-1.5">Título <span className="text-red-500">*</span></label>
-                <input 
-                  id="material-titulo"
-                  type="text" 
-                  required
-                  placeholder="Ej: Apuntes de Condicionales, Video Clase 1..."
-                  value={materialForm.titulo}
-                  onChange={(e) => setMaterialForm(prev => ({ ...prev, titulo: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
-                />
-              </div>
-              <div>
-                <label htmlFor="material-descripcion" className="block text-sm font-bold text-gray-700 mb-1.5">Descripción (Opcional)</label>
-                <input 
-                  id="material-descripcion"
-                  type="text"
-                  placeholder="Ej: Lectura complementaria de 15 páginas..."
-                  value={materialForm.descripcion}
-                  onChange={(e) => setMaterialForm(prev => ({ ...prev, descripcion: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
-                />
-              </div>
-              <div>
-                <label htmlFor="material-tipo" className="block text-sm font-bold text-gray-700 mb-1.5">Tipo de Recurso</label>
-                <select
-                  id="material-tipo"
-                  value={materialForm.tipo}
-                  onChange={(e) => setMaterialForm(prev => ({ ...prev, tipo: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#2c5364]"
-                >
-                  <option value="PDF">Documento PDF</option>
-                  <option value="video">Grabación / Clase en Video</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="material-archivo" className="block text-sm font-bold text-gray-700 mb-1.5">Seleccionar Archivo (Máx 30MB) <span className="text-red-500">*</span></label>
-                <input 
-                  id="material-archivo"
-                  type="file" 
-                  required
-                  accept={materialForm.tipo === 'PDF' ? 'application/pdf' : 'video/*'}
-                  onChange={handleFileChange}
-                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-[#2c5364] hover:file:bg-blue-100 cursor-pointer"
-                />
-              </div>
-              <div className="flex gap-3 justify-end pt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsMaterialModalOpen(false)}
-                  className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold hover:bg-gray-50"
-                  disabled={actionLoading}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-[#2c5364] hover:bg-[#203a43] text-white rounded-xl text-sm font-semibold shadow flex items-center gap-2"
-                  disabled={actionLoading}
-                >
-                  {actionLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>Subir Recurso</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* --- MODAL CREAR DESAFÍO --- */}
-      {isDesafioModalOpen && (
-        <div className="fixed inset-0 bg-black/55 backdrop-blur-xs flex justify-center items-center z-50 p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl relative my-8">
-            <button 
-              onClick={() => setIsDesafioModalOpen(false)}
-              className="absolute right-6 top-6 p-1.5 text-gray-400 hover:bg-gray-50 rounded-lg"
-            >
-              <X size={18} />
-            </button>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Crear Nuevo Desafío de Programación</h3>
-            <p className="text-gray-500 text-sm mb-6">Agrega un reto de código al banco de ejercicios para este tema.</p>
-            <form onSubmit={handleDesafioSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="desafio-titulo" className="block text-sm font-bold text-gray-700 mb-1.5">Título del Desafío <span className="text-red-500">*</span></label>
-                  <input 
-                    id="desafio-titulo"
-                    type="text" 
-                    required
-                    placeholder="Ej: Suma de dos números..."
-                    value={desafioForm.titulo}
-                    onChange={(e) => setDesafioForm(prev => ({ ...prev, titulo: e.target.value }))}
-                    className="w-full border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white shadow-sm transition-all"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="desafio-dificultad" className="block text-sm font-bold text-gray-700 mb-1.5">Dificultad</label>
-                  <select
-                    id="desafio-dificultad"
-                    value={desafioForm.dificultad}
-                    onChange={(e) => setDesafioForm(prev => ({ ...prev, dificultad: e.target.value }))}
-                    className="w-full border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 shadow-sm transition-all cursor-pointer"
-                  >
-                    <option value="Easy">Fácil</option>
-                    <option value="Medium">Medio</option>
-                    <option value="Hard">Difícil</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="desafio-puntos" className="block text-sm font-bold text-gray-700 mb-1.5">Puntos de XP <span className="text-red-500">*</span></label>
-                  <input 
-                    id="desafio-puntos"
-                    type="number" 
-                    min="1"
-                    required
-                    value={desafioForm.puntos}
-                    onChange={(e) => setDesafioForm(prev => ({ ...prev, puntos: Number.parseInt(e.target.value, 10) || 10 }))}
-                    className="w-full border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 text-gray-900 bg-white shadow-sm transition-all"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="desafio-starter-code" className="block text-sm font-bold text-gray-700 mb-1.5">Código Base (Starter Code)</label>
-                <textarea 
-                  id="desafio-starter-code"
-                  placeholder="def solucion():&#10;    # escribe tu código aquí"
-                  value={desafioForm.starter_code}
-                  onChange={(e) => setDesafioForm(prev => ({ ...prev, starter_code: e.target.value }))}
-                  className="w-full border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 h-36 font-mono text-sm bg-white text-gray-900 shadow-sm resize-y transition-all"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="desafio-descripcion" className="block text-sm font-bold text-gray-700 mb-1.5">Enunciado del Problema <span className="text-red-500">*</span></label>
-                <textarea 
-                  id="desafio-descripcion"
-                  required
-                  placeholder="Escribe la descripción del problema en Markdown o texto claro..."
-                  value={desafioForm.descripcionProblema}
-                  onChange={(e) => setDesafioForm(prev => ({ ...prev, descripcionProblema: e.target.value }))}
-                  className="w-full border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c5364]/20 h-20 resize-none text-sm bg-white text-gray-900 shadow-sm transition-all"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-bold text-gray-700">Casos de Prueba (Mínimo 1)</span>
-                  <button
-                    type="button"
-                    onClick={handleAddTestCase}
-                    className="text-xs bg-blue-50 text-blue-700 font-bold px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
-                  >
-                    + Agregar Caso
-                  </button>
-                </div>
-                
-                <div className="space-y-3 max-h-44 overflow-y-auto pr-1">
-                  {desafioForm.testCases.map((tc, index) => (
-                    <div key={tc.id || `tc-case-${index}`} className="flex gap-2 items-center bg-gray-50 p-3 rounded-xl border border-gray-150 relative">
-                      <div className="flex-1">
-                        <input 
-                          type="text"
-                          placeholder="Input (ej: 5)"
-                          value={tc.input}
-                          onChange={(e) => handleTestCaseChange(index, 'input', e.target.value)}
-                          className="w-full border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-lg px-2.5 py-1.5 text-xs mb-1.5 bg-white text-gray-900 shadow-xs transition-all"
-                        />
-                        <input 
-                          type="text"
-                          required
-                          placeholder="Salida esperada (ej: 10)"
-                          value={tc.expected_output}
-                          onChange={(e) => handleTestCaseChange(index, 'expected_output', e.target.value)}
-                          className="w-full border border-gray-300 hover:border-gray-400 focus:border-[#2c5364] rounded-lg px-2.5 py-1.5 text-xs bg-white text-gray-900 shadow-xs transition-all"
-                        />
-                      </div>
-                      <div className="flex flex-col items-center gap-1 shrink-0">
-                        <label htmlFor={`tc-hidden-${index}`} className="text-[10px] font-bold text-gray-500 uppercase select-none">Oculto</label>
-                        <input 
-                          id={`tc-hidden-${index}`}
-                          type="checkbox"
-                          checked={tc.is_hidden}
-                          onChange={(e) => handleTestCaseChange(index, 'is_hidden', e.target.checked)}
-                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300"
-                        />
-                      </div>
-                      {desafioForm.testCases.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveTestCase(index)}
-                          className="p-1 text-red-500 hover:bg-red-50 rounded-lg"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-3 justify-end pt-4 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setIsDesafioModalOpen(false)}
-                  className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold hover:bg-gray-50"
-                  disabled={actionLoading}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-[#2c5364] hover:bg-[#203a43] text-white rounded-xl text-sm font-semibold shadow flex items-center gap-2"
-                  disabled={actionLoading}
-                >
-                  {actionLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>Publicar Desafío</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* --- MODAL VISOR SEGURO (SECURE VIEWER) --- */}
-      {activeViewerMaterial && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex justify-center items-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl relative flex flex-col h-[90vh] overflow-hidden">
-            {/* Cabecera del Visor */}
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${
-                  activeViewerMaterial.tipo === 'PDF' ? 'bg-red-50 text-red-700' : 'bg-purple-50 text-purple-700'
-                }`}>
-                  {activeViewerMaterial.tipo === 'PDF' ? <FileText size={18} /> : <Video size={18} />}
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-base md:text-lg leading-tight">
-                    Visor Seguro: {activeViewerMaterial.titulo}
-                  </h3>
-                  <p className="text-gray-400 text-xxs font-bold uppercase tracking-wider">Carga Protegida con Encriptación Local</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleDownloadSecure(activeViewerMaterial)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white text-xs font-bold rounded-lg transition-colors"
-                  title="Descargar para almacenamiento sin conexión"
-                >
-                  <Download size={12} />
-                  <span>Descargar</span>
-                </button>
-                <button 
-                  onClick={handleCloseViewer}
-                  className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            </div>
-
-            {/* Contenedor del Visor */}
-            <div className="flex-1 bg-gray-900 flex justify-center items-center p-2">
-              {viewerLoading && (
-                <div className="flex flex-col justify-center items-center text-white/80 gap-3">
-                  <Loader2 className="animate-spin h-10 w-10 text-white" />
-                  <p className="text-sm font-semibold">Descargando recurso a través de canal seguro...</p>
-                </div>
-              )}
-
-              {viewerError && (
-                <div className="text-center max-w-md p-6 bg-white rounded-2xl border border-red-100">
-                  <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-3" />
-                  <h4 className="font-bold text-gray-900">Error del Visor</h4>
-                  <p className="text-gray-500 text-sm mt-1">{viewerError}</p>
-                </div>
-              )}
-
-              {viewerBlobUrl && (
-                <>
-                  {activeViewerMaterial.tipo === 'PDF' ? (
-                    <iframe 
-                      src={`${viewerBlobUrl}#toolbar=0`} // #toolbar=0 previene descargar desde el control de pdf nativo
-                      className="w-full h-full rounded-2xl bg-white border-0" 
-                      title={activeViewerMaterial.titulo} 
-                    />
-                  ) : (
-                    <video 
-                      src={viewerBlobUrl} 
-                      controls 
-                      className="w-full max-h-full rounded-2xl shadow-lg"
-                      autoPlay
-                      controlsList="nodownload" // previene el botón de descarga nativo del navegador
-                    >
-                      <track kind="captions" />
-                    </video>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </DashboardContainer>
-  );
-};
-
-const renderMaterialItem = (item, resource, canManage, handleViewSecure, handleDownloadSecure, handleDeleteMaterial) => {
-  return (
-    <div key={item.idItemTema} className="flex justify-between items-center bg-white border border-gray-100 p-4 rounded-xl shadow-xs hover:shadow-md transition-shadow w-full">
-      <div className="flex items-center gap-4.5">
-        <div className={`p-2.5 rounded-xl ${
-          resource.tipo === 'PDF' ? 'bg-red-50 text-red-700' : 'bg-purple-50 text-purple-700'
-        }`}>
-          {resource.tipo === 'PDF' ? <FileText size={20} /> : <Video size={20} />}
-        </div>
-        <div>
-          <h4 className="font-bold text-gray-900 text-sm md:text-base leading-snug">{resource.titulo}</h4>
-          {resource.descripcion && <p className="text-gray-500 text-xs mt-0.5">{resource.descripcion}</p>}
-          <div className="flex items-center gap-3 mt-1.5 text-xxs text-gray-400 font-semibold uppercase tracking-wider">
-            <span>Subido por {resource.creador?.nombreCompleto || 'Profesor'}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => handleViewSecure(resource)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors"
-        >
-          {resource.tipo === 'video' ? <Play size={14} /> : <Eye size={14} />}
-          <span>{resource.tipo === 'video' ? 'Reproducir' : 'Ver'}</span>
-        </button>
-        
-        <button
-          onClick={() => handleDownloadSecure(resource)}
-          className="p-1.5 border border-gray-100 hover:border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-          title="Descargar"
-        >
-          <Download size={14} />
-        </button>
-
-        {canManage && (
-          <button
-            onClick={() => handleDeleteMaterial(resource.idMaterial)}
-            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-            title="Eliminar Material"
-          >
-            <Trash2 size={14} />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const renderDesafioItem = (item, resource, id, navigate, canManage, handleDeleteDesafio) => {
-  const getDificultadBadgeClass = (dificultad) => {
-    if (dificultad === 'Easy') return 'bg-green-50 text-green-700';
-    if (dificultad === 'Medium') return 'bg-amber-50 text-amber-700';
-    return 'bg-red-50 text-red-700';
-  };
-
-  return (
-    <div key={item.idItemTema} className="flex justify-between items-center bg-white border border-gray-100 p-4 rounded-xl shadow-xs hover:shadow-md transition-shadow w-full">
-      <div className="flex items-center gap-4.5">
-        <div className="p-2.5 bg-amber-50 text-amber-700 rounded-xl">
-          <Code size={20} />
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <h4 className="font-bold text-gray-900 text-sm md:text-base leading-snug">{resource.titulo}</h4>
-            <span className={`px-2 py-0.5 text-xxs font-bold rounded-md uppercase tracking-wider ${getDificultadBadgeClass(resource.dificultad)}`}>
-              {resource.dificultad}
-            </span>
-          </div>
-          <p className="text-gray-500 text-xs mt-0.5 line-clamp-1">{resource.descripcionProblema}</p>
-          <div className="flex items-center gap-3 mt-1.5 text-xxs text-gray-400 font-semibold uppercase tracking-wider">
-            <span>Desafío de programación • Creado por {resource.creador?.nombreCompleto || 'Profesor'}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => navigate(`/cursos/${id}/desafios/${resource.idDesafio}`)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#d97706] hover:bg-[#b45309] text-white text-xs font-bold rounded-lg transition-colors shadow-xs"
-        >
-          <Play size={14} />
-          <span>Resolver</span>
-        </button>
-
-        {canManage && (
-          <button
-            onClick={() => handleDeleteDesafio(resource.idDesafio)}
-            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-            title="Eliminar Desafío"
-          >
-            <Trash2 size={14} />
-          </button>
-        )}
-      </div>
-    </div>
+    </>
   );
 };
 

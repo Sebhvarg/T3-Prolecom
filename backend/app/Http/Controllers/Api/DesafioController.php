@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\ProcesarIntentoDesafio;
 use App\Models\Curso;
 use App\Models\Desafio;
+use App\Models\Notificacion;
 use App\Models\Solucion;
 use App\Models\Tema;
 use Illuminate\Http\Request;
@@ -96,6 +97,8 @@ class DesafioController extends Controller
             'testCases.*.is_hidden' => 'required|boolean',
             'puntos' => 'integer|min:1',
             'starter_code' => 'nullable|string',
+        ], [
+            'dificultad.in' => 'Difficulty must be Easy, Medium, or Hard',
         ]);
 
         $tema = Tema::findOrFail($idTema);
@@ -131,6 +134,16 @@ class DesafioController extends Controller
             ]);
 
             DB::commit();
+
+            if ($desafio->estado === 'publicado') {
+                Notificacion::notificarEstudiantesDelCurso(
+                    $tema->idCurso,
+                    'nuevo_desafio',
+                    'Nuevo Desafío Práctico',
+                    "El profesor asignó el desafío '{$desafio->titulo}' en {$tema->nombre}.",
+                    ['idDesafio' => $desafio->idDesafio]
+                );
+            }
 
             return response()->json([
                 'message' => ($isProfessor || $isAdmin) ? 'Desafío creado y publicado exitosamente.' : 'Desafío enviado a revisión del profesor.',
@@ -262,5 +275,49 @@ class DesafioController extends Controller
 
             return response()->json(['message' => 'Error al eliminar el desafío.'], 500);
         }
+    }
+
+    /**
+     * Reiniciar reto (Estudiante vuelve a intentar un reto completado y se le deducen los XP previamente ganados)
+     */
+    public function reset(Request $request, $id)
+    {
+        $desafio = Desafio::findOrFail($id);
+        $user = $request->user();
+
+        $solucionesAprobadas = Solucion::where('idEstudiante', $user->idUsuario)
+            ->where('idDesafio', $desafio->idDesafio)
+            ->where('estado', 'aprobado')
+            ->get();
+
+        $puntosARestar = 0;
+        if ($solucionesAprobadas->isNotEmpty()) {
+            $puntosARestar = $desafio->puntos;
+        }
+
+        DB::transaction(function () use ($user, $desafio, $puntosARestar) {
+            Solucion::where('idEstudiante', $user->idUsuario)
+                ->where('idDesafio', $desafio->idDesafio)
+                ->delete();
+
+            if ($puntosARestar > 0) {
+                $user->xp = max(0, $user->xp - $puntosARestar);
+                $user->save();
+            }
+        });
+
+        $userFresh = $user->fresh();
+
+        return response()->json([
+            'message' => "Desafío reiniciado correctamente. Se dedujeron {$puntosARestar} XP.",
+            'xp_deducidos' => $puntosARestar,
+            'user' => [
+                'idUsuario' => $userFresh->idUsuario,
+                'nombreCompleto' => $userFresh->nombreCompleto,
+                'username' => $userFresh->username,
+                'email' => $userFresh->email,
+                'xp' => $userFresh->xp,
+            ],
+        ]);
     }
 }

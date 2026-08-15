@@ -18,6 +18,7 @@ class Curso extends Model
         'descripcion',
         'lp',
         'tipo',
+        'idCategoria',
         'idProfeCreador',
     ];
 
@@ -26,10 +27,27 @@ class Curso extends Model
         return $this->belongsTo(User::class, 'idProfeCreador', 'idUsuario');
     }
 
+    public function categoria()
+    {
+        return $this->belongsTo(CategoriaCurso::class, 'idCategoria', 'idCategoria');
+    }
+
     public function estudiantes()
     {
         return $this->belongsToMany(User::class, 'inscripciones_cursos', 'idCurso', 'idUsuarioEstudiante')
             ->withPivot('fechaInscripcion');
+    }
+
+    public function ayudantes()
+    {
+        return $this->belongsToMany(User::class, 'ayudantes_cursos', 'idCurso', 'idUsuarioAyudante')
+            ->withTimestamps();
+    }
+
+    public function moderadores()
+    {
+        return $this->belongsToMany(User::class, 'moderadores_cursos', 'idCurso', 'idUsuarioModerador')
+            ->withTimestamps();
     }
 
     public function temas()

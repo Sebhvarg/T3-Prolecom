@@ -9,7 +9,12 @@ COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr
 
 # Instalar dependencias del sistema y extensiones de PHP necesarias
 RUN apt-get update && apt-get install -y \
+    default-jdk-headless \
+    g++ \
+    gcc \
     git \
+    nodejs \
+    python3 \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
@@ -29,9 +34,9 @@ RUN { \
 
 # Configurar límites de subida de PHP para permitir videos
 RUN { \
-    echo 'upload_max_filesize=100M'; \
-    echo 'post_max_size=100M'; \
-    echo 'memory_limit=256M'; \
+    echo 'upload_max_filesize=500M'; \
+    echo 'post_max_size=500M'; \
+    echo 'memory_limit=512M'; \
 } > /usr/local/etc/php/conf.d/docker-php-upload-limits.ini
 
 # Configuración de Apache para apuntar a la carpeta /public de Laravel

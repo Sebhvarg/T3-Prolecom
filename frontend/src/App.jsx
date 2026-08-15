@@ -4,6 +4,7 @@ import PrivateRoute from './routes/PrivateRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import SoporteDashboard from './pages/soporte/SoporteDashboard';
 import StudentDashboard from './pages/estudiante/StudentDashboard';
 import ProfesorDashboard from './pages/profesor/ProfesorDashboard';
 import CursosPage from './pages/cursos/CursosPage';
@@ -11,8 +12,9 @@ import CursoDetallePage from './pages/cursos/CursoDetallePage';
 import DesafioDetallePage from './pages/cursos/DesafioDetallePage';
 import PerfilPage from './pages/perfil/PerfilPage';
 
-const ModeradorDashboard = () => <h1>Panel de Moderador</h1>;
-const AyudanteDashboard = () => <h1>Panel de Ayudante</h1>;
+import ModeratorDashboard from './pages/dashboard/ModeratorDashboard';
+import AyudanteDashboard from './pages/ayudante/AyudanteDashboard';
+import ReportesPage from './pages/reportes/ReportesPage';
 
 function App() {
   return (
@@ -23,20 +25,19 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           
           {/* Rutas protegidas */}
-          <Route element={<PrivateRoute allowedRoles={[1]} />}>
+          <Route element={<PrivateRoute allowedRoles={[1, 4]} />}>
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/soporte/dashboard" element={<SoporteDashboard />} />
           </Route>
           
-          <Route element={<PrivateRoute allowedRoles={[2]} />}>
-            <Route path="/moderador/dashboard" element={<ModeradorDashboard />} />
+          <Route element={<PrivateRoute allowedRoles={[1, 2]} />}>
+            <Route path="/moderador/dashboard" element={<ModeratorDashboard />} />
+            <Route path="/dashboard/moderador" element={<ModeratorDashboard />} />
+            <Route path="/moderacion" element={<ModeratorDashboard />} />
           </Route>
 
           <Route element={<PrivateRoute allowedRoles={[3]} />}>
             <Route path="/profesor/dashboard" element={<ProfesorDashboard />} />
-          </Route>
-
-          <Route element={<PrivateRoute allowedRoles={[4]} />}>
-            <Route path="/soporte/dashboard" element={<h1>Panel de Soporte</h1>} />
           </Route>
 
           <Route element={<PrivateRoute allowedRoles={[5]} />}>
@@ -47,10 +48,22 @@ function App() {
             <Route path="/dashboard/estudiante" element={<StudentDashboard />} />
           </Route>
 
+          {/* Cursos y Desafíos — Accesible para todos los usuarios autenticados */}
           <Route element={<PrivateRoute allowedRoles={[1, 2, 3, 4, 5, 6]} />}>
             <Route path="/cursos" element={<CursosPage />} />
             <Route path="/cursos/:id" element={<CursoDetallePage />} />
             <Route path="/cursos/:id/desafios/:idDesafio" element={<DesafioDetallePage />} />
+            <Route path="/desafios/:idDesafio" element={<DesafioDetallePage />} />
+            <Route path="/desafios/:id" element={<DesafioDetallePage />} />
+          </Route>
+
+          {/* Centro de Reportes PDF y CSV — Administrador, Profesor, Soporte, Ayudante */}
+          <Route element={<PrivateRoute allowedRoles={[1, 3, 4, 5]} />}>
+            <Route path="/reportes" element={<ReportesPage />} />
+          </Route>
+
+          {/* Perfil accesible para todos los roles autenticados */}
+          <Route element={<PrivateRoute allowedRoles={[1, 2, 3, 4, 5, 6]} />}>
             <Route path="/perfil" element={<PerfilPage />} />
           </Route>
 

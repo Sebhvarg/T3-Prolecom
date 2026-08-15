@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import DashboardContainer from '../../components/layout/DashboardContainer';
@@ -6,11 +6,13 @@ import { useAuth } from '../../context/AuthContext';
 import { desafiosService } from '../../api/desafiosService';
 import { cursosService } from '../../api/cursosService';
 import { 
-  ArrowLeft, Code, Play, CheckCircle2, AlertCircle, Loader2, Sparkles, Terminal, ShieldAlert 
+  ArrowLeft, Code, Play, AlertCircle, Loader2, Terminal, CheckCircle2, ShieldAlert, Sparkles 
 } from 'lucide-react';
 
 const DesafioDetallePage = () => {
-  const { id: idCurso, idDesafio } = useParams();
+  const params = useParams();
+  const idDesafio = params.idDesafio || params.id;
+  const idCurso = params.idDesafio ? params.id : null;
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -73,7 +75,7 @@ const DesafioDetallePage = () => {
     }
   };
 
-  const startPolling = (idSolucion) => {
+  const startPolling = useCallback((idSolucion) => {
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     
     let attemptsCount = 0;
@@ -99,9 +101,9 @@ const DesafioDetallePage = () => {
         setError('La evaluación tardó demasiado. Por favor, revisa tus intentos más tarde.');
       }
     }, 1500);
-  };
+  }, [idDesafio]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!selectedLanguage) return;
     
     setError('');
@@ -122,7 +124,22 @@ const DesafioDetallePage = () => {
       setError(err.message || 'Error al enviar la solución.');
       setEvaluating(false);
     }
-  };
+  }, [idDesafio, code, selectedLanguage, startPolling]);
+
+  // Atajo de teclado (Ctrl + Enter / Cmd + Enter) para ejecutar código
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        if (!evaluating && selectedLanguage) {
+          e.preventDefault();
+          handleSubmit();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [evaluating, selectedLanguage, handleSubmit]);
 
   if (loading) {
     return (
@@ -143,7 +160,7 @@ const DesafioDetallePage = () => {
           <h3 className="text-xl font-bold text-gray-900">Ocurrió un error</h3>
           <p className="text-gray-500 mt-2">{error}</p>
           <button
-            onClick={() => navigate(`/cursos/${idCurso}`)}
+            onClick={() => navigate(idCurso ? `/cursos/${idCurso}` : '/cursos')}
             className="mt-6 inline-flex items-center gap-2 bg-[#2c5364] hover:bg-[#203a43] text-white px-5 py-2.5 rounded-xl font-semibold shadow"
           >
             <ArrowLeft size={18} />
@@ -167,8 +184,8 @@ const DesafioDetallePage = () => {
     <DashboardContainer title={`Desafío: ${desafio?.titulo}`} user={user}>
       {/* Botón Volver */}
       <button
-        onClick={() => navigate(`/cursos/${idCurso}`)}
-        className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors mb-6 font-semibold"
+        onClick={() => navigate(idCurso ? `/cursos/${idCurso}` : '/cursos')}
+        className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors mb-6 font-semibold cursor-pointer"
       >
         <ArrowLeft size={18} />
         <span>Volver a Desafíos</span>
@@ -215,21 +232,24 @@ const DesafioDetallePage = () => {
         <div className="mt-8 border border-gray-200 rounded-3xl overflow-hidden shadow-xs">
           {/* Header del Editor */}
           <div className="bg-gray-50 border-b border-gray-200 px-5 py-4 flex flex-wrap justify-between items-center gap-3 select-none">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Code size={18} className="text-[#2c5364]" />
               <span className="font-bold text-gray-700 text-sm">Editor de Código</span>
+              <span className="text-[10px] text-slate-500 font-mono bg-slate-200/70 px-2 py-0.5 rounded-md font-semibold hidden sm:inline-block">
+                Ctrl + Enter para ejecutar
+              </span>
             </div>
             
             <div className="flex items-center gap-2">
-              <label htmlFor="language-select" className="text-xs font-bold text-gray-500 uppercase">Lenguaje:</label>
+              <label htmlFor="language-select" className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">Lenguaje:</label>
               <select
                 id="language-select"
                 value={selectedLanguage?.idLenguaje || ''}
                 onChange={(e) => handleLanguageChange(e.target.value)}
-                className="border border-gray-200 rounded-lg px-2.5 py-1 text-xs bg-white font-semibold focus:outline-none focus:ring-1 focus:ring-[#2c5364]"
+                className="bg-slate-900 text-white font-bold text-xs rounded-xl px-3.5 py-1.5 border border-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 hover:bg-slate-800 transition-all cursor-pointer"
               >
                 {lenguajes.map(lang => (
-                  <option key={lang.idLenguaje} value={lang.idLenguaje}>
+                  <option key={lang.idLenguaje} value={lang.idLenguaje} className="bg-slate-900 text-white py-1 font-semibold">
                     {lang.nombre}
                   </option>
                 ))}

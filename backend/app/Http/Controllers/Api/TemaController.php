@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Curso;
 use App\Models\MaterialAprendizaje;
+use App\Models\Notificacion;
 use App\Models\Tema;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -14,9 +15,10 @@ class TemaController extends Controller
 {
     private function checkPermission(Curso $curso, $user)
     {
-        $isAdmin = $user->roles->pluck('rol')->contains('Administrador');
+        $roles = $user->roles->pluck('rol');
+        $isAdminOrTA = $roles->contains('Administrador') || $roles->contains('Ayudante');
 
-        return $isAdmin || $curso->idProfeCreador === $user->idUsuario;
+        return $isAdminOrTA || $curso->idProfeCreador === $user->idUsuario;
     }
 
     public function store(Request $request, $cursoId)
@@ -42,6 +44,14 @@ class TemaController extends Controller
             'descripcion' => $request->descripcion,
             'idCurso' => $curso->idCurso,
         ]);
+
+        Notificacion::notificarEstudiantesDelCurso(
+            $curso->idCurso,
+            'nuevo_tema',
+            'Nuevo Módulo Disponible',
+            "Se agregó el módulo '{$tema->nombre}' al curso.",
+            ['idTema' => $tema->idTema]
+        );
 
         return response()->json([
             'message' => 'Tema creado con éxito',

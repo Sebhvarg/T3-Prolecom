@@ -3,9 +3,13 @@
 namespace App\Services\Dashboards;
 
 use App\Models\Curso;
+use App\Models\Desafio;
+use App\Models\Foro;
 use App\Models\Pregunta;
 use App\Models\Solucion;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ProfesorDashboard extends BaseDashboard
 {
@@ -55,34 +59,107 @@ class ProfesorDashboard extends BaseDashboard
 
     protected function getActividadReciente(): array
     {
-        $cursosProfe = Curso::where('idProfeCreador', $this->usuario->idUsuario)->pluck('idCurso')->toArray();
+        $cursosCreados = Curso::where('idProfeCreador', $this->usuario->idUsuario)->pluck('idCurso')->toArray();
+        $cursosAsignados = Schema::hasTable('ayudantes_cursos')
+            ? DB::table('ayudantes_cursos')->where('idUsuarioAyudante', $this->usuario->idUsuario)->pluck('idCurso')->toArray()
+            : [];
+        $cursosProfe = array_values(array_unique(array_filter(array_merge($cursosCreados, $cursosAsignados))));
 
-        // 1. Obtener últimas preguntas
-        $preguntas = Pregunta::whereIn('idCurso', $cursosProfe)
-            ->with(['creador:idUsuario,nombreCompleto', 'curso:idCurso,titulo'])
+        $actPreguntas = $this->getActividadPreguntas($cursosProfe);
+        $actSoluciones = $this->getActividadSoluciones($cursosProfe);
+
+        return collect([...$actPreguntas, ...$actSoluciones])
+            ->sortByDesc('timestamp')
+            ->take(5)
+            ->values()
+            ->toArray();
+    }
+
+    private function getActividadPreguntas(array $cursosProfe): array
+    {
+        if (empty($cursosProfe)) {
+            return [];
+        }
+
+        $forosItems = DB::table('items_tema')
+            ->join('temas', 'items_tema.idTema', '=', 'temas.idTema')
+            ->whereIn('temas.idCurso', $cursosProfe)
+            ->where(function ($q) {
+                $q->where('items_tema.itemable_type', Foro::class)
+                    ->orWhere('items_tema.itemable_type', 'Foro')
+                    ->orWhere('items_tema.itemable_type', 'foro')
+                    ->orWhere('items_tema.itemable_type', 'App\\Models\\Foro');
+            })
+            ->pluck('items_tema.itemable_id')
+            ->toArray();
+
+        $forosDirect = [];
+        if (Schema::hasColumn('foros', 'idCurso')) {
+            $forosDirect = DB::table('foros')
+                ->whereIn('idCurso', $cursosProfe)
+                ->pluck('idForo')
+                ->toArray();
+        }
+
+        $allForoIds = array_values(array_unique(array_filter(array_merge($forosItems, $forosDirect))));
+
+        if (empty($allForoIds)) {
+            return [];
+        }
+
+        return Pregunta::whereIn('idForo', $allForoIds)
+            ->with(['creador:idUsuario,nombreCompleto', 'foro.itemTema.tema.curso:idCurso,titulo'])
             ->latest()
             ->take(5)
             ->get()
             ->map(function ($pregunta) {
                 $nombreCompleto = $pregunta->creador->nombreCompleto ?? 'Estudiante';
                 $primerNombre = explode(' ', $nombreCompleto)[0];
+                $curso = $pregunta->foro?->itemTema?->tema?->curso;
 
                 return [
                     'tipo' => 'foro',
                     'estudiante' => $primerNombre,
                     'detalle' => 'hizo una pregunta',
                     'titulo_actividad' => $pregunta->titulo,
-                    'curso' => $pregunta->curso->titulo ?? 'Curso',
-                    'paralelo' => 10 + (($pregunta->idCurso ?? 0) % 5),
+                    'curso' => $curso ? $curso->titulo : 'Curso',
+                    'paralelo' => 10 + (($curso ? $curso->idCurso : 0) % 5),
                     'fecha' => $pregunta->created_at ? $pregunta->created_at->toISOString() : now()->toISOString(),
                     'timestamp' => $pregunta->created_at ? $pregunta->created_at->timestamp : now()->timestamp,
                 ];
-            });
+            })->toArray();
+    }
 
-        // 2. Obtener últimas soluciones aprobadas
-        $soluciones = Solucion::whereHas('desafio', function ($q) use ($cursosProfe) {
-            $q->whereIn('idCurso', $cursosProfe);
-        })
+    private function getActividadSoluciones(array $cursosProfe): array
+    {
+        if (empty($cursosProfe)) {
+            return [];
+        }
+
+        $challengeIdsDirect = DB::table('desafios')
+            ->whereIn('idCurso', $cursosProfe)
+            ->pluck('idDesafio')
+            ->toArray();
+
+        $challengeIdsItems = DB::table('items_tema')
+            ->join('temas', 'items_tema.idTema', '=', 'temas.idTema')
+            ->whereIn('temas.idCurso', $cursosProfe)
+            ->where(function ($q) {
+                $q->where('items_tema.itemable_type', Desafio::class)
+                    ->orWhere('items_tema.itemable_type', 'Desafio')
+                    ->orWhere('items_tema.itemable_type', 'desafio')
+                    ->orWhere('items_tema.itemable_type', 'App\\Models\\Desafio');
+            })
+            ->pluck('items_tema.itemable_id')
+            ->toArray();
+
+        $allChallengeIds = array_values(array_unique(array_filter(array_merge($challengeIdsDirect, $challengeIdsItems))));
+
+        if (empty($allChallengeIds)) {
+            return [];
+        }
+
+        return Solucion::whereIn('idDesafio', $allChallengeIds)
             ->with(['estudiante:idUsuario,nombreCompleto', 'desafio.curso'])
             ->where('estado', 'aprobado')
             ->latest()
@@ -91,28 +168,20 @@ class ProfesorDashboard extends BaseDashboard
             ->map(function ($solucion) {
                 $nombreCompleto = $solucion->estudiante->nombreCompleto ?? 'Estudiante';
                 $primerNombre = explode(' ', $nombreCompleto)[0];
-                $cursoId = $solucion->desafio->idCurso ?? 0;
-                $cursoTitulo = $solucion->desafio->curso->titulo ?? 'Curso';
+                $desafio = $solucion->desafio;
+                $cursoId = $desafio ? $desafio->idCurso : 0;
+                $cursoTitulo = ($desafio && $desafio->curso) ? $desafio->curso->titulo : 'Curso';
 
                 return [
                     'tipo' => 'desafio',
                     'estudiante' => $primerNombre,
                     'detalle' => 'completó',
-                    'titulo_actividad' => $solucion->desafio->titulo ?? 'Actividad',
+                    'titulo_actividad' => $desafio ? $desafio->titulo : 'Actividad',
                     'curso' => $cursoTitulo,
                     'paralelo' => 10 + ($cursoId % 5),
                     'fecha' => $solucion->created_at ? $solucion->created_at->toISOString() : now()->toISOString(),
                     'timestamp' => $solucion->created_at ? $solucion->created_at->timestamp : now()->timestamp,
                 ];
-            });
-
-        // Combinar y ordenar por más reciente
-        return collect()
-            ->merge($preguntas)
-            ->merge($soluciones)
-            ->sortByDesc('timestamp')
-            ->take(4) // El mock muestra 4 actividades
-            ->values()
-            ->toArray();
+            })->toArray();
     }
 }
