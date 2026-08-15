@@ -337,7 +337,7 @@ const AyudanteDashboard = () => {
                   ) : (
                     actividad.map((act, index) => (
                       <div
-                        key={index}
+                        key={`act-${act.tipo}-${act.timestamp || act.fecha}-${index}`}
                         className={`flex items-center justify-between p-3.5 rounded-xl border border-slate-200/60 transition-colors ${
                           index % 2 === 0 ? 'bg-white' : 'bg-slate-50/75'
                         }`}

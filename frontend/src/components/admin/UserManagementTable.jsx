@@ -213,95 +213,100 @@ const UserManagementTable = () => {
       </div>
 
       {/* Tabla de Usuarios con Zebra Striping */}
-      {loading ? (
-        <div className="py-12 text-center text-slate-400 text-sm">Cargando cuentas de usuarios...</div>
-      ) : users.length === 0 ? (
-        <div className="py-12 text-center text-slate-400 text-sm">No se encontraron usuarios registrados con estos filtros.</div>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200/80 shadow-2xs">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-[#0f2027] text-white font-semibold uppercase tracking-wider border-b border-[#1e3a47] text-[11px]">
-                <th className="py-3.5 px-4">Usuario</th>
-                <th className="py-3.5 px-4">Email</th>
-                <th className="py-3.5 px-4">Rol</th>
-                <th className="py-3.5 px-4">Estado</th>
-                <th className="py-3.5 px-4 text-right">Acciones de Soporte</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {users.map((u, index) => {
-                const userRole = u.roles?.[0]?.rol || 'Sin Rol';
-                const userState = u.estado?.estado || 'Activo';
-                const isEven = index % 2 === 0;
+      {(() => {
+        if (loading) {
+          return <div className="py-12 text-center text-slate-400 text-sm">Cargando cuentas de usuarios...</div>;
+        }
+        if (users.length === 0) {
+          return <div className="py-12 text-center text-slate-400 text-sm">No se encontraron usuarios registrados con estos filtros.</div>;
+        }
 
-                return (
-                  <tr
-                    key={u.idUsuario}
-                    className={`transition-colors ${
-                      isEven ? 'bg-white' : 'bg-slate-50/75'
-                    } hover:bg-slate-100/70 border-b border-slate-100`}
-                  >
-                    <td className="py-3.5 px-4 font-semibold text-slate-900">
-                      <div>{u.nombreCompleto}</div>
-                      <div className="text-[11px] font-normal text-slate-500">@{u.usuario}</div>
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-600 font-mono text-[11px]">{u.email}</td>
-                    <td className="py-3.5 px-4">
-                      <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] border ${getRoleBadge(userRole)}`}>
-                        {userRole}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] border ${getStateBadge(userState)}`}>
-                        {userState}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-right space-x-2">
-                      <button
-                        type="button"
-                        title="Cambiar Rol"
-                        onClick={() => {
-                          setRoleModalUser(u);
-                          setNewRoleId(u.roles?.[0]?.idRol || '');
-                        }}
-                        className="px-2.5 py-1.5 text-slate-700 bg-white hover:bg-slate-100 rounded-lg border border-slate-200 shadow-2xs transition-colors inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer"
-                      >
-                        <Shield size={13} className="text-slate-500" /> Rol
-                      </button>
+        return (
+          <div className="overflow-x-auto rounded-xl border border-slate-200/80 shadow-2xs">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-[#0f2027] text-white font-semibold uppercase tracking-wider border-b border-[#1e3a47] text-[11px]">
+                  <th className="py-3.5 px-4">Usuario</th>
+                  <th className="py-3.5 px-4">Email</th>
+                  <th className="py-3.5 px-4">Rol</th>
+                  <th className="py-3.5 px-4">Estado</th>
+                  <th className="py-3.5 px-4 text-right">Acciones de Soporte</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {users.map((u, index) => {
+                  const userRole = u.roles?.[0]?.rol || 'Sin Rol';
+                  const userState = u.estado?.estado || 'Activo';
+                  const isEven = index % 2 === 0;
 
-                      <button
-                        type="button"
-                        title="Cambiar Estado / Deshabilitar"
-                        onClick={() => {
-                          setStateModalUser(u);
-                          setNewStateId(u.idEstado || 1);
-                        }}
-                        className="px-2.5 py-1.5 text-slate-700 bg-white hover:bg-slate-100 rounded-lg border border-slate-200 shadow-2xs transition-colors inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer"
-                      >
-                        {userState === 'Activo' ? <UserX size={13} className="text-amber-600" /> : <UserCheck size={13} className="text-emerald-600" />} Estado
-                      </button>
+                  return (
+                    <tr
+                      key={u.idUsuario}
+                      className={`transition-colors ${
+                        isEven ? 'bg-white' : 'bg-slate-50/75'
+                      } hover:bg-slate-100/70 border-b border-slate-100`}
+                    >
+                      <td className="py-3.5 px-4 font-semibold text-slate-900">
+                        <div>{u.nombreCompleto}</div>
+                        <div className="text-[11px] font-normal text-slate-500">@{u.usuario}</div>
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-600 font-mono text-[11px]">{u.email}</td>
+                      <td className="py-3.5 px-4">
+                        <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] border ${getRoleBadge(userRole)}`}>
+                          {userRole}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] border ${getStateBadge(userState)}`}>
+                          {userState}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right space-x-2">
+                        <button
+                          type="button"
+                          title="Cambiar Rol"
+                          onClick={() => {
+                            setRoleModalUser(u);
+                            setNewRoleId(u.roles?.[0]?.idRol || '');
+                          }}
+                          className="px-2.5 py-1.5 text-slate-700 bg-white hover:bg-slate-100 rounded-lg border border-slate-200 shadow-2xs transition-colors inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+                        >
+                          <Shield size={13} className="text-slate-500" /> Rol
+                        </button>
 
-                      <button
-                        type="button"
-                        title="Resetear Contraseña"
-                        onClick={() => {
-                          setPassModalUser(u);
-                          setNewPassword('');
-                          setPassError('');
-                        }}
-                        className="px-2.5 py-1.5 text-slate-700 bg-white hover:bg-slate-100 rounded-lg border border-slate-200 shadow-2xs transition-colors inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer"
-                      >
-                        <Key size={13} className="text-slate-500" /> Pass
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                        <button
+                          type="button"
+                          title="Cambiar Estado / Deshabilitar"
+                          onClick={() => {
+                            setStateModalUser(u);
+                            setNewStateId(u.idEstado || 1);
+                          }}
+                          className="px-2.5 py-1.5 text-slate-700 bg-white hover:bg-slate-100 rounded-lg border border-slate-200 shadow-2xs transition-colors inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+                        >
+                          {userState === 'Activo' ? <UserX size={13} className="text-amber-600" /> : <UserCheck size={13} className="text-emerald-600" />} Estado
+                        </button>
+
+                        <button
+                          type="button"
+                          title="Resetear Contraseña"
+                          onClick={() => {
+                            setPassModalUser(u);
+                            setNewPassword('');
+                            setPassError('');
+                          }}
+                          className="px-2.5 py-1.5 text-slate-700 bg-white hover:bg-slate-100 rounded-lg border border-slate-200 shadow-2xs transition-colors inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+                        >
+                          <Key size={13} className="text-slate-500" /> Pass
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+      })()}
 
       {/* Modal Cambiar Rol */}
       {roleModalUser && (

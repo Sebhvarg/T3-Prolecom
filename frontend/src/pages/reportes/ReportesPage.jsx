@@ -63,60 +63,93 @@ const ReportesPage = () => {
     fetchOptions();
   }, []);
 
-  // Función principal para consultar y generar el reporte desde la API de Laravel
+const processCursosReport = (rawData, { selectedCursoId, selectedProfesorId, cursosList, profesoresList }) => {
+  let filtered = [...rawData];
+  let criterio = 'Todos los registros';
+
+  if (selectedCursoId) {
+    const selectedC = cursosList.find(c => String(c.idCurso) === String(selectedCursoId));
+    filtered = filtered.filter(c => String(c.idCurso) === String(selectedCursoId));
+    criterio = `Curso: ${selectedC ? selectedC.titulo : selectedCursoId}`;
+  }
+
+  if (selectedProfesorId) {
+    const selectedP = profesoresList.find(p => String(p.idUsuario) === String(selectedProfesorId));
+    const profeNombre = selectedP ? selectedP.nombreCompleto : selectedProfesorId;
+    filtered = filtered.filter(c => c.profesor?.toLowerCase().includes((selectedP?.nombreCompleto || '').toLowerCase()));
+    
+    if (selectedCursoId) {
+      criterio += ` | Profesor: ${profeNombre}`;
+    } else {
+      criterio = `Profesor: ${profeNombre}`;
+    }
+  }
+
+  return {
+    titulo: 'Reporte Oficial de Cursos',
+    cols: ['ID', 'Título del Curso', 'Lenguaje', 'Tipo', 'Profesor Creador', 'Alumnos', 'Desafíos', 'Quizzes', 'Ayudantes', 'Fecha'],
+    criterio,
+    filteredData: filtered,
+  };
+};
+
+const processEstudiantesReport = (rawData, { selectedEstudianteId, estudiantesList }) => {
+  let filtered = [...rawData];
+  let criterio = 'Todos los registros';
+
+  if (selectedEstudianteId) {
+    const selectedE = estudiantesList.find(e => String(e.idUsuario) === String(selectedEstudianteId));
+    filtered = filtered.filter(e => String(e.idUsuario) === String(selectedEstudianteId));
+    criterio = `Alumno: ${selectedE ? selectedE.nombreCompleto : selectedEstudianteId}`;
+  }
+
+  return {
+    titulo: 'Reporte de Estudiantes y Desempeño Académico',
+    cols: ['ID', 'Nombre Completo', 'Usuario', 'Email', 'XP', 'Cursos Inscritos', 'Desafíos Aprobados', 'Quizzes', 'Estado', 'Fecha Registro'],
+    criterio,
+    filteredData: filtered,
+  };
+};
+
+const processAyudantesReport = (rawData, { selectedAyudanteId, ayudantesList }) => {
+  let filtered = [...rawData];
+  let criterio = 'Todos los registros';
+
+  if (selectedAyudanteId) {
+    const selectedA = ayudantesList.find(a => String(a.idUsuario) === String(selectedAyudanteId));
+    filtered = filtered.filter(a => String(a.idUsuario) === String(selectedAyudanteId));
+    criterio = `Ayudante: ${selectedA ? selectedA.nombreCompleto : selectedAyudanteId}`;
+  }
+
+  return {
+    titulo: 'Reporte de Ayudantes de Cátedra y Mentorías',
+    cols: ['ID Ayudante', 'Nombre Completo', 'Usuario', 'Email', 'Cant. Cursos', 'Lista de Cursos', 'Respuestas Validadas', 'Aportes Foro', 'Fecha Registro'],
+    criterio,
+    filteredData: filtered,
+  };
+};
+
   const handleGenerarReporte = async () => {
     setLoading(true);
     try {
-      const apiEndpoint = `/reportes/${tipoReporte}`;
-      const response = await authService.apiFetch(apiEndpoint);
-      let rawData = response?.data || [];
+      const response = await authService.apiFetch(`/reportes/${tipoReporte}`);
+      const rawData = response?.data || [];
 
-      let titulo = '';
-      let cols = [];
-      let criterio = 'Todos los registros';
+      let reportResult = { titulo: '', cols: [], criterio: 'Todos los registros', filteredData: rawData };
 
       if (tipoReporte === 'cursos') {
-        titulo = 'Reporte Oficial de Cursos';
-        cols = ['ID', 'Título del Curso', 'Lenguaje', 'Tipo', 'Profesor Creador', 'Alumnos', 'Desafíos', 'Quizzes', 'Ayudantes', 'Fecha'];
-        
-        if (selectedCursoId) {
-          const selectedC = cursosList.find(c => String(c.idCurso) === String(selectedCursoId));
-          rawData = rawData.filter(c => String(c.idCurso) === String(selectedCursoId));
-          criterio = `Curso: ${selectedC ? selectedC.titulo : selectedCursoId}`;
-        }
-        if (selectedProfesorId) {
-          const selectedP = profesoresList.find(p => String(p.idUsuario) === String(selectedProfesorId));
-          rawData = rawData.filter(c => c.profesor?.toLowerCase().includes(selectedP?.nombreCompleto?.toLowerCase() || ''));
-          criterio += selectedCursoId ? ` | Profesor: ${selectedP ? selectedP.nombreCompleto : selectedProfesorId}` : `Profesor: ${selectedP ? selectedP.nombreCompleto : selectedProfesorId}`;
-        }
-
+        reportResult = processCursosReport(rawData, { selectedCursoId, selectedProfesorId, cursosList, profesoresList });
       } else if (tipoReporte === 'estudiantes') {
-        titulo = 'Reporte de Estudiantes y Desempeño Académico';
-        cols = ['ID', 'Nombre Completo', 'Usuario', 'Email', 'XP', 'Cursos Inscritos', 'Desafíos Aprobados', 'Quizzes', 'Estado', 'Fecha Registro'];
-        
-        if (selectedEstudianteId) {
-          const selectedE = estudiantesList.find(e => String(e.idUsuario) === String(selectedEstudianteId));
-          rawData = rawData.filter(e => String(e.idUsuario) === String(selectedEstudianteId));
-          criterio = `Alumno: ${selectedE ? selectedE.nombreCompleto : selectedEstudianteId}`;
-        }
-
+        reportResult = processEstudiantesReport(rawData, { selectedEstudianteId, estudiantesList });
       } else if (tipoReporte === 'ayudantes') {
-        titulo = 'Reporte de Ayudantes de Cátedra y Mentorías';
-        cols = ['ID Ayudante', 'Nombre Completo', 'Usuario', 'Email', 'Cant. Cursos', 'Lista de Cursos', 'Respuestas Validadas', 'Aportes Foro', 'Fecha Registro'];
-
-        if (selectedAyudanteId) {
-          const selectedA = ayudantesList.find(a => String(a.idUsuario) === String(selectedAyudanteId));
-          rawData = rawData.filter(a => String(a.idUsuario) === String(selectedAyudanteId));
-          criterio = `Ayudante: ${selectedA ? selectedA.nombreCompleto : selectedAyudanteId}`;
-        }
+        reportResult = processAyudantesReport(rawData, { selectedAyudanteId, ayudantesList });
       }
 
-      setHeaders(cols);
-      setReporteData(rawData);
-      setTituloReporte(titulo);
-      setFiltroTexto(criterio);
+      setHeaders(reportResult.cols);
+      setReporteData(reportResult.filteredData);
+      setTituloReporte(reportResult.titulo);
+      setFiltroTexto(reportResult.criterio);
       setIsPdfModalOpen(true);
-
     } catch (error) {
       console.error('Error generando reporte:', error);
     } finally {

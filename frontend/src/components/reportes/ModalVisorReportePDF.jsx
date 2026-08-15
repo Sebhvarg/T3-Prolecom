@@ -6,8 +6,7 @@ const getCodigoValidacion = (titulo = '', length = 0) => {
   let hash = 0;
   const str = `${titulo}-${length}`;
   for (let i = 0; i < str.length; i += 1) {
-    hash = (hash << 5) - hash + str.charCodeAt(i);
-    hash |= 0;
+    hash = Math.trunc((hash * 31) + (str.codePointAt(i) || 0));
   }
   return 100000 + Math.abs(hash % 900000);
 };
@@ -23,7 +22,11 @@ const ModalVisorReportePDF = ({ isOpen, onClose, tituloReporte, filtroSelecciona
     if (!printContent) return;
 
     const printWindow = window.open('', '_blank', 'width=1000,height=800');
-    printWindow.document.write(`
+    if (!printWindow) return;
+
+    const printDoc = printWindow.document;
+    printDoc.open();
+    printDoc.write(`
       <!DOCTYPE html>
       <html>
         <head>
@@ -118,7 +121,7 @@ const ModalVisorReportePDF = ({ isOpen, onClose, tituloReporte, filtroSelecciona
         </body>
       </html>
     `);
-    printWindow.document.close();
+    printDoc.close();
   };
 
   return (

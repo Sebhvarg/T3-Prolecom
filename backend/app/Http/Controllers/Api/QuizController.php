@@ -446,7 +446,6 @@ class QuizController extends Controller
 
     private function validarIntentoQuiz(Request $request, Quiz $quiz, $user)
     {
-        // Solo estudiantes pueden resolver quizzes
         $rolUsuario = $user?->roles?->pluck('rol')?->first() ?? $user?->rol;
         if ($rolUsuario !== 'Estudiante') {
             return response()->json([
@@ -454,6 +453,11 @@ class QuizController extends Controller
             ], 403);
         }
 
+        return $this->checkIntentoReglas($request, $quiz, $user);
+    }
+
+    private function checkIntentoReglas(Request $request, Quiz $quiz, $user)
+    {
         $validator = Validator::make($request->all(), [
             'respuestas' => 'required|array',
             'respuestas.*.idPreguntaQuiz' => 'required|exists:quiz_preguntas,idPreguntaQuiz',
