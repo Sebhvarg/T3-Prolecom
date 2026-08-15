@@ -96,7 +96,7 @@ class ProgresoService
                     'tipo' => 'desafio',
                     'etiqueta' => 'Desafío de Código',
                     'titulo' => $item->titulo,
-                    'detalle' => 'Dificultad: ' . ucfirst($item->dificultad ?? 'Normal'),
+                    'detalle' => 'Dificultad: '.ucfirst($item->dificultad ?? 'Normal'),
                 ];
             })
             ->toArray();
@@ -138,7 +138,7 @@ class ProgresoService
                     'tipo' => 'material',
                     'etiqueta' => 'Material de Lectura',
                     'titulo' => $item->titulo,
-                    'detalle' => 'Formato: ' . strtoupper($item->tipo ?? 'PDF'),
+                    'detalle' => 'Formato: '.strtoupper($item->tipo ?? 'PDF'),
                     'archivo_url' => $item->archivo_url ?? $item->enlaceArchivo ?? null,
                 ];
             })
@@ -161,11 +161,9 @@ class ProgresoService
 
         $allQuizIds = array_values(array_unique(array_filter(array_merge($quizIdsFromItems, $quizIdsDirect))));
 
-        $tablaQuizIntentos = Schema::hasTable('quizzes_intentos')
-            ? 'quizzes_intentos'
-            : (Schema::hasTable('quiz_intentos') ? 'quiz_intentos' : null);
+        $tablaQuizIntentos = $this->getTablaQuizIntentos();
 
-        $completedQuizIds = ($tablaQuizIntentos && !empty($allQuizIds))
+        $completedQuizIds = ($tablaQuizIntentos && ! empty($allQuizIds))
             ? DB::table($tablaQuizIntentos)
                 ->whereIn('idQuiz', $allQuizIds)
                 ->where('idEstudiante', $idEstudiante)
@@ -176,7 +174,9 @@ class ProgresoService
                 ->toArray()
             : [];
 
-        $pendingQuizzes = (Schema::hasTable('quizzes') && !empty($pendingQuizIds))
+        $pendingQuizIds = array_diff($allQuizIds, $completedQuizIds);
+
+        $pendingQuizzes = (Schema::hasTable('quizzes') && ! empty($pendingQuizIds))
             ? DB::table('quizzes')
                 ->whereIn('idQuiz', $pendingQuizIds)
                 ->select('idQuiz as id', 'titulo')
@@ -323,11 +323,9 @@ class ProgresoService
             ];
         }
 
-        $tablaQuizIntentos = Schema::hasTable('quizzes_intentos')
-            ? 'quizzes_intentos'
-            : (Schema::hasTable('quiz_intentos') ? 'quiz_intentos' : null);
+        $tablaQuizIntentos = $this->getTablaQuizIntentos();
 
-        $completados = ($tablaQuizIntentos && !empty($allQuizIds))
+        $completados = ($tablaQuizIntentos && ! empty($allQuizIds))
             ? DB::table($tablaQuizIntentos)
                 ->whereIn('idQuiz', $allQuizIds)
                 ->where('idEstudiante', $idEstudiante)
@@ -345,5 +343,17 @@ class ProgresoService
             'total' => $total,
             'porcentaje' => $porcentaje,
         ];
+    }
+
+    private function getTablaQuizIntentos(): ?string
+    {
+        if (Schema::hasTable('quizzes_intentos')) {
+            return 'quizzes_intentos';
+        }
+        if (Schema::hasTable('quiz_intentos')) {
+            return 'quiz_intentos';
+        }
+
+        return null;
     }
 }

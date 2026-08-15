@@ -25,7 +25,7 @@ const PrivateRoute = ({ allowedRoles }) => {
     return <Navigate to="/login" replace />;
   }
 
-  const idRol = parseInt(user.id_rol, 10);
+  const idRol = Number.parseInt(user.id_rol, 10);
 
   if (allowedRoles && !allowedRoles.includes(idRol)) {
     // Redirect to the user's correct home instead of / (avoids redirect loops)

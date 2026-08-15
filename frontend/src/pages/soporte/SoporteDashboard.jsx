@@ -7,7 +7,6 @@ import StatCard from '../../components/dashboard/StatCard';
 import { getAdminDashboardData } from '../../api/dashboardService';
 import UserManagementTable from '../../components/admin/UserManagementTable';
 import SystemHealthMonitor from '../../components/admin/SystemHealthMonitor';
-import BotonDescargaReporte from '../../components/common/BotonDescargaReporte';
 
 const ICON_MAP = {
   'Clock': <Clock size={22} />,

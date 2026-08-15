@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { FileSpreadsheet, Loader2 } from 'lucide-react';
 import { authService } from '../../api/authService';
 
 const BotonDescargaReporte = ({ tipoReporte, label = 'Exportar Reporte (CSV)', variant = 'secondary' }) => {

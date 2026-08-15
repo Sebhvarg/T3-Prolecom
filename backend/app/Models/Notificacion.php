@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class Notificacion extends Model
 {
@@ -76,7 +78,7 @@ class Notificacion extends Model
                 return;
             }
 
-            $estudianteIds = \Illuminate\Support\Facades\DB::table('inscripciones_cursos')
+            $estudianteIds = DB::table('inscripciones_cursos')
                 ->where('idCurso', $idCurso)
                 ->pluck('idUsuarioEstudiante');
 
@@ -91,7 +93,7 @@ class Notificacion extends Model
                 ]);
             }
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Error notificando estudiantes del curso {$idCurso}: ".$e->getMessage());
+            Log::error("Error notificando estudiantes del curso {$idCurso}: ".$e->getMessage());
         }
     }
 }

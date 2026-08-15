@@ -52,6 +52,7 @@ const AdminDashboard = () => {
         {/* Pestañas de navegación interna */}
         <div className="flex bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 shadow-2xs">
           <button
+            type="button"
             onClick={() => setActiveTab('users')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'users'
@@ -62,6 +63,7 @@ const AdminDashboard = () => {
             <UserCheck size={15} /> Gestión de Usuarios
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('health')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'health'

@@ -44,36 +44,41 @@ const LinearBar = ({ porcentaje = 0, color = 'bg-slate-900' }) => (
 );
 
 const CourseProgressBar = ({ idCurso, progreso: progresoProp, onNavigateTab, onSelectMaterial }) => {
-  const [progreso, setProgreso] = useState(progresoProp || null);
-  const [loading, setLoading] = useState(!progresoProp && Boolean(idCurso));
+  const [progresoData, setProgresoData] = useState(null);
+  const [loading, setLoading] = useState(Boolean(idCurso) && !progresoProp);
   const [error, setError] = useState('');
   const [showPendientes, setShowPendientes] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!idCurso) {
-      if (progresoProp) {
-        setProgreso(progresoProp);
-        setLoading(false);
-      }
-      return;
-    }
+  const progreso = progresoProp || progresoData;
 
+  useEffect(() => {
+    if (!idCurso || progresoProp) return;
+
+    let isMounted = true;
     const fetchProgreso = async () => {
       try {
         const data = await authService.apiFetch(`/cursos/${idCurso}/progreso`);
-        setProgreso(data);
+        if (isMounted) {
+          setProgresoData(data);
+        }
       } catch (err) {
         console.error('Error cargando progreso:', err);
-        if (!progresoProp) {
+        if (isMounted) {
           setError('No se pudo cargar el progreso.');
         }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchProgreso();
+
+    return () => {
+      isMounted = false;
+    };
   }, [idCurso, progresoProp]);
 
   if (loading && !progreso) {

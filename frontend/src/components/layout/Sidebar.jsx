@@ -29,7 +29,7 @@ const Sidebar = () => {
 
   const isAdminOrSupport = Boolean(
     ['Administrador', 'Soporte'].includes(user?.rol) ||
-    [1, 4].includes(parseInt(user?.id_rol))
+    [1, 4].includes(Number.parseInt(user?.id_rol, 10))
   );
 
   const getHomePath = (userRole) => {

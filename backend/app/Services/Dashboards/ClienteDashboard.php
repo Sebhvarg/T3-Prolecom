@@ -4,11 +4,14 @@ namespace App\Services\Dashboards;
 
 use App\Models\Notificacion;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class ClienteDashboard extends BaseDashboard
 {
+    private const COL_NOMBRE_CURSO = 'cursos.titulo as nombre_curso';
+
     protected $usuario;
 
     public function __construct(?User $usuario = null)
@@ -71,7 +74,7 @@ class ClienteDashboard extends BaseDashboard
                 ->get()
                 ->map(function ($notif) {
                     return [
-                        'id' => 'notif-' . $notif->idNotificacion,
+                        'id' => 'notif-'.$notif->idNotificacion,
                         'tipo' => $this->formatTipoNotificacion($notif->tipo),
                         'titulo' => $notif->titulo,
                         'curso' => $notif->mensaje,
@@ -99,14 +102,15 @@ class ClienteDashboard extends BaseDashboard
                 ->join('temas', 'items_tema.idTema', '=', 'temas.idTema')
                 ->join('cursos', 'temas.idCurso', '=', 'cursos.idCurso')
                 ->whereIn('temas.idCurso', $cursosEstudiante)
-                ->select('materiales_aprendizaje.idMaterial', 'materiales_aprendizaje.titulo', 'materiales_aprendizaje.created_at', 'cursos.titulo as nombre_curso')
+                ->select('materiales_aprendizaje.idMaterial', 'materiales_aprendizaje.titulo', 'materiales_aprendizaje.created_at', self::COL_NOMBRE_CURSO)
                 ->latest('materiales_aprendizaje.created_at')
                 ->take(5)
                 ->get()
                 ->map(function ($mat) {
-                    $created = $mat->created_at ? \Carbon\Carbon::parse($mat->created_at) : now();
+                    $created = $mat->created_at ? Carbon::parse($mat->created_at) : now();
+
                     return [
-                        'id' => 'mat-' . $mat->idMaterial,
+                        'id' => 'mat-'.$mat->idMaterial,
                         'tipo' => 'Material Publicado',
                         'titulo' => $mat->titulo,
                         'curso' => $mat->nombre_curso,
@@ -123,14 +127,15 @@ class ClienteDashboard extends BaseDashboard
                 ->join('temas', 'items_tema.idTema', '=', 'temas.idTema')
                 ->join('cursos', 'temas.idCurso', '=', 'cursos.idCurso')
                 ->whereIn('temas.idCurso', $cursosEstudiante)
-                ->select('desafios.idDesafio', 'desafios.titulo', 'desafios.created_at', 'cursos.titulo as nombre_curso')
+                ->select('desafios.idDesafio', 'desafios.titulo', 'desafios.created_at', self::COL_NOMBRE_CURSO)
                 ->latest('desafios.created_at')
                 ->take(5)
                 ->get()
                 ->map(function ($des) {
-                    $created = $des->created_at ? \Carbon\Carbon::parse($des->created_at) : now();
+                    $created = $des->created_at ? Carbon::parse($des->created_at) : now();
+
                     return [
-                        'id' => 'des-' . $des->idDesafio,
+                        'id' => 'des-'.$des->idDesafio,
                         'tipo' => 'Desafío Práctico',
                         'titulo' => $des->titulo,
                         'curso' => $des->nombre_curso,
@@ -145,14 +150,15 @@ class ClienteDashboard extends BaseDashboard
             ? DB::table('quizzes')
                 ->join('cursos', 'quizzes.idCurso', '=', 'cursos.idCurso')
                 ->whereIn('quizzes.idCurso', $cursosEstudiante)
-                ->select('quizzes.idQuiz', 'quizzes.titulo', 'quizzes.created_at', 'cursos.titulo as nombre_curso')
+                ->select('quizzes.idQuiz', 'quizzes.titulo', 'quizzes.created_at', self::COL_NOMBRE_CURSO)
                 ->latest('quizzes.created_at')
                 ->take(5)
                 ->get()
                 ->map(function ($qz) {
-                    $created = $qz->created_at ? \Carbon\Carbon::parse($qz->created_at) : now();
+                    $created = $qz->created_at ? Carbon::parse($qz->created_at) : now();
+
                     return [
-                        'id' => 'quiz-' . $qz->idQuiz,
+                        'id' => 'quiz-'.$qz->idQuiz,
                         'tipo' => 'Evaluación / Quiz',
                         'titulo' => $qz->titulo,
                         'curso' => $qz->nombre_curso,
@@ -169,14 +175,15 @@ class ClienteDashboard extends BaseDashboard
                 ->join('temas', 'items_tema.idTema', '=', 'temas.idTema')
                 ->join('cursos', 'temas.idCurso', '=', 'cursos.idCurso')
                 ->whereIn('temas.idCurso', $cursosEstudiante)
-                ->select('foros.idForo', 'foros.titulo', 'foros.created_at', 'cursos.titulo as nombre_curso')
+                ->select('foros.idForo', 'foros.titulo', 'foros.created_at', self::COL_NOMBRE_CURSO)
                 ->latest('foros.created_at')
                 ->take(5)
                 ->get()
                 ->map(function ($fr) {
-                    $created = $fr->created_at ? \Carbon\Carbon::parse($fr->created_at) : now();
+                    $created = $fr->created_at ? Carbon::parse($fr->created_at) : now();
+
                     return [
-                        'id' => 'foro-' . $fr->idForo,
+                        'id' => 'foro-'.$fr->idForo,
                         'tipo' => 'Foro Abierto',
                         'titulo' => $fr->titulo,
                         'curso' => $fr->nombre_curso,
@@ -191,14 +198,15 @@ class ClienteDashboard extends BaseDashboard
             ? DB::table('temas')
                 ->join('cursos', 'temas.idCurso', '=', 'cursos.idCurso')
                 ->whereIn('temas.idCurso', $cursosEstudiante)
-                ->select('temas.idTema', 'temas.nombre as titulo', 'temas.created_at', 'cursos.titulo as nombre_curso')
+                ->select('temas.idTema', 'temas.nombre as titulo', 'temas.created_at', self::COL_NOMBRE_CURSO)
                 ->latest('temas.created_at')
                 ->take(5)
                 ->get()
                 ->map(function ($tm) {
-                    $created = $tm->created_at ? \Carbon\Carbon::parse($tm->created_at) : now();
+                    $created = $tm->created_at ? Carbon::parse($tm->created_at) : now();
+
                     return [
-                        'id' => 'tema-' . $tm->idTema,
+                        'id' => 'tema-'.$tm->idTema,
                         'tipo' => 'Nuevo Módulo',
                         'titulo' => $tm->titulo,
                         'curso' => $tm->nombre_curso,

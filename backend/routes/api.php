@@ -11,12 +11,16 @@ use App\Http\Controllers\Api\ModeracionController;
 use App\Http\Controllers\Api\NotificacionController;
 use App\Http\Controllers\Api\ProgresoController;
 use App\Http\Controllers\Api\QuizController;
+use App\Http\Controllers\Api\ReporteAcademicoController;
 use App\Http\Controllers\Api\TemaController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 if (! defined('ROUTE_CURSO_ID')) {
     define('ROUTE_CURSO_ID', '/cursos/{id}');
+}
+if (! defined('ROUTE_AYUDANTES')) {
+    define('ROUTE_AYUDANTES', '/ayudantes');
 }
 if (! defined('ROUTE_DESAFIO_ID')) {
     define('ROUTE_DESAFIO_ID', '/desafios/{id}');
@@ -62,9 +66,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get(ROUTE_CURSO_ID.'/progreso', [ProgresoController::class, 'show']);
 
     // Ayudantes de Curso
-    Route::get(ROUTE_CURSO_ID.'/ayudantes', [CursoController::class, 'getAyudantes']);
-    Route::post(ROUTE_CURSO_ID.'/ayudantes', [CursoController::class, 'asignarAyudante']);
-    Route::delete(ROUTE_CURSO_ID.'/ayudantes/{idAyudante}', [CursoController::class, 'desasignarAyudante']);
+    Route::get(ROUTE_CURSO_ID.ROUTE_AYUDANTES, [CursoController::class, 'getAyudantes']);
+    Route::post(ROUTE_CURSO_ID.ROUTE_AYUDANTES, [CursoController::class, 'asignarAyudante']);
+    Route::delete(ROUTE_CURSO_ID.ROUTE_AYUDANTES.'/{idAyudante}', [CursoController::class, 'desasignarAyudante']);
 
     // Moderadores de Curso
     Route::get(ROUTE_CURSO_ID.'/moderadores', [CursoController::class, 'getModeradores']);
@@ -164,9 +168,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // GENERACIÓN DE REPORTES ACADÉMICOS Y EXPORTACIÓN (Administrador, Profesor, Soporte, Ayudante)
     Route::middleware('role:Administrador,Profesor,Soporte,Ayudante')->group(function () {
-        Route::get('/reportes/cursos', [\App\Http\Controllers\Api\ReporteAcademicoController::class, 'reporteCursos']);
-        Route::get('/reportes/estudiantes', [\App\Http\Controllers\Api\ReporteAcademicoController::class, 'reporteEstudiantes']);
-        Route::get('/reportes/ayudantes', [\App\Http\Controllers\Api\ReporteAcademicoController::class, 'reporteAyudantes']);
+        Route::get('/reportes/cursos', [ReporteAcademicoController::class, 'reporteCursos']);
+        Route::get('/reportes/estudiantes', [ReporteAcademicoController::class, 'reporteEstudiantes']);
+        Route::get('/reportes/ayudantes', [ReporteAcademicoController::class, 'reporteAyudantes']);
     });
 
     // Rutas exclusivas de Administrador / Soporte (PB22 - SCRUM-60 & SCRUM-61)

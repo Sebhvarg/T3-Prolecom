@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Schema;
 
 class ReporteAcademicoController extends Controller
 {
+    private const DATE_FORMAT = 'Y-m-d H:i:s';
+
     /**
      * Reporte general de Cursos.
      * Retorna datos estructurados en JSON o genera una descarga CSV si ?export=csv.
@@ -51,15 +53,15 @@ class ReporteAcademicoController extends Controller
                 'desafios_totales' => $desafiosCount,
                 'quizzes_totales' => $quizzesCount,
                 'ayudantes_asignados' => $ayudantesCount,
-                'fecha_creacion' => $curso->created_at ? $curso->created_at->format('Y-m-d H:i:s') : 'N/A',
+                'fecha_creacion' => $curso->created_at ? $curso->created_at->format(self::DATE_FORMAT) : 'N/A',
             ];
         });
 
         if ($request->query('export') === 'csv') {
             return $this->exportToCsv(
-                'reporte_cursos_prolecom_' . date('Y-m-d') . '.csv',
+                'reporte_cursos_prolecom_'.date('Y-m-d').'.csv',
                 ['ID Curso', 'Título', 'Lenguaje', 'Tipo', 'Profesor Creador', 'Email Profesor', 'Estudiantes Matriculados', 'Desafíos', 'Quizzes', 'Ayudantes', 'Fecha Creación'],
-                $cursos->map(fn($c) => [
+                $cursos->map(fn ($c) => [
                     $c['idCurso'],
                     $c['titulo'],
                     $c['lenguaje'],
@@ -77,10 +79,26 @@ class ReporteAcademicoController extends Controller
 
         return response()->json([
             'titulo' => 'Reporte de Cursos de la Plataforma',
-            'fecha_generacion' => now()->format('Y-m-d H:i:s'),
+            'fecha_generacion' => now()->format(self::DATE_FORMAT),
             'total_registros' => $cursos->count(),
             'data' => $cursos,
         ]);
+    }
+
+    /**
+     * Helper para filtrar la consulta de estudiantes por rol.
+     */
+    private function filterEstudiantesByRole($query, $user, $roles): void
+    {
+        if ($roles->contains('Profesor') && ! $roles->contains('Administrador')) {
+            $cursosProfeIds = Curso::where('idProfeCreador', $user->idUsuario)->pluck('idCurso')->toArray();
+            $query->whereHas('cursosInscritos', fn ($q) => $q->whereIn('cursos.idCurso', $cursosProfeIds));
+        } elseif ($roles->contains('Ayudante') && ! $roles->contains('Administrador')) {
+            $assignedIds = Schema::hasTable('ayudantes_cursos')
+                ? DB::table('ayudantes_cursos')->where('idUsuarioAyudante', $user->idUsuario)->pluck('idCurso')->toArray()
+                : [];
+            $query->whereHas('cursosInscritos', fn ($q) => $q->whereIn('cursos.idCurso', $assignedIds));
+        }
     }
 
     /**
@@ -91,23 +109,9 @@ class ReporteAcademicoController extends Controller
         $user = $request->user();
         $roles = $user->roles->pluck('rol');
 
-        $query = User::whereHas('roles', function ($q) {
-            $q->where('rol', 'Estudiante');
-        })->withCount('cursosInscritos');
+        $query = User::whereHas('roles', fn ($q) => $q->where('rol', 'Estudiante'))->withCount('cursosInscritos');
 
-        if ($roles->contains('Profesor') && ! $roles->contains('Administrador')) {
-            $cursosProfeIds = Curso::where('idProfeCreador', $user->idUsuario)->pluck('idCurso')->toArray();
-            $query->whereHas('cursosInscritos', function ($q) use ($cursosProfeIds) {
-                $q->whereIn('cursos.idCurso', $cursosProfeIds);
-            });
-        } elseif ($roles->contains('Ayudante') && ! $roles->contains('Administrador')) {
-            $assignedIds = Schema::hasTable('ayudantes_cursos')
-                ? DB::table('ayudantes_cursos')->where('idUsuarioAyudante', $user->idUsuario)->pluck('idCurso')->toArray()
-                : [];
-            $query->whereHas('cursosInscritos', function ($q) use ($assignedIds) {
-                $q->whereIn('cursos.idCurso', $assignedIds);
-            });
-        }
+        $this->filterEstudiantesByRole($query, $user, $roles);
 
         $estudiantes = $query->latest()->get()->map(function ($est) {
             $solucionesAprobadas = DB::table('soluciones')
@@ -128,7 +132,7 @@ class ReporteAcademicoController extends Controller
                     ->count()
                 : 0;
 
-            $estadoTexto = match ((int)$est->idEstado) {
+            $estadoTexto = match ((int) $est->idEstado) {
                 1 => 'Activo',
                 2 => 'Inactivo',
                 3 => 'Suspendido',
@@ -146,15 +150,15 @@ class ReporteAcademicoController extends Controller
                 'desafios_completados' => $solucionesAprobadas,
                 'quizzes_realizados' => $intentosQuizzes,
                 'estado' => $estadoTexto,
-                'fecha_registro' => $est->created_at ? $est->created_at->format('Y-m-d H:i:s') : 'N/A',
+                'fecha_registro' => $est->created_at ? $est->created_at->format(self::DATE_FORMAT) : 'N/A',
             ];
         });
 
         if ($request->query('export') === 'csv') {
             return $this->exportToCsv(
-                'reporte_estudiantes_prolecom_' . date('Y-m-d') . '.csv',
+                'reporte_estudiantes_prolecom_'.date('Y-m-d').'.csv',
                 ['ID Usuario', 'Nombre Completo', 'Usuario', 'Email', 'XP Acumulado', 'Cursos Inscritos', 'Desafíos Completados', 'Quizzes Realizados', 'Estado', 'Fecha Registro'],
-                $estudiantes->map(fn($e) => [
+                $estudiantes->map(fn ($e) => [
                     $e['idUsuario'],
                     $e['nombreCompleto'],
                     $e['usuario'],
@@ -171,10 +175,26 @@ class ReporteAcademicoController extends Controller
 
         return response()->json([
             'titulo' => 'Reporte de Estudiantes y Rendimiento Académico',
-            'fecha_generacion' => now()->format('Y-m-d H:i:s'),
+            'fecha_generacion' => now()->format(self::DATE_FORMAT),
             'total_registros' => $estudiantes->count(),
             'data' => $estudiantes,
         ]);
+    }
+
+    /**
+     * Helper para filtrar la consulta de ayudantes por rol.
+     */
+    private function filterAyudantesByRole($query, $user, $roles): void
+    {
+        if ($roles->contains('Profesor') && ! $roles->contains('Administrador')) {
+            $cursosProfeIds = Curso::where('idProfeCreador', $user->idUsuario)->pluck('idCurso')->toArray();
+            if (Schema::hasTable('ayudantes_cursos')) {
+                $ayudantesIds = DB::table('ayudantes_cursos')->whereIn('idCurso', $cursosProfeIds)->pluck('idUsuarioAyudante')->toArray();
+                $query->whereIn('idUsuario', $ayudantesIds);
+            }
+        } elseif ($roles->contains('Ayudante') && ! $roles->contains('Administrador')) {
+            $query->where('idUsuario', $user->idUsuario);
+        }
     }
 
     /**
@@ -186,9 +206,7 @@ class ReporteAcademicoController extends Controller
         $roles = $user->roles->pluck('rol');
 
         $query = User::where(function ($q) {
-            $q->whereHas('roles', function ($r) {
-                $r->whereIn('rol', ['Ayudante', 'ayudante']);
-            });
+            $q->whereHas('roles', fn ($r) => $r->whereIn('rol', ['Ayudante', 'ayudante']));
             if (Schema::hasTable('ayudantes_cursos')) {
                 $ayudantesPivotIds = DB::table('ayudantes_cursos')->pluck('idUsuarioAyudante')->toArray();
                 if (! empty($ayudantesPivotIds)) {
@@ -197,15 +215,7 @@ class ReporteAcademicoController extends Controller
             }
         });
 
-        if ($roles->contains('Profesor') && ! $roles->contains('Administrador')) {
-            $cursosProfeIds = Curso::where('idProfeCreador', $user->idUsuario)->pluck('idCurso')->toArray();
-            if (Schema::hasTable('ayudantes_cursos')) {
-                $ayudantesIds = DB::table('ayudantes_cursos')->whereIn('idCurso', $cursosProfeIds)->pluck('idUsuarioAyudante')->toArray();
-                $query->whereIn('idUsuario', $ayudantesIds);
-            }
-        } elseif ($roles->contains('Ayudante') && ! $roles->contains('Administrador')) {
-            $query->where('idUsuario', $user->idUsuario);
-        }
+        $this->filterAyudantesByRole($query, $user, $roles);
 
         $ayudantes = $query->latest()->get()->map(function ($ayu) {
             $cursosAsignadosCount = 0;
@@ -237,15 +247,15 @@ class ReporteAcademicoController extends Controller
                 'cursos_asignados' => ! empty($nombresCursos) ? implode(', ', $nombresCursos) : 'Sin cursos asignados',
                 'respuestas_validadas_oficiales' => $respuestasValidadas,
                 'total_aportes_foro' => $totalAportesForo,
-                'fecha_registro' => $ayu->created_at ? $ayu->created_at->format('Y-m-d H:i:s') : 'N/A',
+                'fecha_registro' => $ayu->created_at ? $ayu->created_at->format(self::DATE_FORMAT) : 'N/A',
             ];
         });
 
         if ($request->query('export') === 'csv') {
             return $this->exportToCsv(
-                'reporte_ayudantes_prolecom_' . date('Y-m-d') . '.csv',
+                'reporte_ayudantes_prolecom_'.date('Y-m-d').'.csv',
                 ['ID Ayudante', 'Nombre Completo', 'Usuario', 'Email', 'Cursos Asignados (Cant.)', 'Lista de Cursos', 'Respuestas Validadas Oficiales', 'Total Aportes Foro', 'Fecha Registro'],
-                $ayudantes->map(fn($a) => [
+                $ayudantes->map(fn ($a) => [
                     $a['idUsuario'],
                     $a['nombreCompleto'],
                     $a['usuario'],
@@ -261,7 +271,7 @@ class ReporteAcademicoController extends Controller
 
         return response()->json([
             'titulo' => 'Reporte de Ayudantes de Cátedra y Mentorías',
-            'fecha_generacion' => now()->format('Y-m-d H:i:s'),
+            'fecha_generacion' => now()->format(self::DATE_FORMAT),
             'total_registros' => $ayudantes->count(),
             'data' => $ayudantes,
         ]);

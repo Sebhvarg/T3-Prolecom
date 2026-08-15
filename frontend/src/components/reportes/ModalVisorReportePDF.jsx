@@ -2,8 +2,19 @@ import { useRef } from 'react';
 import { Printer, X, FileSpreadsheet, ShieldCheck } from 'lucide-react';
 import logo from '../../assets/Logo/logoHorizontal.webp';
 
+const getCodigoValidacion = (titulo = '', length = 0) => {
+  let hash = 0;
+  const str = `${titulo}-${length}`;
+  for (let i = 0; i < str.length; i += 1) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return 100000 + Math.abs(hash % 900000);
+};
+
 const ModalVisorReportePDF = ({ isOpen, onClose, tituloReporte, filtroSeleccionado, data, headers, onExportCsv }) => {
   const printRef = useRef(null);
+  const codigoValidacion = getCodigoValidacion(tituloReporte, data?.length);
 
   if (!isOpen) return null;
 
@@ -186,7 +197,7 @@ const ModalVisorReportePDF = ({ isOpen, onClose, tituloReporte, filtroSelecciona
                 <thead>
                   <tr className="bg-[#0f2027] text-white">
                     {headers.map((h, index) => (
-                      <th key={index} className="py-2.5 px-3 text-[10px] font-extrabold uppercase tracking-wider border border-[#1e3a47]">
+                      <th key={`hdr-${h}-${index}`} className="py-2.5 px-3 text-[10px] font-extrabold uppercase tracking-wider border border-[#1e3a47]">
                         {h}
                       </th>
                     ))}
@@ -194,9 +205,9 @@ const ModalVisorReportePDF = ({ isOpen, onClose, tituloReporte, filtroSelecciona
                 </thead>
                 <tbody>
                   {data.map((row, rIdx) => (
-                    <tr key={rIdx} className={rIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'}>
+                    <tr key={`row-${row.idUsuario || row.idCurso || rIdx}`} className={rIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'}>
                       {Object.values(row).map((val, cIdx) => (
-                        <td key={cIdx} className="py-2.5 px-3 border-b border-slate-200/80 text-slate-800 font-normal">
+                        <td key={`cell-${row.idUsuario || rIdx}-${cIdx}`} className="py-2.5 px-3 border-b border-slate-200/80 text-slate-800 font-normal">
                           {val ?? 'N/A'}
                         </td>
                       ))}
@@ -210,7 +221,7 @@ const ModalVisorReportePDF = ({ isOpen, onClose, tituloReporte, filtroSelecciona
           {/* Footer Official Stamp */}
           <div className="mt-8 pt-4 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-400">
             <span>PROLECOM LMS © {new Date().getFullYear()} — Reporte Certificado a Nivel de BD</span>
-            <span>Código de Validación: PRO-REP-{Math.floor(100000 + Math.random() * 900000)}</span>
+            <span>Código de Validación: PRO-REP-{codigoValidacion}</span>
           </div>
         </div>
       </div>

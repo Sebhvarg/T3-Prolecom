@@ -22,6 +22,17 @@ const QuizResolverModal = ({ isOpen, onClose, quizId, onQuizCompleted }) => {
   // Estado de Resultado (Intento Calificado)
   const [resultadoIntento, setResultadoIntento] = useState(null);
 
+  // Confirm Modal State
+  const [confirmState, setConfirmState] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Aceptar',
+    cancelText: 'Cancelar',
+    variant: 'warning',
+    onConfirm: () => {},
+  });
+
   const mainContainerRef = useRef(null);
 
   useEffect(() => {
@@ -84,17 +95,6 @@ const QuizResolverModal = ({ isOpen, onClose, quizId, onQuizCompleted }) => {
       [idPregunta]: idOpcion
     }));
   };
-
-  // Confirm Modal State
-  const [confirmState, setConfirmState] = useState({
-    isOpen: false,
-    title: '',
-    message: '',
-    confirmText: 'Aceptar',
-    cancelText: 'Cancelar',
-    variant: 'warning',
-    onConfirm: () => {},
-  });
 
   const ejecutarEnvio = async () => {
     setSubmitting(true);

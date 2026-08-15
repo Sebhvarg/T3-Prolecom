@@ -3,9 +3,13 @@
 namespace App\Services\Dashboards;
 
 use App\Models\Curso;
+use App\Models\Desafio;
+use App\Models\Foro;
 use App\Models\Pregunta;
 use App\Models\Solucion;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ProfesorDashboard extends BaseDashboard
 {
@@ -56,8 +60,8 @@ class ProfesorDashboard extends BaseDashboard
     protected function getActividadReciente(): array
     {
         $cursosCreados = Curso::where('idProfeCreador', $this->usuario->idUsuario)->pluck('idCurso')->toArray();
-        $cursosAsignados = \Illuminate\Support\Facades\Schema::hasTable('ayudantes_cursos')
-            ? \Illuminate\Support\Facades\DB::table('ayudantes_cursos')->where('idUsuarioAyudante', $this->usuario->idUsuario)->pluck('idCurso')->toArray()
+        $cursosAsignados = Schema::hasTable('ayudantes_cursos')
+            ? DB::table('ayudantes_cursos')->where('idUsuarioAyudante', $this->usuario->idUsuario)->pluck('idCurso')->toArray()
             : [];
         $cursosProfe = array_values(array_unique(array_filter(array_merge($cursosCreados, $cursosAsignados))));
 
@@ -77,11 +81,11 @@ class ProfesorDashboard extends BaseDashboard
             return [];
         }
 
-        $forosItems = \Illuminate\Support\Facades\DB::table('items_tema')
+        $forosItems = DB::table('items_tema')
             ->join('temas', 'items_tema.idTema', '=', 'temas.idTema')
             ->whereIn('temas.idCurso', $cursosProfe)
             ->where(function ($q) {
-                $q->where('items_tema.itemable_type', \App\Models\Foro::class)
+                $q->where('items_tema.itemable_type', Foro::class)
                     ->orWhere('items_tema.itemable_type', 'Foro')
                     ->orWhere('items_tema.itemable_type', 'foro')
                     ->orWhere('items_tema.itemable_type', 'App\\Models\\Foro');
@@ -90,8 +94,8 @@ class ProfesorDashboard extends BaseDashboard
             ->toArray();
 
         $forosDirect = [];
-        if (\Illuminate\Support\Facades\Schema::hasColumn('foros', 'idCurso')) {
-            $forosDirect = \Illuminate\Support\Facades\DB::table('foros')
+        if (Schema::hasColumn('foros', 'idCurso')) {
+            $forosDirect = DB::table('foros')
                 ->whereIn('idCurso', $cursosProfe)
                 ->pluck('idForo')
                 ->toArray();
@@ -132,16 +136,16 @@ class ProfesorDashboard extends BaseDashboard
             return [];
         }
 
-        $challengeIdsDirect = \Illuminate\Support\Facades\DB::table('desafios')
+        $challengeIdsDirect = DB::table('desafios')
             ->whereIn('idCurso', $cursosProfe)
             ->pluck('idDesafio')
             ->toArray();
 
-        $challengeIdsItems = \Illuminate\Support\Facades\DB::table('items_tema')
+        $challengeIdsItems = DB::table('items_tema')
             ->join('temas', 'items_tema.idTema', '=', 'temas.idTema')
             ->whereIn('temas.idCurso', $cursosProfe)
             ->where(function ($q) {
-                $q->where('items_tema.itemable_type', \App\Models\Desafio::class)
+                $q->where('items_tema.itemable_type', Desafio::class)
                     ->orWhere('items_tema.itemable_type', 'Desafio')
                     ->orWhere('items_tema.itemable_type', 'desafio')
                     ->orWhere('items_tema.itemable_type', 'App\\Models\\Desafio');

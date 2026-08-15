@@ -1,4 +1,3 @@
-import React from 'react';
 import PropTypes from 'prop-types';
 import { X, Loader2, AlertCircle } from 'lucide-react';
 

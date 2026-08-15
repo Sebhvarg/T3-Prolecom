@@ -13,7 +13,7 @@ import Modal from '../../components/ui/Modal';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 import { 
   ArrowLeft, Plus, Trash2, FileText, Play, Download, Eye, 
-  X, AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code, Pencil,
+  AlertCircle, Loader2, CheckCircle2, ChevronDown, ChevronUp, Code, Pencil,
   MessageSquare, BookOpen, HelpCircle
 } from 'lucide-react';
 
@@ -848,10 +848,11 @@ const CursoDetallePage = () => {
       >
         <form onSubmit={handleSaveForo} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+            <label htmlFor="foro-tema-select" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
               Tema del Curso
             </label>
             <select
+              id="foro-tema-select"
               value={activeTemaId || ''}
               onChange={(e) => setActiveTemaId(Number(e.target.value))}
               required
@@ -867,10 +868,11 @@ const CursoDetallePage = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+            <label htmlFor="foro-titulo-input" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
               Título del Foro
             </label>
             <input
+              id="foro-titulo-input"
               type="text"
               required
               value={foroTitulo}
@@ -881,10 +883,11 @@ const CursoDetallePage = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+            <label htmlFor="foro-descripcion-textarea" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
               Descripción / Instrucciones (Opcional)
             </label>
             <textarea
+              id="foro-descripcion-textarea"
               rows={3}
               value={foroDescripcion}
               onChange={(e) => setForoDescripcion(e.target.value)}
@@ -953,7 +956,7 @@ const extractForosFromTemas = (temas = []) => {
   return result;
 };
 
-const ForosDelCurso = ({ curso, user, canManage, handleOpenForoModal, handleDeleteForo, fetchCurso }) => {
+const ForosDelCurso = ({ curso, user, canManage, handleOpenForoModal, handleDeleteForo }) => {
   const [foroActivoId, setForoActivoId] = useState(null);
 
   const temasConForos = extractForosFromTemas(curso?.temas);

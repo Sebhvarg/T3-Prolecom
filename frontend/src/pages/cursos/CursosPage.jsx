@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { cursosService } from '../../api/cursosService';
-import { BookOpen, Plus, Edit2, Trash2, X, AlertCircle, CheckCircle, Users, UserPlus, Filter, Loader2, LayoutGrid, List, GraduationCap, UserCheck } from 'lucide-react';
+import { BookOpen, Plus, Edit2, Trash2, X, AlertCircle, CheckCircle, Users, UserPlus, Filter, Loader2, LayoutGrid, List, GraduationCap, UserCheck, User } from 'lucide-react';
 import PropTypes from 'prop-types';
 import Modal from '../../components/ui/Modal';
 import ConfirmModal from '../../components/ui/ConfirmModal';
@@ -983,9 +983,9 @@ const CursosPage = () => {
 
                   <div className="border border-slate-200 rounded-xl overflow-hidden flex-1 max-h-40 overflow-y-auto divide-y divide-slate-100">
                     {(() => {
-                      const pool = showAllUsersForTA
+                      const pool = showAllUsersForTA || ayudantesSistema.length === 0
                         ? estudiantesSistema
-                        : (ayudantesSistema.length > 0 ? ayudantesSistema : estudiantesSistema);
+                        : ayudantesSistema;
 
                       const availableForTA = pool
                         .filter((u) => !ayudantesMatriculados.some((a) => a.idUsuario === u.idUsuario))
@@ -1058,6 +1058,61 @@ const getLanguageLogo = (lp) => {
   return 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg';
 };
 
+const EnrollmentActionButtons = ({ curso, handleDesmatricular, handleInscribir, navigate, isList }) => {
+  if (curso.esta_matriculado) {
+    return (
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => navigate(`/cursos/${curso.idCurso}`)}
+          className={isList
+            ? "px-3.5 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold rounded-xl flex items-center gap-1.5 transition-colors shadow-xs text-xs cursor-pointer"
+            : "px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold rounded-xl flex items-center gap-1 transition-colors shadow-xs text-xs cursor-pointer"
+          }
+        >
+          <BookOpen size={isList ? 14 : 13} />
+          <span>Ver Contenido</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => handleDesmatricular(curso.idCurso)}
+          className={isList
+            ? "px-2.5 py-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 font-medium rounded-xl transition-colors text-xs cursor-pointer"
+            : "px-2 py-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 font-medium rounded-xl transition-colors text-xs cursor-pointer"
+          }
+          title="Darse de baja de este curso"
+        >
+          Baja
+        </button>
+      </div>
+    );
+  }
+
+  if (curso.tipo === 'público') {
+    return (
+      <button
+        type="button"
+        onClick={() => handleInscribir(curso.idCurso)}
+        className={isList
+          ? "bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-1.5 rounded-xl font-bold text-xs shadow-xs transition-colors cursor-pointer"
+          : "bg-[#2c5364] hover:bg-[#203a43] text-white px-3.5 py-1.5 rounded-xl font-bold text-xs shadow-xs transition-colors cursor-pointer"
+        }
+      >
+        Matricularme
+      </button>
+    );
+  }
+
+  return (
+    <span className={isList
+      ? "px-3 py-1.5 bg-slate-100 text-slate-400 font-bold rounded-lg text-xs"
+      : "px-2.5 py-1 bg-slate-100 text-slate-400 font-bold rounded-lg text-xs"
+    }>
+      Solo invitación
+    </span>
+  );
+};
+
 const CursoCard = ({
   curso,
   canManage,
@@ -1066,85 +1121,88 @@ const CursoCard = ({
   handleDelete,
   handleDesmatricular,
   handleInscribir,
-  navigate
+  navigate,
 }) => {
   const canViewDetails = canManage || curso.esta_matriculado || curso.tipo === 'público';
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col justify-between h-full hover:border-slate-300 transition-colors shadow-xs">
-      <div>
-        {/* Header: Logo + Title + Status */}
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <img alt={curso.lp || 'Python'} className="w-9 h-9 shrink-0 drop-shadow-xs" src={getLanguageLogo(curso.lp)} />
-            <div className="min-w-0 flex-1">
-              <h3 className="text-base md:text-lg font-extrabold text-slate-900 line-clamp-1 leading-snug">
-                {canViewDetails ? (
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/cursos/${curso.idCurso}`)}
-                    className="text-left font-extrabold text-slate-900 hover:text-[#2c5364] focus:outline-none bg-transparent border-0 p-0 cursor-pointer transition-colors"
-                  >
-                    {curso.titulo}
-                  </button>
-                ) : (
-                  curso.titulo
+    <div className="bg-white rounded-2xl border border-slate-200 hover:border-slate-300 transition-all shadow-xs overflow-hidden flex flex-col h-full hover:shadow-md">
+      <div className="p-5 flex-1 space-y-4">
+        {/* Header con icono y badges */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <img alt={curso.lp || 'Python'} className="w-10 h-10 drop-shadow-xs" src={getLanguageLogo(curso.lp)} />
+            <div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="px-2 py-0.5 bg-slate-100 text-slate-800 text-[10px] font-extrabold uppercase rounded-md border border-slate-200">
+                  {curso.lp}
+                </span>
+                {curso.categoria && (
+                  <span className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-semibold rounded-md border border-slate-200">
+                    {curso.categoria.nombre}
+                  </span>
                 )}
-              </h3>
+              </div>
             </div>
           </div>
+
           {curso.esta_matriculado && (
-            <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-800 text-[10px] font-extrabold rounded-md border border-emerald-200 shrink-0">
+            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 text-[11px] font-extrabold rounded-lg border border-emerald-200/80 shrink-0">
               ✓ Inscrito
             </span>
           )}
         </div>
 
-        {/* Badges Neutros y Equilibrados */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          <span className="px-2.5 py-0.5 bg-slate-100 text-slate-800 text-[10px] font-extrabold uppercase rounded-md border border-slate-200">
-            {curso.lp}
-          </span>
-          {curso.categoria && (
-            <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-medium rounded-md border border-slate-200">
-              {curso.categoria.nombre}
-            </span>
+        {/* Título y descripción */}
+        <div className="space-y-1.5">
+          <h3 className="text-base font-extrabold text-slate-900 leading-snug line-clamp-1">
+            {canViewDetails ? (
+              <button
+                type="button"
+                onClick={() => navigate(`/cursos/${curso.idCurso}`)}
+                className="text-left font-extrabold text-slate-900 hover:text-[#2c5364] focus:outline-none bg-transparent border-0 p-0 cursor-pointer transition-colors"
+              >
+                {curso.titulo}
+              </button>
+            ) : (
+              curso.titulo
+            )}
+          </h3>
+          {curso.descripcion && (
+            <p className="text-slate-500 text-xs font-medium line-clamp-2 leading-relaxed">{curso.descripcion}</p>
           )}
-          <span className="px-2.5 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase rounded-md border border-slate-200">
-            {curso.tipo}
+        </div>
+      </div>
+
+      {/* Footer del card */}
+      <div className="px-5 py-3.5 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between gap-3 mt-auto">
+        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+          <User size={13} className="text-slate-400 shrink-0" />
+          <span className="truncate max-w-[120px]" title={curso.creador?.nombreCompleto}>
+            {curso.creador?.nombreCompleto || 'Docente'}
           </span>
         </div>
 
-        {/* Descripción */}
-        <p className="text-slate-500 text-xs font-medium line-clamp-3 leading-relaxed">
-          {curso.descripcion}
-        </p>
-      </div>
-
-      {/* Footer / Acciones */}
-      <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-3 text-xs">
-        <span className="font-medium text-slate-500 truncate text-[11px]">
-          Profesor: <span className="font-bold text-slate-800">{curso.creador?.nombreCompleto || 'Desconocido'}</span>
-        </span>
-
         {canManage ? (
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1">
             <button
+              type="button"
               onClick={() => handleOpenAlumnosModal(curso)}
-              className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition-colors cursor-pointer text-xs"
+              className="p-1.5 text-slate-600 hover:bg-slate-200/80 rounded-lg transition-colors cursor-pointer"
               title="Ver y Gestionar Alumnos"
             >
-              <Users size={13} />
-              <span>Alumnos</span>
+              <Users size={15} />
             </button>
             <button
+              type="button"
               onClick={() => handleOpenEditModal(curso)}
-              className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              className="p-1.5 text-slate-600 hover:bg-slate-200/80 rounded-lg transition-colors cursor-pointer"
               title="Editar Curso"
             >
               <Edit2 size={15} />
             </button>
             <button
+              type="button"
               onClick={() => handleDelete(curso.idCurso)}
               className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
               title="Eliminar Curso"
@@ -1153,40 +1211,13 @@ const CursoCard = ({
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-2 shrink-0">
-            {curso.esta_matriculado ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => navigate(`/cursos/${curso.idCurso}`)}
-                  className="px-3 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold rounded-xl flex items-center gap-1 transition-colors shadow-xs text-xs cursor-pointer"
-                >
-                  <BookOpen size={13} />
-                  <span>Ver Contenido</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDesmatricular(curso.idCurso)}
-                  className="px-2 py-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 font-medium rounded-xl transition-colors text-xs cursor-pointer"
-                  title="Darse de baja de este curso"
-                >
-                  Baja
-                </button>
-              </>
-            ) : curso.tipo === 'público' ? (
-              <button
-                type="button"
-                onClick={() => handleInscribir(curso.idCurso)}
-                className="bg-[#2c5364] hover:bg-[#203a43] text-white px-3.5 py-1.5 rounded-xl font-bold text-xs shadow-xs transition-colors cursor-pointer"
-              >
-                Matricularme
-              </button>
-            ) : (
-              <span className="px-2.5 py-1 bg-slate-100 text-slate-400 font-bold rounded-lg text-xs">
-                Solo invitación
-              </span>
-            )}
-          </div>
+          <EnrollmentActionButtons
+            curso={curso}
+            handleDesmatricular={handleDesmatricular}
+            handleInscribir={handleInscribir}
+            navigate={navigate}
+            isList={false}
+          />
         )}
       </div>
     </div>
@@ -1252,6 +1283,7 @@ const CursoListItem = ({
         {canManage ? (
           <div className="flex items-center gap-1.5">
             <button
+              type="button"
               onClick={() => handleOpenAlumnosModal(curso)}
               className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition-colors cursor-pointer text-xs"
               title="Ver y Gestionar Alumnos"
@@ -1260,6 +1292,7 @@ const CursoListItem = ({
               <span>Alumnos</span>
             </button>
             <button
+              type="button"
               onClick={() => handleOpenEditModal(curso)}
               className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
               title="Editar Curso"
@@ -1267,6 +1300,7 @@ const CursoListItem = ({
               <Edit2 size={16} />
             </button>
             <button
+              type="button"
               onClick={() => handleDelete(curso.idCurso)}
               className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
               title="Eliminar Curso"
@@ -1274,37 +1308,14 @@ const CursoListItem = ({
               <Trash2 size={16} />
             </button>
           </div>
-        ) : curso.esta_matriculado ? (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => navigate(`/cursos/${curso.idCurso}`)}
-              className="px-3.5 py-1.5 bg-[#2c5364] hover:bg-[#203a43] text-white font-bold rounded-xl flex items-center gap-1.5 transition-colors shadow-xs text-xs cursor-pointer"
-            >
-              <BookOpen size={14} />
-              <span>Ver Contenido</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDesmatricular(curso.idCurso)}
-              className="px-2.5 py-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 font-medium rounded-xl transition-colors text-xs cursor-pointer"
-              title="Darse de baja de este curso"
-            >
-              Baja
-            </button>
-          </div>
-        ) : curso.tipo === 'público' ? (
-          <button
-            type="button"
-            onClick={() => handleInscribir(curso.idCurso)}
-            className="bg-[#2c5364] hover:bg-[#203a43] text-white px-4 py-1.5 rounded-xl font-bold text-xs shadow-xs transition-colors cursor-pointer"
-          >
-            Matricularme
-          </button>
         ) : (
-          <span className="px-3 py-1.5 bg-slate-100 text-slate-400 font-bold rounded-lg text-xs">
-            Solo invitación
-          </span>
+          <EnrollmentActionButtons
+            curso={curso}
+            handleDesmatricular={handleDesmatricular}
+            handleInscribir={handleInscribir}
+            navigate={navigate}
+            isList={true}
+          />
         )}
       </div>
     </div>

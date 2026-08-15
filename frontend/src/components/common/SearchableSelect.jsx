@@ -51,10 +51,7 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder = 'Selecc
         <div className="flex items-center gap-1.5 shrink-0 ml-2">
           {selectedOption && (
             <span
-              role="button"
-              tabIndex={0}
               onClick={handleClear}
-              onKeyDown={(e) => e.key === 'Enter' && handleClear(e)}
               className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 cursor-pointer"
             >
               <X size={14} />

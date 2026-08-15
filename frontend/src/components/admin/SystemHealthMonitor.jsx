@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react';
 import { adminService } from '../../api/adminService';
 import { Activity, RefreshCw, User } from 'lucide-react';
 
+const getLogLevelBg = (level = '') => {
+  if (level.includes('ERR')) return 'bg-rose-500';
+  if (level.includes('WARN')) return 'bg-amber-500';
+  return 'bg-slate-400';
+};
+
 const SystemHealthMonitor = () => {
   const [healthData, setHealthData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -78,6 +84,7 @@ const SystemHealthMonitor = () => {
             {/* Sub-pestañas */}
             <div className="flex bg-slate-100/90 p-1 rounded-xl border border-slate-200/60 text-xs">
               <button
+                type="button"
                 onClick={() => setActiveSubTab('activity')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                   activeSubTab === 'activity' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
@@ -86,6 +93,7 @@ const SystemHealthMonitor = () => {
                 Actividad de Usuarios ({activityLogs.length})
               </button>
               <button
+                type="button"
                 onClick={() => setActiveSubTab('system')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                   activeSubTab === 'system' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
@@ -96,6 +104,7 @@ const SystemHealthMonitor = () => {
             </div>
 
             <button
+              type="button"
               onClick={fetchHealthLogs}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-xl border border-slate-200/60 transition-colors cursor-pointer"
             >
@@ -119,6 +128,7 @@ const SystemHealthMonitor = () => {
               {['ALL', 'ERROR', 'WARN', 'INFO'].map((level) => (
                 <button
                   key={level}
+                  type="button"
                   onClick={() => setSelectedLevel(level)}
                   className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                     selectedLevel === level ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -202,9 +212,7 @@ const SystemHealthMonitor = () => {
                   >
                     <div className="flex items-center justify-between text-slate-500">
                       <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${
-                          log.level?.includes('ERR') ? 'bg-rose-500' : log.level?.includes('WARN') ? 'bg-amber-500' : 'bg-slate-400'
-                        }`}></span>
+                        <span className={`w-2 h-2 rounded-full ${getLogLevelBg(log.level)}`}></span>
                         <span className="font-bold text-slate-800">{log.level}</span>
                         <span className="text-[10px] px-1.5 py-0.5 bg-slate-200 text-slate-700 rounded font-semibold">{log.env}</span>
                       </div>

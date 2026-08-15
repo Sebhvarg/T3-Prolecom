@@ -4,7 +4,6 @@ import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { authService } from '../../api/authService';
 import { BookOpen, Users, Clock, PlusCircle, CheckCircle, MessageSquare, AlertCircle, Sparkles, X, FileText, Code, LayoutGrid, List, ChevronRight } from 'lucide-react';
-import BotonDescargaReporte from '../../components/common/BotonDescargaReporte';
 
 const ProfesorDashboard = () => {
   const { user } = useAuth();

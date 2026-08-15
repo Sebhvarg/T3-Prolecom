@@ -167,7 +167,7 @@ const UserManagementTable = () => {
             {toast.type === 'error' ? <AlertTriangle size={18} className="text-rose-600" /> : <CheckCircle size={18} className="text-emerald-600" />}
             <span>{toast.message}</span>
           </div>
-          <button onClick={() => setToast(null)} className="text-xs font-semibold hover:underline text-slate-700">Cerrar</button>
+          <button type="button" onClick={() => setToast(null)} className="text-xs font-semibold hover:underline text-slate-700">Cerrar</button>
         </div>
       )}
 
@@ -259,6 +259,7 @@ const UserManagementTable = () => {
                     </td>
                     <td className="py-3.5 px-4 text-right space-x-2">
                       <button
+                        type="button"
                         title="Cambiar Rol"
                         onClick={() => {
                           setRoleModalUser(u);
@@ -270,6 +271,7 @@ const UserManagementTable = () => {
                       </button>
 
                       <button
+                        type="button"
                         title="Cambiar Estado / Deshabilitar"
                         onClick={() => {
                           setStateModalUser(u);
@@ -281,6 +283,7 @@ const UserManagementTable = () => {
                       </button>
 
                       <button
+                        type="button"
                         title="Resetear Contraseña"
                         onClick={() => {
                           setPassModalUser(u);
@@ -323,12 +326,14 @@ const UserManagementTable = () => {
 
             <div className="flex justify-end gap-2.5 pt-2">
               <button
+                type="button"
                 onClick={() => setRoleModalUser(null)}
                 className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={handleUpdateRole}
                 className="px-4 py-2 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-xs transition-colors cursor-pointer"
               >
@@ -361,12 +366,14 @@ const UserManagementTable = () => {
 
             <div className="flex justify-end gap-2.5 pt-2">
               <button
+                type="button"
                 onClick={() => setStateModalUser(null)}
                 className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={handleUpdateState}
                 className="px-4 py-2 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-xs transition-colors cursor-pointer"
               >
@@ -404,12 +411,14 @@ const UserManagementTable = () => {
 
             <div className="flex justify-end gap-2.5 pt-2">
               <button
+                type="button"
                 onClick={() => setPassModalUser(null)}
                 className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={handleResetPassword}
                 className="px-4 py-2 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-xs transition-colors cursor-pointer"
               >

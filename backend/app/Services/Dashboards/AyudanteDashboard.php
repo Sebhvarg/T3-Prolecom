@@ -43,17 +43,81 @@ class AyudanteDashboard extends BaseDashboard
             ->pluck('idCurso')
             ->toArray();
 
-        if (empty($assignedIds)) {
-            $roles = $this->usuario->roles->pluck('rol');
-            if ($roles->contains('Administrador')) {
-                return Curso::pluck('idCurso')->toArray();
-            }
-            if ($roles->contains('Profesor')) {
-                return Curso::where('idProfeCreador', $this->usuario->idUsuario)->pluck('idCurso')->toArray();
-            }
+        $courseIds = ! empty($assignedIds) ? $assignedIds : $this->getFallbackCourseIds();
+
+        return array_values(array_unique(array_filter($courseIds)));
+    }
+
+    private function getFallbackCourseIds(): array
+    {
+        $roles = $this->usuario->roles->pluck('rol');
+        if ($roles->contains('Administrador')) {
+            return Curso::pluck('idCurso')->toArray();
+        }
+        if ($roles->contains('Profesor')) {
+            return Curso::where('idProfeCreador', $this->usuario->idUsuario)->pluck('idCurso')->toArray();
         }
 
-        return array_values(array_unique(array_filter($assignedIds)));
+        return [];
+    }
+
+    protected function getActividadReciente(array $courseIds, array $foroIds): array
+    {
+        $preguntas = $this->getRecientePreguntas($foroIds);
+        $soluciones = $this->getRecienteSoluciones($courseIds);
+
+        return $preguntas->concat($soluciones)
+            ->sortByDesc('timestamp')
+            ->take(8)
+            ->values()
+            ->toArray();
+    }
+
+    private function getRecientePreguntas(array $foroIds)
+    {
+        if (empty($foroIds)) {
+            return collect();
+        }
+
+        return Pregunta::whereIn('idForo', $foroIds)
+            ->with('creador:idUsuario,nombreCompleto')
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'tipo' => 'pregunta',
+                    'titulo' => $p->titulo,
+                    'usuario' => $p->creador ? $p->creador->nombreCompleto : 'Estudiante',
+                    'fecha' => $p->created_at ? $p->created_at->toISOString() : now()->toISOString(),
+                    'timestamp' => $p->created_at ? $p->created_at->timestamp : now()->timestamp,
+                ];
+            });
+    }
+
+    private function getRecienteSoluciones(array $courseIds)
+    {
+        $challengeIds = $this->getChallengeIdsInCourses($courseIds);
+
+        if (empty($challengeIds)) {
+            return collect();
+        }
+
+        return Solucion::whereIn('idDesafio', $challengeIds)
+            ->where('estado', 'aprobado')
+            ->with(['estudiante:idUsuario,nombreCompleto', 'desafio:idDesafio,titulo'])
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(function ($s) {
+                return [
+                    'tipo' => 'solucion',
+                    'titulo' => $s->desafio ? $s->desafio->titulo : 'Desafío',
+                    'usuario' => $s->estudiante ? $s->estudiante->nombreCompleto : 'Estudiante',
+                    'fecha' => $s->created_at ? $s->created_at->toISOString() : now()->toISOString(),
+                    'timestamp' => $s->created_at ? $s->created_at->timestamp : now()->timestamp,
+                ];
+            });
     }
 
     /**
@@ -194,6 +258,7 @@ class AyudanteDashboard extends BaseDashboard
                 if ($preg->foro && $preg->foro->itemTema && $preg->foro->itemTema->tema) {
                     $idCurso = $preg->foro->itemTema->tema->idCurso;
                 }
+
                 return [
                     'idPregunta' => $preg->idPregunta,
                     'idForo' => $preg->idForo,
@@ -206,52 +271,6 @@ class AyudanteDashboard extends BaseDashboard
                     'fecha' => $preg->created_at ? $preg->created_at->diffForHumans() : 'Reciente',
                 ];
             })
-            ->toArray();
-    }
-
-    protected function getActividadReciente(array $courseIds, array $foroIds): array
-    {
-        $preguntas = empty($foroIds)
-            ? collect()
-            : Pregunta::whereIn('idForo', $foroIds)
-                ->with('creador:idUsuario,nombreCompleto')
-                ->latest()
-                ->take(5)
-                ->get()
-                ->map(function ($p) {
-                    return [
-                        'tipo' => 'pregunta',
-                        'titulo' => $p->titulo,
-                        'usuario' => $p->creador ? $p->creador->nombreCompleto : 'Estudiante',
-                        'fecha' => $p->created_at ? $p->created_at->toISOString() : now()->toISOString(),
-                        'timestamp' => $p->created_at ? $p->created_at->timestamp : now()->timestamp,
-                    ];
-                });
-
-        $challengeIds = $this->getChallengeIdsInCourses($courseIds);
-
-        $soluciones = empty($challengeIds)
-            ? collect()
-            : Solucion::whereIn('idDesafio', $challengeIds)
-                ->where('estado', 'aprobado')
-                ->with(['estudiante:idUsuario,nombreCompleto', 'desafio:idDesafio,titulo'])
-                ->latest()
-                ->take(5)
-                ->get()
-                ->map(function ($s) {
-                    return [
-                        'tipo' => 'solucion',
-                        'titulo' => $s->desafio ? $s->desafio->titulo : 'Desafío',
-                        'usuario' => $s->estudiante ? $s->estudiante->nombreCompleto : 'Estudiante',
-                        'fecha' => $s->created_at ? $s->created_at->toISOString() : now()->toISOString(),
-                        'timestamp' => $s->created_at ? $s->created_at->timestamp : now()->timestamp,
-                    ];
-                });
-
-        return $preguntas->concat($soluciones)
-            ->sortByDesc('timestamp')
-            ->take(8)
-            ->values()
             ->toArray();
     }
 }

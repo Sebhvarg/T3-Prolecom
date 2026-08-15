@@ -41,16 +41,17 @@ class ForoController extends Controller
             return true;
         }
 
-        if ($roles->contains('Moderador')) {
-            $idCurso = $recurso->idCurso ?? $recurso->foro?->itemTema?->tema?->idCurso ?? null;
-            if ($idCurso && \Illuminate\Support\Facades\Schema::hasTable('moderadores_cursos')) {
-                return $user->cursosComoModerador()->where('cursos.idCurso', $idCurso)->exists();
-            }
+        return $roles->contains('Moderador') && $this->isModeradorOfResource($user, $recurso);
+    }
 
-            return true;
+    private function isModeradorOfResource($user, $recurso): bool
+    {
+        $idCurso = $recurso->idCurso ?? $recurso->foro?->itemTema?->tema?->idCurso ?? null;
+        if ($idCurso && Schema::hasTable('moderadores_cursos')) {
+            return $user->cursosComoModerador()->where('cursos.idCurso', $idCurso)->exists();
         }
 
-        return false;
+        return true;
     }
 
     // ─────────────────────────────────────────────────────────────────────

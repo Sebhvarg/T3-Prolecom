@@ -22,11 +22,6 @@ class MaterialController extends Controller
 
     private const MSG_INVALID_ID = 'ID de material no válido';
 
-    /**
-     * @param Curso $curso
-     * @param User $user
-     * @return bool
-     */
     private function checkPermission(Curso $curso, User $user): bool
     {
         $roles = $user->roles->pluck('rol');
@@ -35,11 +30,6 @@ class MaterialController extends Controller
         return $isAdminOrTA || $curso->idProfeCreador === $user->idUsuario;
     }
 
-    /**
-     * @param Curso $curso
-     * @param User $user
-     * @return bool
-     */
     private function isAuthorizedToView(Curso $curso, User $user): bool
     {
         if ($this->checkPermission($curso, $user)) {
@@ -50,8 +40,7 @@ class MaterialController extends Controller
     }
 
     /**
-     * @param int|string $id
-     * @return array
+     * @param  int|string  $id
      */
     private function resolveItemAndCurso($id): array
     {
@@ -73,9 +62,7 @@ class MaterialController extends Controller
     }
 
     /**
-     * @param Request $request
-     * @param int|string $temaId
-     * @return JsonResponse
+     * @param  int|string  $temaId
      */
     public function store(Request $request, $temaId): JsonResponse
     {
@@ -153,9 +140,7 @@ class MaterialController extends Controller
     }
 
     /**
-     * @param Request $request
-     * @param int|string $id
-     * @return JsonResponse
+     * @param  int|string  $id
      */
     public function update(Request $request, $id): JsonResponse
     {
@@ -210,9 +195,7 @@ class MaterialController extends Controller
     }
 
     /**
-     * @param Request $request
-     * @param int|string $id
-     * @return JsonResponse
+     * @param  int|string  $id
      */
     public function destroy(Request $request, $id): JsonResponse
     {
@@ -239,8 +222,7 @@ class MaterialController extends Controller
     }
 
     /**
-     * @param Request $request
-     * @param int|string $id
+     * @param  int|string  $id
      * @return JsonResponse|BinaryFileResponse
      */
     public function stream(Request $request, $id)
@@ -262,8 +244,7 @@ class MaterialController extends Controller
     }
 
     /**
-     * @param Request $request
-     * @param int|string $id
+     * @param  int|string  $id
      * @return JsonResponse|BinaryFileResponse
      */
     public function download(Request $request, $id)

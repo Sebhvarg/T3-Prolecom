@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\AuditLogService;
 use App\Strategies\CourseTemplate\CursoTemplateFactory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
 class CursoController extends Controller
@@ -21,44 +22,10 @@ class CursoController extends Controller
         $user = $request->user();
         $query = Curso::query()->with(['creador:idUsuario,nombreCompleto', 'categoria:idCategoria,nombre,slug,icono']);
 
-        // Filtro por Lenguaje (LP)
-        if ($request->has('lp') && ! empty($request->lp)) {
-            $query->where('lp', $request->lp);
-        }
-
-        // Filtro por Tipo (Público/Privado)
-        if ($request->has('tipo') && ! empty($request->tipo)) {
-            $query->where('tipo', $request->tipo);
-        }
-
-        // Filtro por Categoría
-        if ($request->has('idCategoria') && ! empty($request->idCategoria)) {
-            $query->where('idCategoria', $request->idCategoria);
-        }
-
-        // Filtros especiales de matrícula / asignación
-        if ($request->has('filtro')) {
-            if ($request->filtro === 'mis_cursos') {
-                $userRole = $user ? $user->roles->pluck('rol')->first() : null;
-                if ($userRole === 'Ayudante' && \Illuminate\Support\Facades\Schema::hasTable('ayudantes_cursos')) {
-                    $query->whereHas('ayudantes', function ($q) use ($user) {
-                        $q->where('usuarios.idUsuario', $user->idUsuario);
-                    });
-                } else {
-                    $query->whereHas('estudiantes', function ($q) use ($user) {
-                        $q->where('usuarios.idUsuario', $user->idUsuario);
-                    });
-                }
-            } elseif ($request->filtro === 'disponibles') {
-                $query->whereDoesntHave('estudiantes', function ($q) use ($user) {
-                    $q->where('usuarios.idUsuario', $user->idUsuario);
-                });
-            }
-        }
+        $this->applyFilters($query, $request, $user);
 
         $cursos = $query->get();
 
-        // Inyectar el flag esta_matriculado dinámicamente
         if ($user) {
             $cursos->each(function ($curso) use ($user) {
                 $curso->esta_matriculado = $curso->estudiantes()
@@ -68,6 +35,36 @@ class CursoController extends Controller
         }
 
         return response()->json($cursos);
+    }
+
+    private function applyFilters($query, Request $request, $user): void
+    {
+        if ($request->filled('lp')) {
+            $query->where('lp', $request->lp);
+        }
+        if ($request->filled('tipo')) {
+            $query->where('tipo', $request->tipo);
+        }
+        if ($request->filled('idCategoria')) {
+            $query->where('idCategoria', $request->idCategoria);
+        }
+        if ($request->has('filtro')) {
+            $this->applyEnrollmentFilter($query, (string) $request->filtro, $user);
+        }
+    }
+
+    private function applyEnrollmentFilter($query, string $filtro, $user): void
+    {
+        if ($filtro === 'mis_cursos') {
+            $userRole = $user ? $user->roles->pluck('rol')->first() : null;
+            if ($userRole === 'Ayudante' && Schema::hasTable('ayudantes_cursos')) {
+                $query->whereHas('ayudantes', fn ($q) => $q->where('usuarios.idUsuario', $user->idUsuario));
+            } else {
+                $query->whereHas('estudiantes', fn ($q) => $q->where('usuarios.idUsuario', $user->idUsuario));
+            }
+        } elseif ($filtro === 'disponibles') {
+            $query->whereDoesntHave('estudiantes', fn ($q) => $q->where('usuarios.idUsuario', $user->idUsuario));
+        }
     }
 
     public function getCategorias()
@@ -309,7 +306,7 @@ class CursoController extends Controller
     public function getAyudantes($id)
     {
         $curso = Curso::findOrFail($id);
-        if (! \Illuminate\Support\Facades\Schema::hasTable('ayudantes_cursos')) {
+        if (! Schema::hasTable('ayudantes_cursos')) {
             return response()->json([]);
         }
 
@@ -341,23 +338,42 @@ class CursoController extends Controller
             return response()->json(['errors' => $validator->errors()], 400);
         }
 
-        if ($request->filled('idUsuarioAyudante')) {
-            $ayudante = User::findOrFail($request->idUsuarioAyudante);
-        } else {
-            $ayudante = User::where('email', $request->email)->firstOrFail();
-        }
+        $ayudante = $request->filled('idUsuarioAyudante')
+            ? User::findOrFail($request->idUsuarioAyudante)
+            : User::where('email', $request->email)->firstOrFail();
 
-        if (! \Illuminate\Support\Facades\Schema::hasTable('ayudantes_cursos')) {
-            return response()->json(['message' => 'La tabla ayudantes_cursos no existe aún en la base de datos'], 400);
-        }
-
-        if ($curso->ayudantes()->where('usuarios.idUsuario', $ayudante->idUsuario)->exists()) {
-            return response()->json(['message' => 'El usuario ya está asignado como ayudante de este curso'], 400);
+        $errorMsg = $this->checkAyudanteEligible($curso, $ayudante);
+        if ($errorMsg) {
+            return response()->json(['message' => $errorMsg], 400);
         }
 
         $curso->ayudantes()->attach($ayudante->idUsuario, ['idAsignador' => $user->idUsuario]);
+        $this->ensureAyudanteRole($ayudante);
 
-        // Asignar el rol de Ayudante en la base de datos si aún no lo posee
+        return response()->json([
+            'message' => 'Ayudante asignado exitosamente al curso',
+            'ayudante' => [
+                'idUsuario' => $ayudante->idUsuario,
+                'nombreCompleto' => $ayudante->nombreCompleto,
+                'email' => $ayudante->email,
+            ],
+        ], 201);
+    }
+
+    private function checkAyudanteEligible(Curso $curso, User $ayudante): ?string
+    {
+        if (! Schema::hasTable('ayudantes_cursos')) {
+            return 'La tabla ayudantes_cursos no existe aún en la base de datos';
+        }
+        if ($curso->ayudantes()->where('usuarios.idUsuario', $ayudante->idUsuario)->exists()) {
+            return 'El usuario ya está asignado como ayudante de este curso';
+        }
+
+        return null;
+    }
+
+    private function ensureAyudanteRole(User $ayudante): void
+    {
         if (! $ayudante->roles()->where('roles.rol', 'Ayudante')->exists()) {
             $rolAyudante = DB::table('roles')->where('rol', 'Ayudante')->first();
             if ($rolAyudante) {
@@ -369,15 +385,6 @@ class CursoController extends Controller
                 ]);
             }
         }
-
-        return response()->json([
-            'message' => 'Ayudante asignado exitosamente al curso',
-            'ayudante' => [
-                'idUsuario' => $ayudante->idUsuario,
-                'nombreCompleto' => $ayudante->nombreCompleto,
-                'email' => $ayudante->email,
-            ],
-        ], 201);
     }
 
     public function desasignarAyudante(Request $request, $id, $idAyudante)
@@ -392,7 +399,7 @@ class CursoController extends Controller
             return response()->json(['message' => 'No tienes permisos para remover ayudantes de este curso'], 403);
         }
 
-        if (! \Illuminate\Support\Facades\Schema::hasTable('ayudantes_cursos')) {
+        if (! Schema::hasTable('ayudantes_cursos')) {
             return response()->json(['message' => 'La tabla ayudantes_cursos no existe aún'], 400);
         }
 
@@ -404,7 +411,7 @@ class CursoController extends Controller
     public function getModeradores($id)
     {
         $curso = Curso::findOrFail($id);
-        if (! \Illuminate\Support\Facades\Schema::hasTable('moderadores_cursos')) {
+        if (! Schema::hasTable('moderadores_cursos')) {
             return response()->json([]);
         }
 
@@ -436,18 +443,13 @@ class CursoController extends Controller
             return response()->json(['errors' => $validator->errors()], 400);
         }
 
-        if ($request->filled('idUsuarioModerador')) {
-            $moderador = User::findOrFail($request->idUsuarioModerador);
-        } else {
-            $moderador = User::where('email', $request->email)->firstOrFail();
-        }
+        $moderador = $request->filled('idUsuarioModerador')
+            ? User::findOrFail($request->idUsuarioModerador)
+            : User::where('email', $request->email)->firstOrFail();
 
-        if (! \Illuminate\Support\Facades\Schema::hasTable('moderadores_cursos')) {
-            return response()->json(['message' => 'La tabla moderadores_cursos no existe aún en la base de datos'], 400);
-        }
-
-        if ($curso->moderadores()->where('usuarios.idUsuario', $moderador->idUsuario)->exists()) {
-            return response()->json(['message' => 'El usuario ya está asignado como moderador de este curso'], 400);
+        $errorMsg = $this->checkModeradorEligible($curso, $moderador);
+        if ($errorMsg) {
+            return response()->json(['message' => $errorMsg], 400);
         }
 
         $curso->moderadores()->attach($moderador->idUsuario, ['idAsignador' => $user->idUsuario]);
@@ -462,6 +464,18 @@ class CursoController extends Controller
         ], 201);
     }
 
+    private function checkModeradorEligible(Curso $curso, User $moderador): ?string
+    {
+        if (! Schema::hasTable('moderadores_cursos')) {
+            return 'La tabla moderadores_cursos no existe aún en la base de datos';
+        }
+        if ($curso->moderadores()->where('usuarios.idUsuario', $moderador->idUsuario)->exists()) {
+            return 'El usuario ya está asignado como moderador de este curso';
+        }
+
+        return null;
+    }
+
     public function desasignarModerador(Request $request, $id, $idModerador)
     {
         $user = $request->user();
@@ -474,7 +488,7 @@ class CursoController extends Controller
             return response()->json(['message' => 'No tienes permisos para remover moderadores de este curso'], 403);
         }
 
-        if (! \Illuminate\Support\Facades\Schema::hasTable('moderadores_cursos')) {
+        if (! Schema::hasTable('moderadores_cursos')) {
             return response()->json(['message' => 'La tabla moderadores_cursos no existe aún'], 400);
         }
 
