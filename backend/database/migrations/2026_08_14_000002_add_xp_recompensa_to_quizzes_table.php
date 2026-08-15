@@ -6,27 +6,21 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::table('quizzes', function (Blueprint $table) {
-            if (! Schema::hasColumn('quizzes', 'xp_recompensa')) {
+        if (! Schema::hasColumn('quizzes', 'xp_recompensa')) {
+            Schema::table('quizzes', static function (Blueprint $table) {
                 $table->integer('xp_recompensa')->default(50)->after('intentos_maximos');
-            }
-        });
+            });
+        }
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::table('quizzes', function (Blueprint $table) {
-            if (Schema::hasColumn('quizzes', 'xp_recompensa')) {
+        if (Schema::hasColumn('quizzes', 'xp_recompensa')) {
+            Schema::table('quizzes', static function (Blueprint $table) {
                 $table->dropColumn('xp_recompensa');
-            }
-        });
+            });
+        }
     }
 };

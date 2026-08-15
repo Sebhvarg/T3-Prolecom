@@ -6,28 +6,21 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        if (! Schema::hasTable('moderadores_cursos')) {
-            Schema::create('moderadores_cursos', function (Blueprint $table) {
-                $table->unsignedBigInteger('idCurso');
-                $table->unsignedBigInteger('idUsuarioModerador');
-                $table->unsignedBigInteger('idAsignador')->nullable();
-                $table->primary(['idCurso', 'idUsuarioModerador']);
-                $table->foreign('idCurso')->references('idCurso')->on('cursos')->onDelete('cascade');
-                $table->foreign('idUsuarioModerador')->references('idUsuario')->on('usuarios')->onDelete('cascade');
-                $table->foreign('idAsignador')->references('idUsuario')->on('usuarios')->onDelete('set null');
-                $table->timestamps();
-            });
+        if (Schema::hasTable('moderadores_cursos')) {
+            return;
         }
+
+        Schema::create('moderadores_cursos', static function (Blueprint $table) {
+            $table->foreignId('idCurso')->constrained('cursos', 'idCurso')->cascadeOnDelete();
+            $table->foreignId('idUsuarioModerador')->constrained('usuarios', 'idUsuario')->cascadeOnDelete();
+            $table->foreignId('idAsignador')->nullable()->constrained('usuarios', 'idUsuario')->nullOnDelete();
+            $table->primary(['idCurso', 'idUsuarioModerador']);
+            $table->timestamps();
+        });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('moderadores_cursos');

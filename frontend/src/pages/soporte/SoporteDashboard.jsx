@@ -1,41 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
 import { Clock, Users, Database, Shield, BookOpen, UserCheck, Activity, LifeBuoy } from 'lucide-react';
 
 import StatCard from '../../components/dashboard/StatCard';
-import { getAdminDashboardData } from '../../api/dashboardService';
+import { useAdminDashboardData } from '../../hooks/useAdminDashboardData';
 import UserManagementTable from '../../components/admin/UserManagementTable';
 import SystemHealthMonitor from '../../components/admin/SystemHealthMonitor';
 
 const ICON_MAP = {
-  'Clock': <Clock size={22} />,
-  'Users': <Users size={22} />,
-  'Database': <Database size={22} />,
-  'Shield': <Shield size={22} />,
-  'BookOpen': <BookOpen size={22} />,
+  Clock: <Clock size={22} />,
+  Users: <Users size={22} />,
+  Database: <Database size={22} />,
+  Shield: <Shield size={22} />,
+  BookOpen: <BookOpen size={22} />,
 };
 
 const SoporteDashboard = () => {
   const { user } = useAuth();
-  const [data, setData] = useState({ stats: [], logs: [] });
-  const [loading, setLoading] = useState(true);
+  const { data, loading } = useAdminDashboardData();
   const [activeTab, setActiveTab] = useState('users');
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const result = await getAdminDashboardData();
-        setData(result);
-      } catch (error) {
-        console.error("Error cargando dashboard de soporte:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
 
   return (
     <DashboardContainer title="Panel de Soporte Técnico y Atención" user={user}>

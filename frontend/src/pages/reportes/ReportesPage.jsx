@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { authService } from '../../api/authService';
 import { adminService } from '../../api/adminService';
 import ModalVisorReportePDF from '../../components/reportes/ModalVisorReportePDF';
+import { downloadCsvReport } from '../../utils/downloadCsvReport';
 import SearchableSelect from '../../components/common/SearchableSelect';
 import { FileText, Filter, BookOpen, Users, GraduationCap, Printer, FileSpreadsheet } from 'lucide-react';
 
@@ -160,28 +161,7 @@ const processAyudantesReport = (rawData, { selectedAyudanteId, ayudantesList }) 
   // Descargar CSV directo
   const handleExportCsv = async () => {
     try {
-      const token = authService.getToken();
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-      const url = `${apiBase}/reportes/${tipoReporte}?export=csv`;
-
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'text/csv',
-        },
-      });
-
-      if (!response.ok) throw new Error('Error al exportar CSV');
-
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.download = `reporte_${tipoReporte}_${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(downloadUrl);
+      await downloadCsvReport(tipoReporte);
     } catch (error) {
       console.error('Error descargando CSV:', error);
     }

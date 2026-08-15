@@ -42,24 +42,29 @@ class DesafioCreationTest extends TestCase
         $this->estudianteRol = Rol::find(6);
     }
 
+    private function createTestCourseAndTema(User $user, string $titulo = 'Curso de Pruebas'): Tema
+    {
+        $course = Curso::create([
+            'titulo' => $titulo,
+            'descripcion' => 'Descripción de pruebas',
+            'lp' => 'PHP',
+            'tipo' => self::TIPO_PUBLICO,
+            'idProfeCreador' => $user->idUsuario,
+        ]);
+
+        return Tema::create([
+            'nombre' => 'Tema de Pruebas',
+            'descripcion' => 'Aprende testing',
+            'idCurso' => $course->idCurso,
+        ]);
+    }
+
     public function test_professor_can_create_desafio_under_tema()
     {
         $professor = User::factory()->create();
         $professor->roles()->attach($this->profesorRol->idRol);
 
-        $course = Curso::create([
-            'titulo' => 'Curso de Pruebas',
-            'descripcion' => 'Desafíos en PHP',
-            'lp' => 'PHP',
-            'tipo' => self::TIPO_PUBLICO,
-            'idProfeCreador' => $professor->idUsuario,
-        ]);
-
-        $tema = Tema::create([
-            'nombre' => 'Tema 1: Pruebas Unitarias',
-            'descripcion' => 'Aprende testing',
-            'idCurso' => $course->idCurso,
-        ]);
+        $tema = $this->createTestCourseAndTema($professor, 'Curso de Pruebas');
 
         Sanctum::actingAs($professor);
 
@@ -120,18 +125,7 @@ class DesafioCreationTest extends TestCase
         $student = User::factory()->create();
         $student->roles()->attach($this->estudianteRol->idRol);
 
-        $course = Curso::create([
-            'titulo' => 'Curso Restringido',
-            'descripcion' => 'Solo profesor puede crear desafíos',
-            'lp' => 'PHP',
-            'tipo' => self::TIPO_PUBLICO,
-            'idProfeCreador' => $student->idUsuario,
-        ]);
-
-        $tema = Tema::create([
-            'nombre' => 'Módulo 1',
-            'idCurso' => $course->idCurso,
-        ]);
+        $tema = $this->createTestCourseAndTema($student, 'Curso Restringido');
 
         Sanctum::actingAs($student);
 
@@ -159,18 +153,7 @@ class DesafioCreationTest extends TestCase
         $professor = User::factory()->create();
         $professor->roles()->attach($this->profesorRol->idRol);
 
-        $course = Curso::create([
-            'titulo' => 'Curso de Validaciones',
-            'descripcion' => 'Validando inputs',
-            'lp' => 'PHP',
-            'tipo' => self::TIPO_PUBLICO,
-            'idProfeCreador' => $professor->idUsuario,
-        ]);
-
-        $tema = Tema::create([
-            'nombre' => 'Módulo de Errores',
-            'idCurso' => $course->idCurso,
-        ]);
+        $tema = $this->createTestCourseAndTema($professor, 'Curso de Validaciones');
 
         Sanctum::actingAs($professor);
 
@@ -243,18 +226,7 @@ class DesafioCreationTest extends TestCase
         $professor = User::factory()->create();
         $professor->roles()->attach($this->profesorRol->idRol);
 
-        $course = Curso::create([
-            'titulo' => 'Curso Invalid Difficulty',
-            'descripcion' => 'Testing invalid difficulty',
-            'lp' => 'PHP',
-            'tipo' => self::TIPO_PUBLICO,
-            'idProfeCreador' => $professor->idUsuario,
-        ]);
-
-        $tema = Tema::create([
-            'nombre' => 'Módulo Dificultad',
-            'idCurso' => $course->idCurso,
-        ]);
+        $tema = $this->createTestCourseAndTema($professor, 'Curso Invalid Difficulty');
 
         Sanctum::actingAs($professor);
 
