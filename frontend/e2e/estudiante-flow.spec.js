@@ -16,8 +16,9 @@ test.describe('Flujo del Estudiante', () => {
     await goToFirstCourse(page);
 
     // La barra de progreso (CourseProgressBar) debe estar visible para el estudiante
-    await expect(page.getByText(/mi progreso/i)).toBeVisible({ timeout: 8000 });
-    await expect(page.getByText(/progreso total del curso/i)).toBeVisible();
+    await expect(page.getByText(/mi progreso en el curso/i)).toBeVisible({ timeout: 8000 });
+    await expect(page.getByText(/estado general/i)).toBeVisible();
+    await expect(page.getByText(/% completado/i)).toBeVisible();
   });
 
   test('Puede navegar a la pestaña de Cuestionarios & Quizzes', async ({ page }) => {
