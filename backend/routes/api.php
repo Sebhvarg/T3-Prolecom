@@ -124,6 +124,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notificaciones', [NotificacionController::class, 'index']);
     Route::patch('/notificaciones/{id}/leer', [NotificacionController::class, 'marcarLeida']);
     Route::patch('/notificaciones/leer-todas', [NotificacionController::class, 'marcarTodasLeidas']);
+    Route::delete('/notificaciones', [NotificacionController::class, 'limpiarTodas']);
 
     // Rutas con restricción de roles
     Route::middleware('role:Administrador,Profesor,Ayudante')->group(function () {

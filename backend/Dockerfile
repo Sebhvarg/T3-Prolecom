@@ -18,8 +18,8 @@ RUN apt-get update && apt-get install -y \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Extensiones de PHP requeridas por Laravel
-RUN install-php-extensions pdo pdo_mysql mbstring zip exif pcntl bcmath gd opcache
+# Extensiones de PHP requeridas por Laravel (+ sockets para Reverb WebSocket)
+RUN install-php-extensions pdo pdo_mysql mbstring zip exif pcntl bcmath gd opcache sockets
 
 # Configurar OPcache para desarrollo (rápido y con validación de cambios al instante)
 RUN { \
@@ -86,6 +86,9 @@ RUN composer install --no-interaction --no-scripts --no-autoloader
 # Copiar el resto del código
 COPY . .
 RUN composer dump-autoload
+
+# Publicar configuración de Reverb (WebSocket server)
+RUN php artisan vendor:publish --tag=reverb-config --force 2>/dev/null || true
 
 RUN chown -R www-data:www-data /var/www/html && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 EXPOSE 80

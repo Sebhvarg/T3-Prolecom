@@ -25,4 +25,13 @@ export const notificacionesService = {
       method: 'PATCH',
     });
   },
+
+  /**
+   * Eliminar (limpiar) todas las notificaciones del usuario
+   */
+  limpiarTodas: async () => {
+    return await authService.apiFetch('/notificaciones', {
+      method: 'DELETE',
+    });
+  },
 };

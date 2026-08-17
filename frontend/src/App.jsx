@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { NotificacionProvider } from './context/NotificacionContext';
 import PrivateRoute from './routes/PrivateRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -19,7 +20,8 @@ import ReportesPage from './pages/reportes/ReportesPage';
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <NotificacionProvider>
+        <Router>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -71,7 +73,8 @@ function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
-      </Router>
+        </Router>
+      </NotificacionProvider>
     </AuthProvider>
   );
 }

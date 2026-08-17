@@ -111,7 +111,7 @@ jobs:
           path: frontend/playwright-report/
           retention-days: 14
 
-  # ── 3. Aprobación manual + Deploy simulado a Producción ──────────────────
+  # ── 3. Aprobación manual + Deploy real a Producción (EC2) ────────────────
   # El "environment: production" con reviewers configurados en GitHub
   # Settings obliga a que un humano apruebe antes de que este job corra.
   deploy-production:
@@ -128,13 +128,66 @@ jobs:
           echo "Desplegando versión: ${GITHUB_REF_NAME}"
           echo "Commit: ${GITHUB_SHA}"
 
-      # Placeholder: el equipo aún no tiene servidor real de producción.
-      # Cuando exista, reemplazar este paso por el deploy real
-      # (SSH, contenedor, Vercel, servicio cloud, etc.), siguiendo el
-      # mismo patrón usado en staging.yml.
-      - name: Simulated production deploy
+      # ── Deploy real al servidor EC2 vía SSH ──────────────────────────────
+      # Secrets requeridos en GitHub → Settings → Secrets → Actions:
+      #   EC2_HOST          → IP o DNS público de la instancia EC2
+      #   EC2_USER          → Usuario SSH (ej: ubuntu, ec2-user)
+      #   EC2_SSH_KEY       → Clave privada PEM (contenido completo del .pem)
+      #   EC2_PROJECT_DIR   → Ruta del proyecto en EC2 (ej: /home/ubuntu/T3-Prolecom)
+      #   JUDGE0_URL        → URL del servidor Judge0
+      #   JUDGE0_HOST       → Host de Judge0
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            cd ${{ secrets.EC2_PROJECT_DIR }}
+
+            echo "==> Actualizando código..."
+            git pull origin main
+
+            echo "==> Reconstruyendo y reiniciando servicios Docker..."
+            docker compose pull db judge0-db judge0-redis judge0-server adminer
+            docker compose up -d --build \
+              --no-deps \
+              backend \
+              reverb \
+              queue-worker \
+              frontend
+
+            echo "==> Esperando que el backend esté listo..."
+            sleep 8
+
+            echo "==> Verificando .env del backend..."
+            if [ ! -f backend/.env ]; then
+              echo "No existe .env — creando desde .env.example..."
+              cp backend/.env.example backend/.env
+              docker compose run --rm backend php artisan key:generate --force
+            fi
+
+            echo "==> Ejecutando migraciones..."
+            docker compose exec -T backend php artisan migrate --force
+
+            echo "==> Limpiando caché de Laravel..."
+            docker compose exec -T backend php artisan config:cache
+            docker compose exec -T backend php artisan route:cache
+            docker compose exec -T backend php artisan view:cache
+
+            echo "==> Estado final de los servicios:"
+            docker compose ps
+
+            echo "✅ Deploy ${GITHUB_REF_NAME} completado exitosamente."
+
+      - name: Notify deploy success
+        if: success()
         run: |
-          echo "Ejecutando despliegue simulado a Producción..."
-          echo "Backend: build listo para desplegar."
-          echo "Frontend: build listo para desplegar."
-          echo "✅ Despliegue simulado completo. Producto certificado y listo para servidor real."
+          echo "🚀 Deploy ${GITHUB_REF_NAME} → EC2 completado."
+          echo "Commit: ${GITHUB_SHA}"
+
+      - name: Notify deploy failure
+        if: failure()
+        run: |
+          echo "❌ Deploy falló. Revisar logs de SSH."
