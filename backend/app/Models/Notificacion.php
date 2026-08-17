@@ -60,11 +60,11 @@ class Notificacion extends Model
     {
         $notificacion = self::create([
             'idUsuario' => $idUsuario,
-            'tipo'      => $tipo,
-            'titulo'    => $titulo,
-            'mensaje'   => $mensaje,
-            'leida'     => false,
-            'datos'     => $datos,
+            'tipo' => $tipo,
+            'titulo' => $titulo,
+            'mensaje' => $mensaje,
+            'leida' => false,
+            'datos' => $datos,
         ]);
 
         // Patrón Observer: notificar a los suscriptores en tiempo real
@@ -95,11 +95,11 @@ class Notificacion extends Model
             foreach ($estudianteIds as $idEstudiante) {
                 $notificacion = self::create([
                     'idUsuario' => $idEstudiante,
-                    'tipo'      => $tipo,
-                    'titulo'    => $titulo,
-                    'mensaje'   => "{$curso->titulo}: {$mensaje}",
-                    'leida'     => false,
-                    'datos'     => array_merge(['idCurso' => $idCurso], $datos),
+                    'tipo' => $tipo,
+                    'titulo' => $titulo,
+                    'mensaje' => "{$curso->titulo}: {$mensaje}",
+                    'leida' => false,
+                    'datos' => array_merge(['idCurso' => $idCurso], $datos),
                 ]);
 
                 try {
@@ -109,7 +109,7 @@ class Notificacion extends Model
                 }
             }
         } catch (\Exception $e) {
-            Log::error("Error notificando estudiantes del curso {$idCurso}: ".$e->getMessage());
+            Log::error('Error notificando estudiantes del curso '.$idCurso.': '.$e->getMessage());
         }
     }
 }

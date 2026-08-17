@@ -20,10 +20,7 @@ class NotificacionCreada implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public function __construct(public Notificacion $notificacion)
-    {
-        //
-    }
+    public function __construct(public Notificacion $notificacion) {}
 
     /**
      * Canal privado del usuario — solo él recibe sus notificaciones.
@@ -44,12 +41,12 @@ class NotificacionCreada implements ShouldBroadcast
     {
         return [
             'idNotificacion' => $this->notificacion->idNotificacion,
-            'tipo'           => $this->notificacion->tipo,
-            'titulo'         => $this->notificacion->titulo,
-            'mensaje'        => $this->notificacion->mensaje,
-            'leida'          => false,
-            'datos'          => $this->notificacion->datos,
-            'created_at'     => $this->notificacion->created_at?->toISOString(),
+            'tipo' => $this->notificacion->tipo,
+            'titulo' => $this->notificacion->titulo,
+            'mensaje' => $this->notificacion->mensaje,
+            'leida' => false,
+            'datos' => $this->notificacion->datos,
+            'created_at' => $this->notificacion->created_at?->toISOString(),
         ];
     }
 }
