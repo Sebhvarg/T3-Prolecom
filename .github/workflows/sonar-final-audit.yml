@@ -53,13 +53,13 @@ jobs:
         run: yarn eslint . --format json --output-file eslint-report.json || true
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@2500896589ef8f7247069a56136f8dc177c27ccc # v5.0.0
+        uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
 
       - name: Quality Gate Check (bloqueante)
-        uses: SonarSource/sonarqube-quality-gate-action@6f0d2bd0a1baa0c4e4a9c4e1b2e0e4d1e7c1a7c9 # v1.1.0
+        uses: SonarSource/sonarqube-quality-gate-action@v1
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
