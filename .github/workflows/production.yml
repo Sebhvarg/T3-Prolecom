@@ -169,7 +169,8 @@ jobs:
             set -e
             cd ${{ secrets.EC2_PROJECT_DIR }}
 
-            echo "==> Actualizando código..."
+            echo "==> Limpiando cambios locales y actualizando código..."
+            git checkout .
             git pull origin master
 
             echo "==> Reconstruyendo y reiniciando servicios Docker..."
