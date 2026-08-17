@@ -77,6 +77,7 @@ class AuthService
                 'rol' => $usuario->roles->pluck('rol')->first(),
                 'id_rol' => $usuario->roles->pluck('idRol')->first(),
                 'rutas' => $rutas ? explode(';', $rutas) : [],
+                'xp' => $usuario->xp,
             ],
         ];
     }

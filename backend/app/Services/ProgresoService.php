@@ -114,12 +114,7 @@ class ProgresoService
             ->pluck('items_tema.itemable_id')
             ->toArray();
 
-        $materialIdsDirect = DB::table('materiales_aprendizaje')
-            ->where('idCurso', $idCurso)
-            ->pluck('idMaterial')
-            ->toArray();
-
-        $allMaterialIds = array_values(array_unique(array_filter(array_merge($materialIdsFromItems, $materialIdsDirect))));
+        $allMaterialIds = array_values(array_unique(array_filter($materialIdsFromItems)));
 
         $vistosIds = DB::table('materiales_vistos')
             ->whereIn('idMaterial', $allMaterialIds)
@@ -167,9 +162,6 @@ class ProgresoService
             ? DB::table($tablaQuizIntentos)
                 ->whereIn('idQuiz', $allQuizIds)
                 ->where('idEstudiante', $idEstudiante)
-                ->where(function ($q) {
-                    $q->where('estado', 'completado')->orWhere('estado', 'Completado');
-                })
                 ->pluck('idQuiz')
                 ->toArray()
             : [];
@@ -262,12 +254,7 @@ class ProgresoService
             ->pluck('items_tema.itemable_id')
             ->toArray();
 
-        $materialIdsDirect = DB::table('materiales_aprendizaje')
-            ->where('idCurso', $idCurso)
-            ->pluck('idMaterial')
-            ->toArray();
-
-        $allMaterialIds = array_values(array_unique(array_filter(array_merge($materialIdsFromItems, $materialIdsDirect))));
+        $allMaterialIds = array_values(array_unique(array_filter($materialIdsFromItems)));
         $total = count($allMaterialIds);
 
         if ($total === 0) {
@@ -329,9 +316,6 @@ class ProgresoService
             ? DB::table($tablaQuizIntentos)
                 ->whereIn('idQuiz', $allQuizIds)
                 ->where('idEstudiante', $idEstudiante)
-                ->where(function ($q) {
-                    $q->where('estado', 'completado')->orWhere('estado', 'Completado');
-                })
                 ->distinct('idQuiz')
                 ->count('idQuiz')
             : 0;

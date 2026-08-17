@@ -47,4 +47,14 @@ class NotificacionController extends Controller
 
         return response()->json(['message' => 'Todas las notificaciones marcadas como leídas.']);
     }
+
+    /**
+     * Eliminar (limpiar) todas las notificaciones del usuario autenticado.
+     */
+    public function limpiarTodas(Request $request)
+    {
+        Notificacion::where('idUsuario', $request->user()->idUsuario)->delete();
+
+        return response()->json(['message' => 'Notificaciones eliminadas correctamente.']);
+    }
 }

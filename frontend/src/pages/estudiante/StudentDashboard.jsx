@@ -2,42 +2,46 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
-import { authService } from '../../api/authService';
+import { useNotificaciones } from '../../context/NotificacionContext';
 import { cursosService } from '../../api/cursosService';
-import { MessageSquare, BookOpen, Clock, AlertCircle, LayoutGrid, List, ChevronRight } from 'lucide-react';
+import { MessageSquare, BookOpen, Clock, AlertCircle, LayoutGrid, List, ChevronRight, Trash2, Wifi, WifiOff } from 'lucide-react';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { notificaciones: actividades, noLeidas, conectado, limpiar } = useNotificaciones();
   const [cursos, setCursos] = useState([]);
-  const [actividades, setActividades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
+  const [limpiando, setLimpiando] = useState(false);
 
   useEffect(() => {
-    const fetchStudentDashboardData = async () => {
+    const fetchCursos = async () => {
       setLoading(true);
       try {
-        const [myCursos, dashboardData] = await Promise.all([
-          cursosService.getCursos({ filtro: 'mis_cursos' }),
-          authService.apiFetch('/dashboard').catch(() => null),
-        ]);
-
+        const myCursos = await cursosService.getCursos({ filtro: 'mis_cursos' });
         setCursos(myCursos || []);
-        if (dashboardData?.widgets?.actividades) {
-          setActividades(dashboardData.widgets.actividades);
-        }
       } catch (err) {
-        console.error('Error al cargar datos del dashboard de estudiante:', err);
+        console.error('Error al cargar cursos del estudiante:', err);
         setError('No se pudieron cargar tus datos.');
       } finally {
         setLoading(false);
       }
     };
-
-    fetchStudentDashboardData();
+    fetchCursos();
   }, []);
+
+  const handleLimpiar = async () => {
+    if (limpiando || actividades.length === 0) return;
+    setLimpiando(true);
+    try {
+      await limpiar();
+    } finally {
+      setLimpiando(false);
+    }
+  };
+
 
   const getLanguageLogo = (lp) => {
     const lang = lp?.toLowerCase() || '';
@@ -253,12 +257,38 @@ const StudentDashboard = () => {
 
           {/* Columna Derecha (1/3 width) - Actividades Recientes */}
           <div className="lg:col-span-1 space-y-4">
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <Clock size={20} className="text-[#2c5364]" />
-                <span>Actividades Recientes</span>
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">Notificaciones y tareas pendientes</p>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <Clock size={20} className="text-[#2c5364]" />
+                  <span>Actividades Recientes</span>
+                  {noLeidas > 0 && (
+                    <span className="px-1.5 py-0.5 bg-[#2c5364] text-white text-[10px] font-black rounded-full leading-none">
+                      {noLeidas}
+                    </span>
+                  )}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
+                  {conectado ? (
+                    <><Wifi size={11} className="text-emerald-500" /> <span>En tiempo real</span></>
+                  ) : (
+                    <><WifiOff size={11} className="text-slate-400" /> <span>Notificaciones y tareas pendientes</span></>
+                  )}
+                </p>
+              </div>
+
+              {actividades.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleLimpiar}
+                  disabled={limpiando}
+                  title="Limpiar todas las notificaciones"
+                  className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 hover:text-red-500 transition-colors shrink-0 mt-1 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  <Trash2 size={14} />
+                  {limpiando ? 'Limpiando…' : 'Limpiar todo'}
+                </button>
+              )}
             </div>
 
             {actividades.length === 0 ? (
@@ -268,15 +298,20 @@ const StudentDashboard = () => {
             ) : (
               <div className="space-y-3">
                 {actividades.map((act) => (
-                  <div key={act.id || act.titulo} className="bg-white rounded-xl border border-slate-200/80 shadow-2xs flex overflow-hidden hover:border-slate-300 transition-colors">
-                    <div className="w-1.5 bg-[#2c5364]"></div>
+                  <div key={act.id || act.titulo} className={`bg-white rounded-xl border shadow-2xs flex overflow-hidden transition-colors ${act.leida ? 'border-slate-200/80 hover:border-slate-300' : 'border-[#2c5364]/30 hover:border-[#2c5364]/60'}`}>
+                    <div className={`w-1.5 shrink-0 ${act.leida ? 'bg-slate-200' : 'bg-[#2c5364]'}`} />
                     <div className="flex-1 p-3.5 flex justify-between items-center min-w-0">
                       <div className="space-y-0.5 min-w-0 pr-2">
-                        <p className="text-slate-900 text-xs font-bold truncate"><strong>{act.tipo}:</strong> {act.titulo}</p>
+                        <div className="flex items-center gap-1.5">
+                          {!act.leida && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#2c5364] shrink-0" />
+                          )}
+                          <p className="text-slate-900 text-xs font-bold truncate"><strong>{act.tipo}:</strong> {act.titulo}</p>
+                        </div>
                         <p className="text-[11px] text-slate-500 font-medium truncate">{act.curso}</p>
                         <p className="text-[10px] text-slate-400 font-mono">{act.fecha}</p>
                       </div>
-                      <div className="p-2 rounded-full bg-slate-100 text-[#2c5364] shrink-0">
+                      <div className={`p-2 rounded-full shrink-0 ${act.leida ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-[#2c5364]'}`}>
                         <MessageSquare size={16} />
                       </div>
                     </div>

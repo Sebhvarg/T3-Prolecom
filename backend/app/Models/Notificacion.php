@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\NotificacionCreada;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -57,7 +58,7 @@ class Notificacion extends Model
      */
     public static function crear(int $idUsuario, string $tipo, string $titulo, string $mensaje, array $datos = []): self
     {
-        return self::create([
+        $notificacion = self::create([
             'idUsuario' => $idUsuario,
             'tipo' => $tipo,
             'titulo' => $titulo,
@@ -65,6 +66,15 @@ class Notificacion extends Model
             'leida' => false,
             'datos' => $datos,
         ]);
+
+        // Patrón Observer: notificar a los suscriptores en tiempo real
+        try {
+            broadcast(new NotificacionCreada($notificacion))->toOthers();
+        } catch (\Exception $e) {
+            Log::warning('Broadcasting de notificación falló (no crítico): '.$e->getMessage());
+        }
+
+        return $notificacion;
     }
 
     /**
@@ -83,7 +93,7 @@ class Notificacion extends Model
                 ->pluck('idUsuarioEstudiante');
 
             foreach ($estudianteIds as $idEstudiante) {
-                self::create([
+                $notificacion = self::create([
                     'idUsuario' => $idEstudiante,
                     'tipo' => $tipo,
                     'titulo' => $titulo,
@@ -91,9 +101,15 @@ class Notificacion extends Model
                     'leida' => false,
                     'datos' => array_merge(['idCurso' => $idCurso], $datos),
                 ]);
+
+                try {
+                    broadcast(new NotificacionCreada($notificacion));
+                } catch (\Exception) {
+                    // Broadcasting no crítico — no interrumpir el flujo
+                }
             }
         } catch (\Exception $e) {
-            Log::error("Error notificando estudiantes del curso {$idCurso}: ".$e->getMessage());
+            Log::error('Error notificando estudiantes del curso '.$idCurso.': '.$e->getMessage());
         }
     }
 }

@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\HealthLogController;
 use App\Http\Controllers\Api\MaterialController;
 use App\Http\Controllers\Api\ModeracionController;
 use App\Http\Controllers\Api\NotificacionController;
+use App\Http\Controllers\Api\PerfilController;
 use App\Http\Controllers\Api\ProgresoController;
 use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\ReporteAcademicoController;
@@ -64,6 +65,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post(ROUTE_CURSO_ID.'/inscribir', [CursoController::class, 'inscribir']);
     Route::delete(ROUTE_CURSO_ID.'/desmatricular', [CursoController::class, 'desmatricular']);
     Route::get(ROUTE_CURSO_ID.'/progreso', [ProgresoController::class, 'show']);
+    Route::put('/perfil/password', [PerfilController::class, 'cambiarPassword']);
 
     // Ayudantes de Curso
     Route::get(ROUTE_CURSO_ID.ROUTE_AYUDANTES, [CursoController::class, 'getAyudantes']);
@@ -122,6 +124,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notificaciones', [NotificacionController::class, 'index']);
     Route::patch('/notificaciones/{id}/leer', [NotificacionController::class, 'marcarLeida']);
     Route::patch('/notificaciones/leer-todas', [NotificacionController::class, 'marcarTodasLeidas']);
+    Route::delete('/notificaciones', [NotificacionController::class, 'limpiarTodas']);
 
     // Rutas con restricción de roles
     Route::middleware('role:Administrador,Profesor,Ayudante')->group(function () {
