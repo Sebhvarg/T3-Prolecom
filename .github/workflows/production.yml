@@ -199,8 +199,8 @@ jobs:
             $DC pull db judge0-db judge0-redis judge0-server adminer
             $DC up -d --build
 
-            echo "==> Esperando que el backend se estabilice..."
-            sleep 10
+            echo "==> Esperando que el backend y la base de datos se estabilicen..."
+            sleep 15
 
             echo "==> Generando APP_KEY en backend..."
             $DC exec -T backend php artisan key:generate --force || true
