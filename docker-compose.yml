@@ -23,6 +23,7 @@ services:
 
   # Contenedor para el Backend (PHP + Apache)
   backend:
+    image: t3-prolecom-backend:development
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -81,6 +82,7 @@ services:
 
   # Procesador de colas en segundo plano para calificar retos
   queue-worker:
+    image: t3-prolecom-backend:development
     build:
       context: ./backend
       dockerfile: Dockerfile

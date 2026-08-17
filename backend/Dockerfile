@@ -78,10 +78,18 @@ CMD rm -f /etc/apache2/mods-enabled/mpm_event.* /etc/apache2/mods-enabled/mpm_wo
 
 # Etapa de Desarrollo
 FROM base AS development
+ARG GITHUB_TOKEN
+ENV COMPOSER_ALLOW_SUPERUSER=1 \
+    COMPOSER_DISABLE_HTTP2=1 \
+    COMPOSER_MAX_PARALLEL_HTTP=4 \
+    COMPOSER_PROCESS_TIMEOUT=2000
+
 # Copiar solo archivos de dependencias para aprovechar la caché
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 COPY composer.json composer.lock* ./
-RUN composer install --no-interaction --no-scripts --no-autoloader
+RUN --mount=type=cache,target=/root/.composer/cache \
+    if [ -n "$GITHUB_TOKEN" ]; then composer config --global github-oauth.github.com "$GITHUB_TOKEN"; fi && \
+    composer install --no-interaction --no-scripts --no-autoloader --prefer-dist
 
 # Copiar el resto del código
 COPY . .
@@ -92,9 +100,17 @@ EXPOSE 80
 
 # Etapa de Producción (Optimización)
 FROM base AS production
+ARG GITHUB_TOKEN
+ENV COMPOSER_ALLOW_SUPERUSER=1 \
+    COMPOSER_DISABLE_HTTP2=1 \
+    COMPOSER_MAX_PARALLEL_HTTP=4 \
+    COMPOSER_PROCESS_TIMEOUT=2000
+
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 COPY composer.json composer.lock* ./
-RUN composer install --no-interaction --no-dev --no-scripts --no-autoloader
+RUN --mount=type=cache,target=/root/.composer/cache \
+    if [ -n "$GITHUB_TOKEN" ]; then composer config --global github-oauth.github.com "$GITHUB_TOKEN"; fi && \
+    composer install --no-interaction --no-dev --no-scripts --no-autoloader --prefer-dist
 
 COPY . .
 RUN composer dump-autoload --optimize --no-dev
