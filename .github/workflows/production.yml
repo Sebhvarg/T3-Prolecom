@@ -170,7 +170,7 @@ jobs:
             cd ${{ secrets.EC2_PROJECT_DIR }}
 
             echo "==> Actualizando código..."
-            git pull origin main
+            git pull origin master
 
             echo "==> Reconstruyendo y reiniciando servicios Docker..."
             docker compose pull db judge0-db judge0-redis judge0-server adminer
