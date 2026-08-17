@@ -95,11 +95,12 @@ jobs:
         run: |
           cp .env.example .env
           composer install --no-interaction --prefer-dist
-          php artisan key:generate
+          sed -i 's/APP_ENV=.*/APP_ENV=local/' .env
+          php artisan key:generate --force
           touch database/database.sqlite
           sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env
           sed -i "s|DB_DATABASE=.*|DB_DATABASE=$(pwd)/database/database.sqlite|" .env
-          php artisan migrate:fresh --seed
+          php artisan migrate:fresh --seed --force
           php artisan serve --host=127.0.0.1 --port=8000 &
           sleep 4
 
