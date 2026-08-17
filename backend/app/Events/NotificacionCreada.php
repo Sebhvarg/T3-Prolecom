@@ -20,7 +20,10 @@ class NotificacionCreada implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public function __construct(public Notificacion $notificacion) {}
+    public function __construct(public Notificacion $notificacion)
+    {
+        //
+    }
 
     /**
      * Canal privado del usuario — solo él recibe sus notificaciones.

@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use App\Events\NotificacionCreada;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Events\NotificacionCreada;
 
 class Notificacion extends Model
 {
@@ -71,7 +71,7 @@ class Notificacion extends Model
         try {
             broadcast(new NotificacionCreada($notificacion))->toOthers();
         } catch (\Exception $e) {
-            Log::warning("Broadcasting de notificación falló (no crítico): " . $e->getMessage());
+            Log::warning('Broadcasting de notificación falló (no crítico): '.$e->getMessage());
         }
 
         return $notificacion;
