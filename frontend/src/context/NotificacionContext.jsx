@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo, startTransition } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from './AuthContext';
 import { notificacionesService } from '../api/notificacionesService';
@@ -29,18 +29,20 @@ export const NotificacionProvider = ({ children }) => {
     try {
       const data = await notificacionesService.getNotificaciones();
       const items = data?.data ?? data ?? [];
-      setNotificaciones(
-        items.map((n) => ({
-          id: n.idNotificacion,
-          tipo: n.tipo,
-          titulo: n.titulo,
-          curso: n.mensaje,
-          fecha: n.created_at
-            ? new Date(n.created_at).toLocaleDateString('es-CO')
-            : '',
-          leida: n.leida,
-        }))
-      );
+      startTransition(() => {
+        setNotificaciones(
+          items.map((n) => ({
+            id: n.idNotificacion,
+            tipo: n.tipo,
+            titulo: n.titulo,
+            curso: n.mensaje,
+            fecha: n.created_at
+              ? new Date(n.created_at).toLocaleDateString('es-CO')
+              : '',
+            leida: n.leida,
+          }))
+        );
+      });
     } catch {
       // No crítico
     }
@@ -53,8 +55,6 @@ export const NotificacionProvider = ({ children }) => {
     const token = authService.getToken();
     if (!token || token === 'TAMPERED') return;
 
-    // Importación dinámica de Laravel Echo + Pusher-js
-    // (se instalan como dependencias npm del frontend)
     let isMounted = true;
 
     const connectEcho = async () => {
@@ -67,12 +67,14 @@ export const NotificacionProvider = ({ children }) => {
         // Exponer Pusher globalmente (requerido por Echo)
         window.Pusher = Pusher;
 
+        const port = Number.parseInt(import.meta.env.VITE_REVERB_PORT || '8080', 10);
+
         const echo = new Echo({
           broadcaster: 'reverb',
           key: import.meta.env.VITE_REVERB_APP_KEY || 'local-key',
           wsHost: import.meta.env.VITE_REVERB_HOST || '127.0.0.1',
-          wsPort: parseInt(import.meta.env.VITE_REVERB_PORT || '8080'),
-          wssPort: parseInt(import.meta.env.VITE_REVERB_PORT || '8080'),
+          wsPort: port,
+          wssPort: port,
           forceTLS: (import.meta.env.VITE_REVERB_SCHEME || 'http') === 'https',
           enabledTransports: ['ws', 'wss'],
           authEndpoint: `${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api'}/broadcasting/auth`,
@@ -97,35 +99,37 @@ export const NotificacionProvider = ({ children }) => {
 
         channel
           .subscribed(() => {
-            if (isMounted) setConectado(true);
+            if (isMounted) startTransition(() => setConectado(true));
           })
           .listen('.notificacion.nueva', (payload) => {
             if (!isMounted) return;
-            // Agregar al principio de la lista (más reciente primero)
-            setNotificaciones((prev) => [
-              {
-                id: payload.idNotificacion,
-                tipo: payload.tipo,
-                titulo: payload.titulo,
-                curso: payload.mensaje,
-                fecha: payload.created_at
-                  ? new Date(payload.created_at).toLocaleDateString('es-CO')
-                  : '',
-                leida: false,
-              },
-              ...prev,
-            ]);
+            startTransition(() => {
+              setNotificaciones((prev) => [
+                {
+                  id: payload.idNotificacion,
+                  tipo: payload.tipo,
+                  titulo: payload.titulo,
+                  curso: payload.mensaje,
+                  fecha: payload.created_at
+                    ? new Date(payload.created_at).toLocaleDateString('es-CO')
+                    : '',
+                  leida: false,
+                },
+                ...prev,
+              ]);
+            });
           })
           .error((err) => {
-            console.warn('[Notificaciones WS] Error de canal:', err);
-            if (isMounted) setConectado(false);
+            console.error('[Notificaciones WS] Error de canal:', err);
+            if (isMounted) startTransition(() => setConectado(false));
           });
       } catch (err) {
-        console.warn('[Notificaciones WS] No se pudo conectar:', err);
+        console.error('[Notificaciones WS] No se pudo conectar:', err);
       }
     };
 
-    cargarNotificaciones();
+    // startTransition evita que la carga inicial bloquee el render
+    startTransition(() => { cargarNotificaciones(); });
     connectEcho();
 
     return () => {
@@ -146,7 +150,7 @@ export const NotificacionProvider = ({ children }) => {
   const limpiar = useCallback(async () => {
     try {
       await notificacionesService.limpiarTodas();
-      setNotificaciones([]);
+      startTransition(() => setNotificaciones([]));
     } catch {
       // Silencioso
     }
