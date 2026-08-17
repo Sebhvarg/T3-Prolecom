@@ -173,9 +173,16 @@ jobs:
             git checkout .
             git pull origin master
 
-            echo "==> Reconstruyendo y reiniciando servicios Docker..."
-            docker compose pull db judge0-db judge0-redis judge0-server adminer
-            docker compose up -d --build \
+            # Detectar comando docker-compose (Amazon Linux 2023) o docker compose
+            if command -v docker-compose &> /dev/null; then
+              DC="docker-compose"
+            else
+              DC="docker compose"
+            fi
+
+            echo "==> Reconstruyendo y reiniciando servicios Docker con $DC..."
+            $DC pull db judge0-db judge0-redis judge0-server adminer
+            $DC up -d --build \
               --no-deps \
               backend \
               reverb \
@@ -189,19 +196,19 @@ jobs:
             if [ ! -f backend/.env ]; then
               echo "No existe .env — creando desde .env.example..."
               cp backend/.env.example backend/.env
-              docker compose run --rm backend php artisan key:generate --force
+              $DC run --rm backend php artisan key:generate --force
             fi
 
             echo "==> Ejecutando migraciones..."
-            docker compose exec -T backend php artisan migrate --force
+            $DC exec -T backend php artisan migrate --force
 
             echo "==> Limpiando caché de Laravel..."
-            docker compose exec -T backend php artisan config:cache
-            docker compose exec -T backend php artisan route:cache
-            docker compose exec -T backend php artisan view:cache
+            $DC exec -T backend php artisan config:cache
+            $DC exec -T backend php artisan route:cache
+            $DC exec -T backend php artisan view:cache
 
             echo "==> Estado final de los servicios:"
-            docker compose ps
+            $DC ps
 
             echo "✅ Deploy ${GITHUB_REF_NAME} completado exitosamente."
 
