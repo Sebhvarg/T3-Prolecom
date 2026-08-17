@@ -72,7 +72,7 @@ class ProcesarIntentoDesafio implements ShouldQueue
             $estado = 'rechazado';
         }
 
-        $puntosOtorgados = $estado === 'aprobado' ? $desafio->puntos : 0;
+        $puntosOtorgados = 0;
 
         if ($hasNoTestCases) {
             $displayPassed = $estado === 'aprobado' ? 1 : 0;
@@ -83,9 +83,19 @@ class ProcesarIntentoDesafio implements ShouldQueue
         }
 
         // Transacción para actualizar solución y otorgar XP
-        DB::transaction(function () use ($solucion, $estado, $displayPassed, $displayTotal, $puntosOtorgados, $execTime, $execMemory, $stdout, $stderr, $desafio) {
+        DB::transaction(function () use ($solucion, $estado, $displayPassed, $displayTotal, &$puntosOtorgados, $execTime, $execMemory, $stdout, $stderr, $desafio) {
             // Actualizar la solución con pessimistic locking
             $solucionLock = Solucion::where('idSolucion', $solucion->idSolucion)->lockForUpdate()->first();
+
+            // 'puntos_otorgados' debe reflejar el XP REAL otorgado en esta
+            // resolución, no el máximo del desafío -otorgarXP() solo da XP
+            // la primera vez que se aprueba; en reintentos posteriores debe
+            // quedar en 0, igual que ya hace el quiz con su "xp_ganado" por
+            // mejora-.
+            if ($estado === 'aprobado') {
+                $puntosOtorgados = $this->otorgarXP($solucion->idEstudiante, $desafio->puntos, $desafio->idDesafio);
+            }
+
             $solucionLock->update([
                 'estado' => $estado,
                 'casos_pasados' => $displayPassed,
@@ -96,10 +106,6 @@ class ProcesarIntentoDesafio implements ShouldQueue
                 'stderr' => $stderr,
                 'puntos_otorgados' => $puntosOtorgados,
             ]);
-
-            if ($estado === 'aprobado') {
-                $this->otorgarXP($solucion->idEstudiante, $desafio->puntos, $desafio->idDesafio);
-            }
         });
 
         // Transmitir en tiempo real
@@ -107,9 +113,12 @@ class ProcesarIntentoDesafio implements ShouldQueue
     }
 
     /**
-     * Otorga puntos de XP al estudiante si es su primera resolución exitosa de este desafío.
+     * Otorga puntos de XP al estudiante si es su primera resolución exitosa
+     * de este desafío. Devuelve el XP realmente otorgado (0 si ya lo había
+     * resuelto antes), para que el llamador pueda guardarlo/mostrarlo con
+     * precisión en vez de asumir siempre el máximo del desafío.
      */
-    private function otorgarXP(int $idEstudiante, int $puntos, int $idDesafio): void
+    private function otorgarXP(int $idEstudiante, int $puntos, int $idDesafio): int
     {
         // Verificar si ya existe otra solución aprobada anteriormente para este mismo desafío por el mismo estudiante
         $alreadySolved = Solucion::where('idEstudiante', $idEstudiante)
@@ -118,14 +127,20 @@ class ProcesarIntentoDesafio implements ShouldQueue
             ->where('idSolucion', '!=', $this->solucion->idSolucion)
             ->exists();
 
-        if (! $alreadySolved) {
-            // Es la primera vez que lo resuelve con éxito, otorgamos XP
-            $usuario = User::find($idEstudiante);
-            if ($usuario) {
-                $usuario->increment('xp', $puntos);
-                Log::info("Otorgado {$puntos} XP al estudiante {$idEstudiante} por el desafío {$idDesafio}");
-            }
+        if ($alreadySolved) {
+            return 0;
         }
+
+        // Es la primera vez que lo resuelve con éxito, otorgamos XP
+        $usuario = User::find($idEstudiante);
+        if (! $usuario) {
+            return 0;
+        }
+
+        $usuario->increment('xp', $puntos);
+        Log::info("Otorgado {$puntos} XP al estudiante {$idEstudiante} por el desafío {$idDesafio}");
+
+        return $puntos;
     }
 
     private function procesarCasosDePrueba(Judge0Service $judge0, int $languageId, string $codigoFuente, array $testCases): array

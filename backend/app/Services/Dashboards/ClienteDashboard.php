@@ -34,6 +34,7 @@ class ClienteDashboard extends BaseDashboard
         return [
             'mis_cursos' => $this->getMisCursos(),
             'actividades' => $this->getActividades(),
+            'xp' => $this->usuario->xp ?? 0,
         ];
     }
 

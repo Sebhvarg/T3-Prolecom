@@ -285,7 +285,7 @@ const QuizResolverModal = ({ isOpen, onClose, quizId, onQuizCompleted }) => {
         tiempo_segundos: segundosTranscurridos
       });
       
-      setResultadoIntento(res.intento);
+      setResultadoIntento({ ...res.intento, xp_ganado: res.xp_ganado });
       if (res.user && updateUser) {
         updateUser({ xp: res.user.xp });
       }
