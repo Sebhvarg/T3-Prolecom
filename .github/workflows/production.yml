@@ -97,11 +97,11 @@ jobs:
 
       - name: Install Playwright browsers
         working-directory: frontend
-        run: npx playwright install --with-deps chromium
+        run: npx --no-install playwright install --with-deps chromium
 
       - name: Run E2E suite
         working-directory: frontend
-        run: npx playwright test
+        run: npx --no-install playwright test
 
       - name: Upload Playwright report
         if: always()
