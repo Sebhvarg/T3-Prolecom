@@ -160,7 +160,7 @@ jobs:
       #   JUDGE0_URL        → URL del servidor Judge0
       #   JUDGE0_HOST       → Host de Judge0
       - name: Deploy to EC2 via SSH
-        uses: appleboy/ssh-action@2a0b0f6f0a04e3e854e6f98e35e28fdb1e48a0cd # v1.0.3
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
