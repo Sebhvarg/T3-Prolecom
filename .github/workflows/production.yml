@@ -192,6 +192,9 @@ jobs:
             echo "==> Deteniendo servicios previos para liberar puertos..."
             $DC down --remove-orphans || true
 
+            echo "==> Garantizando permisos de escritura 777 para Apache (www-data)..."
+            sudo chmod -R 777 backend/storage backend/bootstrap/cache || true
+
             echo "==> Reconstruyendo y levantando servicios Docker con $DC..."
             $DC pull db judge0-db judge0-redis judge0-server adminer
             $DC up -d --build
