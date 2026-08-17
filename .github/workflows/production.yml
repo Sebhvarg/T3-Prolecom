@@ -183,6 +183,12 @@ jobs:
               DC="docker compose"
             fi
 
+            echo "==> Verificando .env del backend..."
+            if [ ! -f backend/.env ]; then
+              echo "No existe .env — creando desde .env.example..."
+              cp backend/.env.example backend/.env
+            fi
+
             echo "==> Deteniendo servicios previos para liberar puertos..."
             $DC down --remove-orphans || true
 
@@ -190,15 +196,11 @@ jobs:
             $DC pull db judge0-db judge0-redis judge0-server adminer
             $DC up -d --build
 
-            echo "==> Esperando que el backend esté listo..."
-            sleep 8
+            echo "==> Esperando que el backend se estabilice..."
+            sleep 10
 
-            echo "==> Verificando .env del backend..."
-            if [ ! -f backend/.env ]; then
-              echo "No existe .env — creando desde .env.example..."
-              cp backend/.env.example backend/.env
-              $DC run --rm backend php artisan key:generate --force
-            fi
+            echo "==> Generando APP_KEY en backend..."
+            $DC exec -T backend php artisan key:generate --force || true
 
             echo "==> Ejecutando migraciones..."
             $DC exec -T backend php artisan migrate --force
