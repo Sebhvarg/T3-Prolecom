@@ -1,6 +1,6 @@
 import CryptoJS from 'crypto-js';
 
-const SECRET_KEY = import.meta.env.VITE_STORAGE_KEY ;
+const SECRET_KEY = import.meta.env.VITE_STORAGE_KEY || 'prolecom_secure_key_2026_xyz';
 
 export const storage = {
   set: (key, value) => {

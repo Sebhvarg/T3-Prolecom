@@ -98,10 +98,10 @@ jobs:
           php artisan key:generate
           touch database/database.sqlite
           sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env
-          sed -i 's|DB_DATABASE=.*|DB_DATABASE=database/database.sqlite|' .env
+          sed -i "s|DB_DATABASE=.*|DB_DATABASE=$(pwd)/database/database.sqlite|" .env
           php artisan migrate:fresh --seed
-          php artisan serve --port=8000 &
-          sleep 3
+          php artisan serve --host=127.0.0.1 --port=8000 &
+          sleep 4
 
       - name: Setup Node.js
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
@@ -120,6 +120,9 @@ jobs:
 
       - name: Run E2E suite
         working-directory: frontend
+        env:
+          VITE_STORAGE_KEY: prolecom_secure_key_2026_xyz
+          VITE_API_URL: http://127.0.0.1:8000/api
         run: npx playwright test
 
       - name: Upload Playwright report
