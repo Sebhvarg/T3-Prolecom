@@ -1178,6 +1178,7 @@ const CursoCard = ({
             {canViewDetails ? (
               <button
                 type="button"
+                data-testid="curso-titulo-link"
                 onClick={() => navigate(`/cursos/${curso.idCurso}`)}
                 className="text-left font-extrabold text-slate-900 hover:text-[#2c5364] focus:outline-none bg-transparent border-0 p-0 cursor-pointer transition-colors"
               >
@@ -1265,6 +1266,7 @@ const CursoListItem = ({
               {canViewDetails ? (
                 <button
                   type="button"
+                  data-testid="curso-titulo-link"
                   onClick={() => navigate(`/cursos/${curso.idCurso}`)}
                   className="text-left font-extrabold text-slate-900 hover:text-[#2c5364] focus:outline-none bg-transparent border-0 p-0 cursor-pointer transition-colors"
                 >

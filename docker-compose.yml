@@ -13,7 +13,7 @@ services:
     environment:
       - CHOKIDAR_USEPOLLING=true 
       - VITE_API_URL=http://localhost:8000/api
-      - VITE_STORAGE_KEY=---
+      - VITE_STORAGE_KEY=prolecom_secure_key_2026_xyz
     restart: always
     networks:
       - prolecom_network

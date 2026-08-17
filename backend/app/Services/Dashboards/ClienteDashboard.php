@@ -34,6 +34,7 @@ class ClienteDashboard extends BaseDashboard
         return [
             'mis_cursos' => $this->getMisCursos(),
             'actividades' => $this->getActividades(),
+            'xp' => $this->usuario->xp ?? 0,
         ];
     }
 
@@ -43,7 +44,7 @@ class ClienteDashboard extends BaseDashboard
             return [];
         }
 
-        return $this->usuario->cursos()
+        return $this->usuario->cursosInscritos()
             ->with('creador:idUsuario,nombreCompleto')
             ->get()
             ->map(function ($curso) {

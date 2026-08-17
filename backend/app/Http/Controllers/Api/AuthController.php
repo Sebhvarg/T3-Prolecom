@@ -128,6 +128,7 @@ class AuthController extends Controller
                     'rol' => $request->rol,
                     'id_rol' => $idRol,
                     'rutas' => $rutas ? explode(';', $rutas) : [],
+                    'xp' => $usuario->xp,
                 ],
             ], 201);
 

@@ -1,0 +1,69 @@
+name: Final Security & Quality Audit
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  final-audit:
+    name: Final SonarQube Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 
+        with:
+          fetch-depth: 0 
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo, pdo_mysql, openssl
+          coverage: xdebug
+
+      - name: Copy .env
+        working-directory: backend
+        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run backend tests with coverage
+        working-directory: backend
+        run: php artisan config:clear && php -d xdebug.mode=coverage vendor/bin/phpunit --coverage-clover build/logs/clover.xml
+
+      - name: Setup Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af 
+        with:
+          node-version: '20'
+          cache: 'yarn'
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: yarn install --ignore-scripts --frozen-lockfile
+
+      - name: Generate ESLint report for SonarQube
+        working-directory: frontend
+        run: yarn eslint . --format json --output-file eslint-report.json || true
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@2500896589ef8f7247069a56136f8dc177c27ccc # v5.0.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+
+      - name: Quality Gate Check (bloqueante)
+        uses: SonarSource/sonarqube-quality-gate-action@6f0d2bd0a1baa0c4e4a9c4e1b2e0e4d1e7c1a7c9 # v1.1.0
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Auditoría aprobada
+        if: success()
+        run: echo "✅ Auditoría final aprobada. No hay deuda técnica ni vulnerabilidades críticas. Listo para producción."

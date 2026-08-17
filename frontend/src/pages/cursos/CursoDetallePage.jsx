@@ -200,7 +200,7 @@ const checkCanManage = (user) => {
 };
 
 const CursoHeroCard = ({ curso, user, onNavigateTab, handleOpenSecureViewer }) => {
-  const progreso = curso.progreso || { porcentaje: 0, itemsCompletados: 0, totalItems: 0, xpGanado: 0, xpTotal: 0 };
+  const progreso = curso.progreso;
   const isPrivado = curso.esPrivado;
   const badgeClass = isPrivado ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200';
   const badgeText = isPrivado ? 'Curso Privado' : 'Curso Público';
@@ -478,6 +478,8 @@ const CursoDetallePage = () => {
       </DashboardContainer>
     );
   }
+
+
 
   return (
     <DashboardContainer activeSection="Cursos" title={curso.titulo}>

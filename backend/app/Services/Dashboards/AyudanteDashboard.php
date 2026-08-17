@@ -232,7 +232,7 @@ class AyudanteDashboard extends BaseDashboard
                     'titulo' => $curso->titulo,
                     'descripcion' => $curso->descripcion,
                     'lp' => $curso->lenguaje ?? $curso->lp ?? 'Programación',
-                    'tipo' => $curso->esPrivado ? 'Privado' : 'Público',
+                    'tipo' => $curso->tipo === 'privado' ? 'Privado' : 'Público',
                     'estudiantes_count' => $curso->estudiantes_count,
                     'profesor' => $curso->creador ? $curso->creador->nombreCompleto : 'Docente Cátedra',
                 ];

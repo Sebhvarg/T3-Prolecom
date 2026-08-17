@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import DashboardContainer from '../../components/layout/DashboardContainer';
 import { useAuth } from '../../context/AuthContext';
+import { authService } from '../../api/authService';
 import { desafiosService } from '../../api/desafiosService';
 import { cursosService } from '../../api/cursosService';
 import { 
@@ -14,7 +15,7 @@ const DesafioDetallePage = () => {
   const idDesafio = params.idDesafio || params.id;
   const idCurso = params.idDesafio ? params.id : null;
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
 
   const [desafio, setDesafio] = useState(null);
   const [lenguajes, setLenguajes] = useState([]);
@@ -89,6 +90,28 @@ const DesafioDetallePage = () => {
           clearInterval(pollIntervalRef.current);
           setEvaluating(false);
           setResultado(latest);
+
+          // A diferencia del quiz, este endpoint no devuelve el xp
+          // actualizado del usuario -otorgarXP() corre en un job en
+          // background, sin respuesta HTTP directa-. Igual que
+          // StudentDashboard.jsx, se apoya en /dashboard (ya trae 'xp'
+          // desde el fix de ClienteDashboard) para sincronizar el
+          // AuthContext y que no se desactualice sin necesidad de
+          // reiniciar sesión.
+          if (latest.estado === 'aprobado' && updateUser) {
+            authService.apiFetch('/dashboard')
+              .then((dashboardData) => {
+                if (dashboardData?.widgets?.xp !== undefined) {
+                  updateUser({ xp: dashboardData.widgets.xp });
+                }
+              })
+              .catch(() => {
+                // No bloquear el flujo del desafío si esto falla;
+                // el XP real en BD no se ve afectado, solo la
+                // sincronización local podría quedar desactualizada
+                // hasta el próximo login o carga del dashboard.
+              });
+          }
         }
       } catch (err) {
         console.error('Error al consultar estado:', err);
@@ -101,7 +124,7 @@ const DesafioDetallePage = () => {
         setError('La evaluación tardó demasiado. Por favor, revisa tus intentos más tarde.');
       }
     }, 1500);
-  }, [idDesafio]);
+  }, [idDesafio, updateUser]);
 
   const handleSubmit = useCallback(async () => {
     if (!selectedLanguage) return;
@@ -346,7 +369,7 @@ const DesafioDetallePage = () => {
                   {resultado.estado === 'aprobado' && (
                     <div className="md:col-span-2 text-green-600 flex items-center gap-1.5 mt-2 font-bold">
                       <Sparkles size={14} />
-                      <span>Has ganado +{desafio?.puntos || 10} puntos de XP en tu perfil global.</span>
+                      <span>Has ganado +{resultado.puntos_otorgados ?? 0} puntos de XP en tu perfil global.</span>
                     </div>
                   )}
                 </div>
