@@ -84,6 +84,25 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Setup PHP for E2E Backend
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo, pdo_sqlite, sqlite3, openssl
+
+      - name: Prepare Backend for E2E
+        working-directory: backend
+        run: |
+          cp .env.example .env
+          composer install --no-interaction --prefer-dist
+          php artisan key:generate
+          touch database/database.sqlite
+          sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env
+          sed -i 's|DB_DATABASE=.*|DB_DATABASE=database/database.sqlite|' .env
+          php artisan migrate:fresh --seed
+          php artisan serve --port=8000 &
+          sleep 3
+
       - name: Setup Node.js
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
@@ -97,11 +116,11 @@ jobs:
 
       - name: Install Playwright browsers
         working-directory: frontend
-        run: npx --no-install playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium
 
       - name: Run E2E suite
         working-directory: frontend
-        run: npx --no-install playwright test
+        run: npx playwright test
 
       - name: Upload Playwright report
         if: always()

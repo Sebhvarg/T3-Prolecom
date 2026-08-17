@@ -13,6 +13,7 @@ jobs:
   final-audit:
     name: Final SonarQube Audit
     runs-on: ubuntu-latest
+    environment: CI
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 
         with:
@@ -53,7 +54,7 @@ jobs:
         run: yarn eslint . --format json --output-file eslint-report.json || true
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
