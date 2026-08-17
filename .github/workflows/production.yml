@@ -169,6 +169,9 @@ jobs:
             set -e
             cd ${{ secrets.EC2_PROJECT_DIR }}
 
+            echo "==> Ajustando permisos de archivos..."
+            sudo chown -R $(whoami):$(whoami) . || true
+
             echo "==> Limpiando cambios locales y actualizando código..."
             git checkout .
             git pull origin master
